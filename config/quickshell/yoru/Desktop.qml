@@ -71,9 +71,15 @@ Scope {
                 PanelWindow {
                     screen: scr.modelData
                     anchors { top: true; right: desk.c.widgetSide === "right"; left: desk.c.widgetSide === "left" }
-                    margins { top: 70; right: 28; left: 28 }
-                    implicitWidth: 320
-                    implicitHeight: col.implicitHeight + 4
+                    // room around the cards for their glow and shadows to fall into;
+                    // without it they were cut off at the window's edge
+                    id: widgetWin
+                    readonly property int pad: 48           // the side away from the edge
+                    readonly property int edge: 28          // the cards' distance from the screen edge
+                    readonly property bool right: desk.c.widgetSide === "right"
+                    margins { top: 70 - pad; right: 0; left: 0 }
+                    implicitWidth: 320 + pad + edge
+                    implicitHeight: col.implicitHeight + pad * 2
                     color: "transparent"
                     exclusionMode: ExclusionMode.Ignore
                     WlrLayershell.layer: WlrLayer.Bottom
@@ -83,6 +89,8 @@ Scope {
 
                     Column {
                         id: col
+                        x: widgetWin.right ? widgetWin.pad : widgetWin.edge
+                        y: widgetWin.pad
                         width: 320
                         spacing: 12
                         DayCard { visible: desk.c.day }
