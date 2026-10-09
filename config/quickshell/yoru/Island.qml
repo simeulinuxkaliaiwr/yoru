@@ -21,7 +21,7 @@ Scope {
     property var toast: null
     property var queue: []
 
-    readonly property var modal: ["launcher", "clip", "control", "calendar", "walls", "power", "media"]
+    readonly property var modal: ["launcher", "clip", "control", "calendar", "walls", "power", "media", "windows", "keys"]
     readonly property bool opened: modal.includes(mode)
 
     function open(m, out) {
@@ -158,7 +158,8 @@ Scope {
 
                 readonly property var views: ({
                     idle: idleView, osd: osdView, toast: toastView, media: mediaView, launcher: launcherView,
-                    clip: clipView, control: controlView, calendar: calendarView, walls: wallsView, power: powerView
+                    clip: clipView, control: controlView, calendar: calendarView, walls: wallsView, power: powerView,
+                    windows: windowsView, keys: keysView
                 })
                 readonly property Item current: views[perScreen.shown] ?? idleView
                 readonly property bool round: perScreen.shown === "idle" || perScreen.shown === "osd"
@@ -235,6 +236,8 @@ Scope {
                     Face { name: "calendar"; CalendarView { id: calendarView; isle: island } }
                     Face { name: "walls"; WallsView { id: wallsView; isle: island; screen: perScreen.modelData } }
                     Face { name: "power"; PowerView { id: powerView; isle: island } }
+                    Face { name: "windows"; WindowsView { id: windowsView; isle: island } }
+                    Face { name: "keys"; KeysView { id: keysView; isle: island } }
                 }
 
             }

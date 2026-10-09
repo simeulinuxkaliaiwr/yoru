@@ -95,6 +95,69 @@ Singleton {
         return Qt.rgba(a.r + (b.r - a.r) * t, a.g + (b.g - a.g) * t, a.b + (b.b - a.b) * t, a.a + (b.a - a.a) * t);
     }
 
+    // ── where the colours come from: the wallpaper, or the album art of what
+    // is playing (settings: appearance.musicColours). Only the shell follows
+    // the art; apps keep the wallpaper's palette.
+    property var base: null             // palette.json
+    property var art: null              // `yoru art` for the current cover
+    property string artFor: ""
+    readonly property bool artOn: Config.o.appearance.musicColours && art !== null
+                                  && artFor === Media.art && (Media.playing || artHold.running)
+    readonly property var palette: artOn ? art : base
+    onPaletteChanged: if (palette) apply(palette)
+
+    // between tracks, or a short pause: keep the art's colours a moment
+    Timer { id: artHold; interval: 8000 }
+    Connections {
+        target: Media
+        function onPlayingChanged() { if (!Media.playing) artHold.restart(); }
+        function onArtChanged() { theme.fetchArt(); }
+    }
+    Component.onCompleted: fetchArt()
+    function fetchArt() {
+        if (!Config.o.appearance.musicColours || Media.art === "") return;
+        artProc.url = Media.art;
+        artProc.command = ["yoru", "art", Media.art];
+        artProc.running = true;
+    }
+    Process {
+        id: artProc
+        property string url
+        stdout: StdioCollector {
+            onStreamFinished: {
+                let p;
+                try { p = JSON.parse(this.text); } catch (e) { return; }
+                theme.art = p;
+                theme.artFor = artProc.url;
+            }
+        }
+    }
+
+    function apply(p) {
+        const c = k => "#" + p[k];
+        theme.surface = c("surface");
+        theme.surfaceLowest = c("surface_container_lowest");
+        theme.surfaceLow = c("surface_container_low");
+        theme.surfaceMid = c("surface_container");
+        theme.surfaceHigh = c("surface_container_high");
+        theme.surfaceHighest = c("surface_container_highest");
+        theme.ink = c("on_surface");
+        theme.inkDim = c("on_surface_variant");
+        theme.outline = c("outline");
+        theme.outlineVariant = c("outline_variant");
+        theme.primary = c("primary");
+        theme.inkPrimary = c("on_primary");
+        theme.primaryContainer = c("primary_container");
+        theme.inkPrimaryContainer = c("on_primary_container");
+        theme.secondary = c("secondary");
+        theme.secondaryContainer = c("secondary_container");
+        theme.inkSecondaryContainer = c("on_secondary_container");
+        theme.tertiary = c("tertiary");
+        theme.tertiaryContainer = c("tertiary_container");
+        theme.inkTertiaryContainer = c("on_tertiary_container");
+        theme.danger = c("error");
+    }
+
     FileView {
         path: theme.cacheDir + "/palette.json"
         watchChanges: true
@@ -103,31 +166,11 @@ Singleton {
         onLoaded: {
             let p;
             try { p = JSON.parse(text()); } catch (e) { return; }
-            const c = k => "#" + p[k];
-            theme.surface = c("surface");
-            theme.surfaceLowest = c("surface_container_lowest");
-            theme.surfaceLow = c("surface_container_low");
-            theme.surfaceMid = c("surface_container");
-            theme.surfaceHigh = c("surface_container_high");
-            theme.surfaceHighest = c("surface_container_highest");
-            theme.ink = c("on_surface");
-            theme.inkDim = c("on_surface_variant");
-            theme.outline = c("outline");
-            theme.outlineVariant = c("outline_variant");
-            theme.primary = c("primary");
-            theme.inkPrimary = c("on_primary");
-            theme.primaryContainer = c("primary_container");
-            theme.inkPrimaryContainer = c("on_primary_container");
-            theme.secondary = c("secondary");
-            theme.secondaryContainer = c("secondary_container");
-            theme.inkSecondaryContainer = c("on_secondary_container");
-            theme.tertiary = c("tertiary");
-            theme.tertiaryContainer = c("tertiary_container");
-            theme.inkTertiaryContainer = c("on_tertiary_container");
-            theme.danger = c("error");
             theme.wallpaper = p.wallpaper ?? "";
             theme.still = p.still ?? "";
             theme.video = !!p.video;
+            theme.base = p;
+            if (!theme.artOn) theme.apply(p);
         }
     }
 }

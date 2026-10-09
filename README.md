@@ -28,6 +28,10 @@ Dark, with colours taken from the wallpaper and motion everywhere.
   pill that shakes at a wrong password, the music and power buttons. If the
   shell ever dies while locked, aro stays locked: from a TTY,
   `WAYLAND_DISPLAY=wayland-0 aro-lock` takes over and unlocks normally.
+- **Live activities.** A focus timer (with a break, and notifications held
+  while you work), screen recording, a colour picker and quiet hours, all
+  shown in the island. While a track with cover art plays, the shell takes
+  its colours from the cover.
 - **Firefox.** Pill tabs, a rounded address bar and the page as a floating
   card, coloured live from the wallpaper through Pywalfox, and a yoru start
   page. kon's own Firefox CSS is kept as `chrome/kon.css` and comes back with
@@ -67,6 +71,11 @@ Edits to the live one follow it when you switch. The very first switch keeps
 | `mod+w` / `mod+shift+w` | wallpaper picker / next wallpaper |
 | `mod+shift+e` | power |
 | `mod+i` | settings |
+| `mod+Tab` | window picker (type to filter) |
+| `mod+/` | every key, from your aro config |
+| `mod+p` | focus timer |
+| `mod+shift+c` | pick a colour |
+| `mod+shift+Print`, `mod+ctrl+Print` | record the screen, an area |
 | `mod+escape` | lock |
 | `mod+o`, `mod+Tab` | aro's overview |
 | `Print`, `mod+Print` | screenshot, area |

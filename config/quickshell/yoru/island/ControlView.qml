@@ -116,13 +116,24 @@ Item {
             }
             Tile {
                 icon: Notifs.dnd ? "notifications_off" : "notifications"; label: "Do not disturb"
-                sub: Notifs.dnd ? "Quiet" : "Off"
+                sub: !Notifs.dnd ? "Off" : Notifs.quietHours ? "Quiet hours" : Focus.active && !Notifs.manualDnd ? "Focusing" : "Quiet"
                 on: Notifs.dnd
-                onClicked: Notifs.dnd = !Notifs.dnd
+                onClicked: Notifs.toggleDnd()
             }
             Tile {
                 icon: "wallpaper"; label: "Wallpaper"; sub: "Pick a new night"
                 onClicked: v.isle.open("walls", v.isle.output)
+            }
+            Tile {
+                icon: Focus.phase === "break" ? "self_improvement" : "timer"; label: "Focus"
+                sub: !Focus.active ? Config.o.focus.minutes + " min" : (Focus.phase === "break" ? "Break · " : "") + Focus.clock(Focus.left)
+                on: Focus.active
+                onClicked: Focus.toggle()
+            }
+            Tile {
+                icon: "screen_record"; label: "Record"; sub: Recorder.active ? Focus.clock(Recorder.seconds) : "The screen"
+                on: Recorder.active
+                onClicked: { v.isle.close(); Recorder.toggle(""); }
             }
         }
 

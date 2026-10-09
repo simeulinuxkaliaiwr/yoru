@@ -9,7 +9,20 @@ import QtQuick
 Singleton {
     id: notifs
 
-    property bool dnd: false
+    // do not disturb: by hand, during quiet hours, or while focusing
+    property bool manualDnd: false
+    readonly property bool dnd: manualDnd || quietHours || (Focus.phase === "focus" && Config.o.focus.quiet)
+    property bool quietHours: false
+    function toggleDnd() { manualDnd = !dnd; }
+    function inQuiet() {
+        const q = Config.o.quiet;
+        if (!q.schedule) return false;
+        const m = s => { const [h, mi] = s.split(":").map(Number); return h * 60 + (mi || 0); };
+        const d = new Date(), now = d.getHours() * 60 + d.getMinutes(), a = m(q.from), b = m(q.to);
+        return a <= b ? now >= a && now < b : now >= a || now < b;     // overnight wraps
+    }
+    Timer { interval: 30000; repeat: true; running: true; triggeredOnStart: true; onTriggered: notifs.quietHours = notifs.inQuiet() }
+    Connections { target: Config.o.quiet; function onScheduleChanged() { notifs.quietHours = notifs.inQuiet(); } }
     readonly property var list: server.trackedNotifications.values.slice().reverse()
     readonly property int count: list.length
     signal arrived(var n)

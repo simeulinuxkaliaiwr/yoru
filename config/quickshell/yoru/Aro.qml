@@ -2,6 +2,7 @@ pragma Singleton
 
 import Quickshell
 import Quickshell.Io
+import Quickshell.Wayland
 import QtQuick
 
 // aro, through aroctl: workspaces, the focused window, and a nudge on every change
@@ -13,6 +14,14 @@ Singleton {
     property string focusedTitle: ""
     property string focusedApp: ""
     property string focusedOutput: Quickshell.screens[0]?.name ?? ""
+    // foreign-toplevel handles, for activate() and close(): the list only fills
+    // in after first use, so it is bound here, at startup
+    readonly property var toplevels: ToplevelManager.toplevels.values
+    property var mru: []                // window ids, the most recently focused first
+    function touch(id) {
+        if (!id) return;
+        mru = [id].concat(mru.filter(x => x !== id)).slice(0, 200);
+    }
 
     function wsFor(output) { return workspaces.filter(w => w.output === output); }
     function current(output) {
@@ -43,6 +52,7 @@ Singleton {
                 try { ws = JSON.parse(this.text); } catch (e) { return; }
                 aro.windows = ws;
                 const f = ws.find(w => w.focused);
+                if (f && !aro.mru.includes(f.id)) aro.touch(f.id);
                 aro.focusedTitle = f ? f.title : "";
                 aro.focusedApp = f ? f.app_id : "";
             }
@@ -72,8 +82,8 @@ Singleton {
         stdout: SplitParser {
             onRead: line => {
                 // focus changes carry the title already: no need to wait for the query
-                const m = line.match(/^focus \d+ (\S*) ?(.*)$/);
-                if (m) { aro.focusedApp = m[1]; aro.focusedTitle = m[2]; }
+                const m = line.match(/^focus (\d+) (\S*) ?(.*)$/);
+                if (m) { aro.touch(parseInt(m[1])); aro.focusedApp = m[2]; aro.focusedTitle = m[3]; }
                 soon.restart();
             }
         }

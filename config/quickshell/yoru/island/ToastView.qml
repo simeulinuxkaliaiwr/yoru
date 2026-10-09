@@ -26,7 +26,7 @@ Item {
         width: v.shot ? 112 : 44
         height: v.shot ? 63 : 44
         radius: v.shot ? 10 : 14
-        color: Theme.surfaceHigh
+        color: v.t?.swatch ?? Theme.surfaceHigh
         Image {
             anchors.fill: parent
             source: v.img
@@ -37,7 +37,7 @@ Item {
         }
         Icon {
             anchors.centerIn: parent
-            visible: v.img === ""
+            visible: v.img === "" && !v.t?.swatch
             name: v.t?.icon ?? "notifications"
             size: 22; fill: 1
             color: Theme.primary

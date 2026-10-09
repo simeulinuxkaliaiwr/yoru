@@ -52,6 +52,10 @@ Column {
         }
         Item { width: 1; height: 10 }
         SetRow {
+            icon: "album"; label: "Colours from the music"; hint: "While a track with cover art plays, the island and widgets take its colours"
+            Toggle { checked: c.appearance.musicColours; onToggled: on => c.appearance.musicColours = on }
+        }
+        SetRow {
             icon: "speed"; label: "Animation speed"; hint: "Everything in the shell, from the island to the wallpaper"
             Range { value: c.appearance.speed; from: 0.5; to: 2; step: 0.1; decimals: 1; suffix: "×"; onMoved: v => c.appearance.speed = v }
         }

@@ -1,5 +1,6 @@
 import Quickshell
 import QtQuick
+import QtQuick.Shapes
 import Quickshell.Widgets
 import qs
 import qs.parts
@@ -105,6 +106,66 @@ Item {
                 }
             }
             MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: v.isle.open("media", v.output) }
+        }
+
+        // ── recording: a blinking dot and the time, click to stop ───
+        Item {
+            visible: Recorder.active
+            implicitWidth: recRow.implicitWidth
+            implicitHeight: 36
+            Row {
+                id: recRow
+                anchors.verticalCenter: parent.verticalCenter
+                spacing: 7
+                Rectangle {
+                    id: recDot
+                    width: 10; height: 10; radius: 5
+                    anchors.verticalCenter: parent.verticalCenter
+                    color: "#ff4f5e"
+                    // a blink, not an animation: the island doesn't redraw every frame
+                    Timer { interval: 700; repeat: true; running: Recorder.active; onTriggered: recDot.opacity = recDot.opacity > 0.5 ? 0.25 : 1 }
+                }
+                Txt {
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: Focus.clock(Recorder.seconds); size: 12; weight: Font.DemiBold
+                    color: "#ff8a94"; font.features: { "tnum": 1 }
+                }
+            }
+            MouseArea { anchors { fill: parent; margins: -6 } cursorShape: Qt.PointingHandCursor; onClicked: Recorder.stop() }
+        }
+
+        // ── the focus timer: a ring filling up, and what's left ─────
+        Item {
+            visible: Focus.active
+            implicitWidth: focusRow.implicitWidth
+            implicitHeight: 36
+            Row {
+                id: focusRow
+                anchors.verticalCenter: parent.verticalCenter
+                spacing: 6
+                Shape {
+                    id: focusRing
+                    width: 16; height: 16
+                    anchors.verticalCenter: parent.verticalCenter
+                    preferredRendererType: Shape.CurveRenderer
+                    readonly property color tone: Focus.phase === "break" ? Theme.tertiary : Theme.primary
+                    ShapePath {
+                        strokeColor: Theme.surfaceHighest; strokeWidth: 3; fillColor: "transparent"
+                        PathAngleArc { centerX: 8; centerY: 8; radiusX: 6; radiusY: 6; startAngle: 0; sweepAngle: 360 }
+                    }
+                    ShapePath {
+                        strokeColor: focusRing.tone; strokeWidth: 3; fillColor: "transparent"; capStyle: ShapePath.RoundCap
+                        PathAngleArc { centerX: 8; centerY: 8; radiusX: 6; radiusY: 6; startAngle: -90; sweepAngle: Math.max(1, 360 * Focus.progress) }
+                    }
+                }
+                Txt {
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: Focus.clock(Focus.left); size: 12; weight: Font.DemiBold
+                    color: Focus.phase === "break" ? Theme.tertiary : Theme.primary
+                    font.features: { "tnum": 1 }
+                }
+            }
+            MouseArea { anchors { fill: parent; margins: -6 } cursorShape: Qt.PointingHandCursor; onClicked: v.isle.open("control", v.output) }
         }
 
         // ── the time ────────────────────────────────────────────────

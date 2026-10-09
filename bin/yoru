@@ -5,6 +5,7 @@
     yoru wall FILE          a new wallpaper (image or video): palette, apps, shell
     yoru wall next|prev|random   another one from the wallpaper folders
     yoru walls              every wallpaper as JSON, with thumbnails (the picker reads this)
+    yoru art URL            a palette from album art, as JSON (the shell uses it while music plays)
     yoru restore            put aro's wallpaper back (for aro's exec)
     yoru status             the current wallpaper
 
@@ -195,6 +196,45 @@ def palette(f, scheme):
             pass
     c["ansi"] = ansi(c)
     write(cached, json.dumps(c))
+    return c
+
+
+def art_palette(url, scheme):
+    """album art (file:// or http) to a palette; downloads and results are cached"""
+    h = hashlib.sha1(f"{url}:{scheme}".encode()).hexdigest()[:16]
+    out = CACHE / "art" / (h + ".json")
+    if out.exists():
+        try:
+            return json.loads(out.read_text())
+        except ValueError:
+            pass
+    if url.startswith("data:"):
+        # mpv hands the embedded cover over inline
+        import base64
+        img = str(CACHE / "art" / (h + ".img"))
+        out.parent.mkdir(parents=True, exist_ok=True)
+        try:
+            Path(img).write_bytes(base64.b64decode(url.split(",", 1)[1]))
+        except (IndexError, ValueError):
+            return None
+    elif url.startswith("file://"):
+        img = url[7:]
+    elif url.startswith(("http://", "https://")):
+        img = str(CACHE / "art" / (h + ".img"))
+        out.parent.mkdir(parents=True, exist_ok=True)
+        if subprocess.run(["curl", "-sfL", "-m", "8", "-o", img, url]).returncode != 0:
+            return None
+    else:
+        img = url
+    if not Path(img).is_file() or not shutil.which("matugen"):
+        return None
+    r = subprocess.run(["matugen", "image", img, "-m", "dark", "-t", scheme, "--json", "hex",
+                        "--dry-run", "--prefer", "saturation"], capture_output=True, text=True)
+    try:
+        c = {k: v["dark"]["color"].lstrip("#") for k, v in json.loads(r.stdout)["colors"].items()}
+    except (ValueError, KeyError):
+        return None
+    write(out, json.dumps(c))
     return c
 
 
@@ -654,6 +694,12 @@ def main():
     elif cmd == "walls":
         print(json.dumps([{"path": f, "thumb": thumb(f), "video": is_video(f), "name": Path(f).stem}
                           for f in walls(s)]))
+    elif cmd == "art" and len(args) > 1:
+        # a palette from album art, for the shell while the track plays
+        c = art_palette(args[1], s["scheme"])
+        if not c:
+            return 1
+        print(json.dumps(c))
     elif cmd == "restore":
         apply(s, apps=False)
         wallpaper(s)

@@ -27,6 +27,7 @@ Singleton {
             property JsonObject appearance: JsonObject {
                 property string scheme: "scheme-tonal-spot"   // matugen's scheme types
                 property real speed: 1.0                      // animation speed, > 1 is faster
+                property bool musicColours: true              // the shell takes the album art's colours while it plays
             }
 
             property JsonObject wallpaper: JsonObject {
@@ -68,6 +69,18 @@ Singleton {
                 property bool batteryPercent: true
                 property string workspaces: "pills"           // pills, numbers
                 property int toastSeconds: 5
+            }
+
+            property JsonObject focus: JsonObject {
+                property int minutes: 25
+                property int breakMinutes: 5
+                property bool quiet: true                     // no notifications while focusing
+            }
+
+            property JsonObject quiet: JsonObject {
+                property bool schedule: false                 // do not disturb at night
+                property string from: "23:00"
+                property string to: "07:00"
             }
 
             property JsonObject lock: JsonObject {

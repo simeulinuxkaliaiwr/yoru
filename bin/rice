@@ -30,10 +30,17 @@ def run(*cmd):
     return subprocess.run(cmd, capture_output=True, text=True).stdout.strip()
 
 
+def roomy():
+    # aro hands its children 1024 open files; quickshell outgrew that in a day
+    import resource
+    _, hard = resource.getrlimit(resource.RLIMIT_NOFILE)
+    resource.setrlimit(resource.RLIMIT_NOFILE, (min(65536, hard), hard))
+
+
 def spawn(*cmd):
     # outlive this script: aro started it through sh
     subprocess.Popen(cmd, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-                     start_new_session=True)
+                     start_new_session=True, preexec_fn=roomy)
 
 
 def running(pattern):

@@ -21,7 +21,8 @@ workspace_slide_ms = 320
 # yoru draws the wallpaper itself (it moves), so aro draws none
 wallpaper = none
 exec = yoru restore
-exec = qs -c yoru -d
+# aro gives its children 1024 open files; quickshell outgrew that in a day
+exec = sh -c 'ulimit -n 65536; exec qs -c yoru -d'
 
 exec = fcitx5 -d
 
@@ -114,6 +115,7 @@ bind = mod+w, spawn, qs -c yoru ipc call island toggle walls
 bind = mod+shift+e, spawn, qs -c yoru ipc call island toggle power
 bind = mod+shift+w, spawn, yoru wall next
 bind = mod+i, spawn, qs -n -p ~/.config/quickshell/yoru/settings.qml
+bind = mod+slash, spawn, qs -c yoru ipc call island toggle keys
 
 # switch rices: yoru <-> kon
 bind = mod+ctrl+r, spawn, rice toggle
@@ -126,7 +128,7 @@ bind = mod+shift+space, sticky
 bind = mod+t, layout, toggle
 bind = mod+r, width, next
 bind = mod+o, overview
-bind = mod+Tab, overview
+bind = mod+Tab, spawn, qs -c yoru ipc call island toggle windows
 bind = alt+Tab, switch, prev
 bind = mod+shift+Tab, switch, next
 bind = mod+escape, spawn, yoru-lock
@@ -140,7 +142,11 @@ bind = mod+shift+n, spawn, foot --app-id aurora -o font=monospace:size=5 ~/.loca
 # screenshots and colours
 bind = Print, spawn, yoru-shot full
 bind = mod+Print, spawn, yoru-shot area
-bind = mod+shift+c, spawn, sh -c 'c=$(hyprpicker -f hex -a -q) && qs -c yoru ipc call toast say "$c" "copied to the clipboard"'
+bind = mod+shift+c, spawn, qs -c yoru ipc call picker pick
+bind = mod+shift+Print, spawn, qs -c yoru ipc call record toggle
+bind = mod+ctrl+Print, spawn, qs -c yoru ipc call record area
+# p for Pomodoro: the focus timer
+bind = mod+p, spawn, qs -c yoru ipc call focus toggle
 
 bind = mod+h, focus, left
 bind = mod+j, focus, down
