@@ -6,6 +6,7 @@ import QtQuick
 import QtQuick.Effects
 import qs
 import qs.parts
+import qs.desktop
 
 // yoru's lock screen (ext-session-lock): the wallpaper, blurred, with a clock,
 // a password pill and the music. If this shell dies while locked, aro keeps
@@ -115,29 +116,7 @@ Scope {
                     spacing: 0
                     layer.enabled: true
                     layer.effect: MultiEffect { shadowEnabled: true; shadowColor: Qt.rgba(0, 0, 0, 0.6); shadowBlur: 0.9; shadowVerticalOffset: 2 }
-                    readonly property string style: Config.o.lock.clockStyle
-                    Txt {
-                        anchors.horizontalCenter: parent.horizontalCenter
-                        visible: time.style !== "stacked"
-                        text: Qt.formatTime(clock.date, "HH:mm")
-                        size: 150
-                        weight: time.style === "bold" ? Font.Bold : Font.ExtraLight
-                        font.letterSpacing: time.style === "bold" ? -4 : -8
-                        font.features: { "tnum": 1 }
-                    }
-                    Column {
-                        anchors.horizontalCenter: parent.horizontalCenter
-                        visible: time.style === "stacked"
-                        spacing: -40
-                        Txt { anchors.horizontalCenter: parent.horizontalCenter; text: Qt.formatTime(clock.date, "HH"); size: 160; weight: Font.Bold; color: Theme.primary; font.features: { "tnum": 1 } }
-                        Txt { anchors.horizontalCenter: parent.horizontalCenter; text: Qt.formatTime(clock.date, "mm"); size: 160; weight: Font.Bold; font.features: { "tnum": 1 } }
-                    }
-                    Txt {
-                        anchors.horizontalCenter: parent.horizontalCenter
-                        text: Qt.formatDate(clock.date, "dddd, d MMMM")
-                        size: 22; weight: Font.Light
-                        opacity: 0.9
-                    }
+                    ClockFace { style: Config.o.lock.clockStyle; centred: true; k: 1.05; anchors.horizontalCenter: parent.horizontalCenter }
                 }
 
                 // ── who, and the password ────────────────────────────

@@ -44,14 +44,20 @@ Singleton {
 
             property JsonObject desktop: JsonObject {
                 property bool clock: true
-                property string clockStyle: "thin"            // thin, bold, stacked
+                // thin, bold, stacked, outline, mono, split, words, kanji, serif, analog
+                property string clockStyle: "thin"
                 property string clockPosition: "bottom-left"  // bottom-left, center, top-left
                 property bool visualizer: true
+                property string visualizerStyle: "bars"       // bars, mirror, wave, dots
                 property bool widgets: true
                 property string widgetSide: "right"
+                property string widgetStyle: "glass"          // glass, solid, tonal, outline, neon, minimal
+                property int widgetRadius: 28
                 property bool weather: true
                 property bool system: true
                 property bool media: true
+                property bool calendar: false
+                property bool day: false
             }
 
             property JsonObject island: JsonObject {

@@ -19,7 +19,8 @@ ShellRoot {
         color: Theme.surface
         onClosed: Qt.quit()
 
-        property int page: 0
+        // YORU_SETTINGS_PAGE=2 opens on the third page (Desktop)
+        property int page: Math.max(0, Math.min(pages.length - 1, parseInt(Quickshell.env("YORU_SETTINGS_PAGE") || "0") || 0))
         readonly property var pages: [
             { icon: "tune", label: "Quick", comp: quick },
             { icon: "wallpaper", label: "Wallpaper", comp: wall },

@@ -34,6 +34,15 @@ if ! fc-list | grep -q "Material Symbols Rounded" || ! fc-list | grep -q "Geist:
 	rm -rf "$tmp"
 fi
 
+# the kanji clock and the serif clock
+gf=https://github.com/google/fonts/raw/main/ofl
+[ -f "$fonts/NotoSansJP.ttf" ] || { mkdir -p "$fonts"; curl -fsSL -o "$fonts/NotoSansJP.ttf" "$gf/notosansjp/NotoSansJP%5Bwght%5D.ttf"; }
+[ -f "$fonts/InstrumentSerif-Regular.ttf" ] || {
+	curl -fsSL -o "$fonts/InstrumentSerif-Regular.ttf" "$gf/instrumentserif/InstrumentSerif-Regular.ttf"
+	curl -fsSL -o "$fonts/InstrumentSerif-Italic.ttf" "$gf/instrumentserif/InstrumentSerif-Italic.ttf"
+	fc-cache -f "$fonts"
+}
+
 if [ ! -d "$icons/Bibata-Modern-Ice" ]; then
 	say "cursor: Bibata Modern Ice"
 	mkdir -p "$icons"

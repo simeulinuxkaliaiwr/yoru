@@ -19,9 +19,11 @@ Dark, with colours taken from the wallpaper and motion everywhere.
 - **Wallpaper transitions.** Ripple, fade, wipe, disc, stripes, zoom,
   honeycomb and pixelate (or a random one each time), with adjustable length
   and edge softness. aropaper doesn't run under yoru: the shell draws it all.
-- **The desktop.** A clock (thin, bold or stacked; bottom left, centre or top
-  left), weather, system rings and now playing widgets, and a visualizer
-  rising off the bottom edge while music plays.
+- **The desktop.** A clock in ten styles (thin, bold, stacked, outline, mono,
+  split, words, kanji, serif, analog; bottom left, centre or top left),
+  widgets (today, weather, calendar, system rings, now playing) in six looks
+  (glass, solid, tonal, outline, neon, minimal), and a visualizer while music
+  plays (bars, mirror, wave or dots).
 - **A lock screen.** The wallpaper blurred, a big clock, an animated password
   pill that shakes at a wrong password, the music and power buttons. If the
   shell ever dies while locked, aro stays locked: from a TTY,

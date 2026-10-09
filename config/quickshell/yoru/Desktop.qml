@@ -1,5 +1,4 @@
 import Quickshell
-import Quickshell.Io
 import Quickshell.Wayland
 import QtQuick
 import QtQuick.Effects
@@ -23,6 +22,7 @@ Scope {
             id: scr
             required property var modelData
             readonly property bool covered: Aro.busy(modelData.name) || Aro.fullscreen(modelData.name)
+            readonly property bool visOn: desk.c.visualizer && Media.playing && !covered
 
             // ── the clock ───────────────────────────────────────────
             LazyLoader {
@@ -33,7 +33,7 @@ Scope {
                     readonly property string pos: desk.c.clockPosition
                     // a strip across the screen; the clock sits in it where asked
                     anchors { left: true; right: true; top: pos !== "bottom-left"; bottom: pos !== "top-left" }
-                    implicitHeight: 380
+                    implicitHeight: 520
                     color: "transparent"
                     exclusionMode: ExclusionMode.Ignore
                     WlrLayershell.layer: WlrLayer.Bottom
@@ -41,14 +41,15 @@ Scope {
                     WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
                     mask: Region {}
 
-                    Column {
+                    ClockFace {
                         id: face
-                        readonly property string style: desk.c.clockStyle
-                        readonly property bool centred: clockWin.pos === "center"
+                        style: desk.c.clockStyle
+                        centred: clockWin.pos === "center"
                         x: centred ? (parent.width - width) / 2 : 64
+                        // the clock steps up out of the visualizer's way
                         y: centred ? (parent.height - height) / 2 - 40
-                         : clockWin.pos === "top-left" ? 70 : parent.height - height - 56
-                        spacing: face.style === "stacked" ? 6 : -6
+                         : clockWin.pos === "top-left" ? 70 : parent.height - height - 56 - (scr.visOn ? 110 : 0)
+                        Behavior on y { NumberAnimation { duration: Theme.slow; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.spatial } }
                         layer.enabled: true
                         layer.effect: MultiEffect {
                             shadowEnabled: true
@@ -56,40 +57,13 @@ Scope {
                             shadowBlur: 0.8
                             shadowVerticalOffset: 2
                         }
-                        Txt {
-                            anchors.horizontalCenter: face.centred ? parent.horizontalCenter : undefined
-                            visible: face.style !== "stacked"
-                            text: Qt.formatTime(clock.date, Config.o.island.clock24 ? "HH:mm" : "h:mm")
-                            size: face.style === "bold" ? 124 : 136
-                            weight: face.style === "bold" ? Font.Bold : Font.ExtraLight
-                            font.letterSpacing: face.style === "bold" ? -3 : -6
-                            font.features: { "tnum": 1 }
-                        }
-                        Column {
-                            anchors.horizontalCenter: face.centred ? parent.horizontalCenter : undefined
-                            visible: face.style === "stacked"
-                            spacing: -34
-                            Txt { text: Qt.formatTime(clock.date, Config.o.island.clock24 ? "HH" : "hh"); size: 150; weight: Font.Black; color: Theme.primary; font.features: { "tnum": 1 } }
-                            Txt { text: Qt.formatTime(clock.date, "mm"); size: 150; weight: Font.Black; font.features: { "tnum": 1 } }
-                        }
-                        Row {
-                            anchors.horizontalCenter: face.centred ? parent.horizontalCenter : undefined
-                            spacing: 12
-                            leftPadding: face.centred ? 0 : 8
-                            Rectangle { width: 26; height: 3; radius: 2; color: Theme.primary; anchors.verticalCenter: parent.verticalCenter }
-                            Txt {
-                                text: Qt.formatDate(clock.date, "dddd, d MMMM")
-                                size: 22; weight: Font.Light
-                                opacity: 0.85
-                            }
-                        }
                     }
                 }
             }
 
             // ── the widgets ─────────────────────────────────────────
             LazyLoader {
-                active: desk.c.widgets && (desk.c.weather || desk.c.system || desk.c.media)
+                active: desk.c.widgets && (desk.c.weather || desk.c.system || desk.c.media || desk.c.calendar || desk.c.day)
                 PanelWindow {
                     screen: scr.modelData
                     anchors { top: true; right: desk.c.widgetSide === "right"; left: desk.c.widgetSide === "left" }
@@ -107,21 +81,30 @@ Scope {
                         id: col
                         width: 320
                         spacing: 12
+                        DayCard { visible: desk.c.day }
                         WeatherCard { visible: desk.c.weather && Weather.ready }
+                        CalendarCard { visible: desk.c.calendar }
                         SystemCard { visible: desk.c.system }
                         MediaCard { visible: desk.c.media && Media.title !== "" }
+                        // with no card under it, the text needs a shadow to read
+                        layer.enabled: desk.c.widgetStyle === "minimal"
+                        layer.effect: MultiEffect {
+                            shadowEnabled: true
+                            shadowColor: Qt.rgba(0, 0, 0, 0.9)
+                            shadowBlur: 0.35
+                            shadowVerticalOffset: 1
+                        }
                     }
                 }
             }
 
-            // ── the visualizer ──────────────────────────────────────
+            // ── the visualizer: fades in and out with the music ─────
             LazyLoader {
-                active: desk.c.visualizer && Media.playing && !scr.covered
+                active: scr.visOn || linger.running
                 PanelWindow {
-                    id: vis
                     screen: scr.modelData
                     anchors { bottom: true; left: true; right: true }
-                    implicitHeight: 150
+                    implicitHeight: 140
                     color: "transparent"
                     exclusionMode: ExclusionMode.Ignore
                     WlrLayershell.layer: WlrLayer.Bottom
@@ -129,36 +112,16 @@ Scope {
                     WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
                     mask: Region {}
 
-                    property var levels: []
-                    Process {
-                        running: true
-                        command: ["cava", "-p", Quickshell.shellDir + "/cava.conf"]
-                        stdout: SplitParser {
-                            onRead: line => vis.levels = line.split(";").filter(s => s !== "").map(n => parseInt(n) / 1000)
-                        }
-                    }
-
-                    Row {
-                        anchors { bottom: parent.bottom; horizontalCenter: parent.horizontalCenter }
-                        spacing: 7
-                        opacity: 0.6
-                        Repeater {
-                            model: 56
-                            Rectangle {
-                                required property int index
-                                anchors.bottom: parent.bottom
-                                width: Math.floor((vis.width - 55 * 7) / 56)
-                                height: Math.max(4, (vis.levels[index] ?? 0) * vis.height)
-                                radius: width / 2
-                                gradient: Gradient {
-                                    GradientStop { position: 0; color: Theme.tertiary }
-                                    GradientStop { position: 1; color: Theme.alpha(Theme.primary, 0.2) }
-                                }
-                            }
-                        }
+                    Visualizer {
+                        anchors { fill: parent; leftMargin: 24; rightMargin: 24; bottomMargin: 6 }
+                        style: desk.c.visualizerStyle
+                        opacity: scr.visOn ? 0.85 : 0
+                        Behavior on opacity { NumberAnimation { duration: 500 } }
                     }
                 }
             }
+            Timer { id: linger; interval: 600 }
+            onVisOnChanged: if (!visOn) linger.restart()
         }
     }
 }
