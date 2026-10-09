@@ -4,9 +4,11 @@ import qs
 import qs.parts
 
 // today: how much of the day, the week and the year has gone
+// today in one of two layouts: bars, or three rings
 Card {
     id: c
-    height: 150
+    readonly property string look: Config.o.desktop.dayStyle
+    height: look === "rings" ? 140 : 150
     SystemClock { id: clock; precision: SystemClock.Minutes }
     readonly property date now: clock.date
     readonly property real day: (now.getHours() * 60 + now.getMinutes()) / 1440
@@ -37,7 +39,18 @@ Card {
         Txt { anchors { right: parent.right; verticalCenter: parent.verticalCenter } text: Math.round(parent.value * 100) + "%"; size: 12; weight: Font.Medium; font.features: { "tnum": 1 } }
     }
 
+    Row {
+        visible: c.look === "rings"
+        anchors { horizontalCenter: parent.horizontalCenter; bottom: parent.bottom; bottomMargin: 12 }
+        spacing: 26
+        Ring { value: c.day; icon: "sunny"; label: "Day"; text: Math.round(c.day * 100) + "%" }
+        Ring { value: c.week; icon: "date_range"; label: "Week " + c.isoWeek; text: Math.round(c.week * 100) + "%"; tone: Theme.secondary }
+        Ring { value: c.year; icon: "public"; label: Qt.formatDate(c.now, "yyyy"); text: Math.round(c.year * 100) + "%"; tone: Theme.tertiary }
+    }
+    Txt { visible: c.look === "rings"; x: 20; y: 14; text: Qt.formatDate(c.now, "dddd, d MMMM"); size: 13; weight: Font.DemiBold }
+
     Column {
+        visible: c.look !== "rings"
         x: 20; y: 16
         width: parent.width - 40
         spacing: 2

@@ -21,8 +21,11 @@ Dark, with colours taken from the wallpaper and motion everywhere.
   and edge softness. aropaper doesn't run under yoru: the shell draws it all.
 - **The desktop.** A clock in ten styles (thin, bold, stacked, outline, mono,
   split, words, kanji, serif, analog; bottom left, centre or top left),
-  widgets (today, weather, calendar, system rings, now playing) in six looks
-  (glass, solid, tonal, outline, neon, minimal), and a visualizer while music
+  widgets (today, weather, calendar, system, now playing), each with its own
+  layouts (weather: card, hero, pill; calendar: month, week, a tear-off date;
+  system: rings, bars, chips; now playing: card, cover, pill), placed in a
+  column, a grid, a row under the island or each in its own spot, on six
+  looks (glass, solid, tonal, outline, neon, minimal), and a visualizer while music
   plays (bars, mirror, wave or dots).
 - **A lock screen.** The wallpaper blurred, a big clock, an animated password
   pill that shakes at a wrong password, the music and power buttons. If the
@@ -65,7 +68,7 @@ Edits to the live one follow it when you switch. The very first switch keeps
 | | |
 |---|---|
 | `mod+a` | launcher (apps, `=` maths) |
-| `mod+v` | clipboard |
+| `mod+v` | clipboard, with previews of images and whole texts |
 | `mod+x` | control centre |
 | `mod+m` | player |
 | `mod+w` / `mod+shift+w` | wallpaper picker / next wallpaper |

@@ -61,6 +61,22 @@ Singleton {
                 property bool media: true
                 property bool calendar: false
                 property bool day: false
+                // where: column (one side), grid (two columns on a side), row (under the island), free
+                property string arrangement: "column"
+                // each widget's look
+                property string weatherStyle: "card"          // card, hero, pill
+                property string calendarStyle: "month"        // month, week, date
+                property string systemStyle: "rings"          // rings, bars, chips
+                property string mediaStyle: "card"            // card, cover, pill
+                property string dayStyle: "bars"              // bars, rings
+                // with arrangement "free": top-left, top-right, middle-left, middle-right, bottom-right, top-center
+                property JsonObject spots: JsonObject {
+                    property string day: "top-left"
+                    property string weather: "top-right"
+                    property string calendar: "middle-right"
+                    property string system: "bottom-right"
+                    property string media: "middle-left"
+                }
             }
 
             property JsonObject island: JsonObject {

@@ -54,6 +54,57 @@ Column {
     }
 
     Section {
+        icon: "dashboard_customize"; title: "Arrangement"
+        SetRow { icon: "view_quilt"; label: "Where the widgets go" }
+        Choice {
+            x: 10; current: c.arrangement
+            options: [{ value: "column", label: "Column", icon: "view_agenda" }, { value: "grid", label: "Grid", icon: "grid_view" },
+                      { value: "row", label: "Row under the island", icon: "view_week" }, { value: "free", label: "Free", icon: "open_with" }]
+            onPicked: v => c.arrangement = v
+        }
+        Item { width: 1; height: 8 }
+        // free: a spot for each widget
+        Repeater {
+            model: c.arrangement === "free" ? [["day", "Today"], ["weather", "Weather"], ["calendar", "Calendar"], ["system", "System"], ["media", "Now playing"]] : []
+            Column {
+                required property var modelData
+                width: parent.width
+                SetRow { icon: "pin_drop"; label: modelData[1] }
+                Choice {
+                    x: 10; current: c.spots[modelData[0]]
+                    options: [{ value: "top-left", label: "Top left" }, { value: "top-center", label: "Top" }, { value: "top-right", label: "Top right" },
+                              { value: "middle-left", label: "Left" }, { value: "middle-right", label: "Right" }, { value: "bottom-right", label: "Bottom right" }]
+                    onPicked: v => c.spots[parent.modelData[0]] = v
+                }
+                Item { width: 1; height: 6 }
+            }
+        }
+    }
+
+    Section {
+        icon: "style"; title: "Widget layouts"
+        Repeater {
+            model: [
+                ["weatherStyle", "Weather", "partly_cloudy_day", [["card", "Card"], ["hero", "Hero"], ["pill", "Pill"]]],
+                ["calendarStyle", "Calendar", "calendar_month", [["month", "Month"], ["week", "Week"], ["date", "Date"]]],
+                ["systemStyle", "System", "monitoring", [["rings", "Rings"], ["bars", "Bars"], ["chips", "Chips"]]],
+                ["mediaStyle", "Now playing", "album", [["card", "Card"], ["cover", "Cover"], ["pill", "Pill"]]],
+                ["dayStyle", "Today", "hourglass_bottom", [["bars", "Bars"], ["rings", "Rings"]]],
+            ]
+            SetRow {
+                required property var modelData
+                icon: modelData[2]; label: modelData[1]
+                Choice {
+                    width: 330
+                    current: c[parent.parent.modelData[0]] ?? ""
+                    options: parent.parent.modelData[3].map(o => ({ value: o[0], label: o[1] }))
+                    onPicked: v => c[parent.parent.modelData[0]] = v
+                }
+            }
+        }
+    }
+
+    Section {
         icon: "graphic_eq"; title: "Visualizer"
         SetRow { icon: "music_note"; label: "Show while music plays"; Toggle { checked: c.visualizer; onToggled: on => c.visualizer = on } }
         SetRow {

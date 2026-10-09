@@ -52,7 +52,9 @@ Scope {
                         x: centred ? (parent.width - width) / 2 : 64
                         // the clock steps up out of the visualizer's way
                         y: centred ? (parent.height - height) / 2 - 40
-                         : clockWin.pos === "top-left" ? 70 : parent.height - height - 56 - (scr.visOn && !scr.busy ? 110 : 0)
+                         // below the row of widgets when they run along the top
+                         : clockWin.pos === "top-left" ? 70 + (desk.c.widgets && desk.c.arrangement === "row" ? 130 : 0)
+                         : parent.height - height - 56 - (scr.visOn && !scr.busy ? 110 : 0)
                         Behavior on y { NumberAnimation { duration: Theme.slow; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.spatial } }
                         layer.enabled: true
                         layer.effect: MultiEffect {
@@ -65,39 +67,117 @@ Scope {
                 }
             }
 
-            // ── the widgets ─────────────────────────────────────────
-            LazyLoader {
-                active: desk.c.widgets && (desk.c.weather || desk.c.system || desk.c.media || desk.c.calendar || desk.c.day)
+            // ── the widgets: a window per spot that has any ────────────
+            readonly property var order: ["day", "weather", "calendar", "system", "media"]
+            readonly property var enabledWidgets: order.filter(n => desk.c.widgets && desk.c[n] && (n !== "media" || Media.title !== "")
+                                                               && (n !== "weather" || Weather.ready))
+            function spotOf(n) {
+                const a = desk.c.arrangement;
+                if (a === "row") return "top-center";
+                if (a === "free") return desk.c.spots[n] || "top-right";
+                return desk.c.widgetSide === "left" ? "top-left" : "top-right";
+            }
+            readonly property var spots: {
+                const used = [];
+                for (const n of enabledWidgets) { const p = spotOf(n); if (!used.includes(p)) used.push(p); }
+                return used;
+            }
+
+            Variants {
+                model: scr.spots
                 PanelWindow {
-                    screen: scr.modelData
-                    anchors { top: true; right: desk.c.widgetSide === "right"; left: desk.c.widgetSide === "left" }
-                    // room around the cards for their glow and shadows to fall into;
-                    // without it they were cut off at the window's edge
                     id: widgetWin
-                    readonly property int pad: 48           // the side away from the edge
-                    readonly property int edge: 28          // the cards' distance from the screen edge
-                    readonly property bool right: desk.c.widgetSide === "right"
-                    margins { top: 70 - pad; right: 0; left: 0 }
-                    implicitWidth: 320 + pad + edge
-                    implicitHeight: col.implicitHeight + pad * 2
+                    required property string modelData
+                    readonly property string spot: modelData
+                    readonly property bool right: spot.endsWith("right")
+                    readonly property bool centred: spot.endsWith("center")
+                    readonly property bool grid: desk.c.arrangement === "grid"
+                    readonly property var names: scr.enabledWidgets.filter(n => scr.spotOf(n) === spot)
+                    // room around the cards for their glow and shadows
+                    readonly property int pad: 48
+                    readonly property int edge: 28
+                    screen: scr.modelData
+                    anchors {
+                        top: spot.startsWith("top")
+                        bottom: spot.startsWith("bottom")
+                        left: spot.endsWith("left")
+                        right: spot.endsWith("right")
+                    }
+                    // under the clock when it sits in the same corner
+                    readonly property int clockRoom: spot === "top-left" && desk.c.clock && desk.c.clockPosition === "top-left" ? 250 : 0
+                    margins {
+                        top: spot.startsWith("top") ? 70 - pad + clockRoom : 0
+                        bottom: spot.startsWith("bottom") ? 56 - pad : 0
+                    }
+                    implicitWidth: holder.width + (centred ? pad * 2 : pad + edge)
+                    implicitHeight: holder.height + pad * 2
                     color: "transparent"
                     exclusionMode: ExclusionMode.Ignore
                     WlrLayershell.layer: WlrLayer.Bottom
                     WlrLayershell.namespace: "yoru-widgets"
                     WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
-                    mask: Region { item: col }
+                    mask: Region { item: holder }
 
-                    Column {
-                        id: col
-                        x: widgetWin.right ? widgetWin.pad : widgetWin.edge
+                    // one widget, by name
+                    component Widget: Loader {
+                        required property string name
+                        sourceComponent: ({ day: dayC, weather: weatherC, calendar: calC, system: sysC, media: mediaC })[name]
+                    }
+                    Component { id: dayC; DayCard {} }
+                    Component { id: weatherC; WeatherCard {} }
+                    Component { id: calC; CalendarCard {} }
+                    Component { id: sysC; SystemCard {} }
+                    Component { id: mediaC; MediaCard {} }
+
+                    Item {
+                        id: holder
+                        x: widgetWin.centred ? widgetWin.pad : widgetWin.right ? widgetWin.pad : widgetWin.edge
                         y: widgetWin.pad
-                        width: 320
-                        spacing: 12
-                        DayCard { visible: desk.c.day }
-                        WeatherCard { visible: desk.c.weather && Weather.ready }
-                        CalendarCard { visible: desk.c.calendar }
-                        SystemCard { visible: desk.c.system }
-                        MediaCard { visible: desk.c.media && Media.title !== "" }
+                        width: widgetWin.centred ? row.implicitWidth : widgetWin.grid ? flow.width : col.width
+                        height: widgetWin.centred ? row.implicitHeight : widgetWin.grid ? flow.height : col.implicitHeight
+
+                        // a column, the cards lined up on the screen-edge side
+                        Column {
+                            id: col
+                            visible: !widgetWin.centred && !widgetWin.grid
+                            width: Math.max(...children.map(ch => ch.width), 1)
+                            spacing: 12
+                            Repeater {
+                                model: !widgetWin.centred && !widgetWin.grid ? widgetWin.names : []
+                                Widget {
+                                    required property string modelData
+                                    name: modelData
+                                    x: widgetWin.right ? col.width - width : 0
+                                }
+                            }
+                        }
+                        // a grid: two columns, filled in turn
+                        Row {
+                            id: flow
+                            visible: widgetWin.grid && !widgetWin.centred
+                            spacing: 12
+                            Repeater {
+                                model: widgetWin.grid && !widgetWin.centred ? 2 : 0
+                                Column {
+                                    required property int index
+                                    spacing: 12
+                                    Repeater {
+                                        model: widgetWin.names.filter((n, i) => i % 2 === parent.index)
+                                        Widget { required property string modelData; name: modelData }
+                                    }
+                                }
+                            }
+                        }
+                        // a row under the island
+                        Row {
+                            id: row
+                            visible: widgetWin.centred
+                            spacing: 12
+                            Repeater {
+                                model: widgetWin.centred ? widgetWin.names : []
+                                Widget { required property string modelData; name: modelData }
+                            }
+                        }
                         // with no card under it, the text needs a shadow to read
                         layer.enabled: desk.c.widgetStyle === "minimal"
                         layer.effect: MultiEffect {
