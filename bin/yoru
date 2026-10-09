@@ -1,0 +1,561 @@
+#!/usr/bin/env python3
+"""yoru - the night rice for aro: a palette from the wallpaper, in every app.
+
+    yoru                    apply the current wallpaper's palette everywhere
+    yoru wall FILE          a new wallpaper (image or video): palette, apps, shell
+    yoru wall next|prev     the next or previous one in the wallpaper folders
+    yoru walls              every wallpaper as JSON, with thumbnails (the picker reads this)
+    yoru restore            put aro's wallpaper back (for aro's exec)
+    yoru status             the current wallpaper
+
+State is ~/.config/yoru/yoru.json; the palette the shell reads is
+~/.cache/yoru/palette.json. Apps are only re-themed while yoru is the active
+rice (see `rice`), so picking a wallpaper never touches kon's look.
+"""
+
+import colorsys
+import hashlib
+import json
+import os
+import re
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+
+HOME = Path.home()
+CONF = HOME / ".config"
+CACHE = HOME / ".cache/yoru"
+STATE = CONF / "yoru/yoru.json"
+RICE = HOME / ".local/state/rice/current"
+os.environ["PATH"] = f"{HOME}/.local/bin:{os.environ.get('PATH', '')}"
+
+DEFAULTS = {
+    "wallpaper": str(HOME / "Pictures/nightcore/wallhaven-exvklr.jpg"),
+    "dirs": [str(HOME / "Pictures/nightcore"), str(HOME / "Pictures/Wallpapers")],
+    "scheme": "scheme-tonal-spot",
+    "cursor": "Bibata-Modern-Ice",
+}
+IMAGES = {".jpg", ".jpeg", ".png", ".webp", ".bmp"}
+VIDEOS = {".mp4", ".webm", ".mkv", ".mov", ".gif"}
+
+# a night sky, for when matugen can't run
+FALLBACK = {
+    "background": "0f1218", "surface": "0f1218", "surface_container_lowest": "0a0d12",
+    "surface_container_low": "171b22", "surface_container": "1b2028", "surface_container_high": "262a33",
+    "surface_container_highest": "30353e", "on_surface": "e0e2ec", "on_surface_variant": "c3c6d1",
+    "outline": "8d909b", "outline_variant": "434751", "primary": "a9c7ff", "on_primary": "0b305f",
+    "primary_container": "284777", "on_primary_container": "d6e3ff", "secondary": "bdc7dc",
+    "secondary_container": "3e4759", "on_secondary_container": "d9e3f8", "tertiary": "dcbce1",
+    "tertiary_container": "573e5c", "on_tertiary_container": "f9d8fe", "error": "ffb4ab",
+    "on_error": "690005", "scrim": "000000",
+}
+
+
+def sh(*cmd):
+    subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+
+def write(path, text):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_name(path.name + ".yoru-tmp")
+    tmp.write_text(text)
+    tmp.replace(path)
+
+
+def state():
+    s = dict(DEFAULTS)
+    try:
+        s.update(json.loads(STATE.read_text()))
+    except (OSError, ValueError):
+        pass
+    return s
+
+
+def save_state(s):
+    write(STATE, json.dumps(s, indent=2) + "\n")
+
+
+def active():
+    try:
+        return RICE.read_text().strip() == "yoru"
+    except OSError:
+        return False
+
+
+def is_video(f):
+    return Path(f).suffix.lower() in VIDEOS
+
+
+# ── wallpapers ──────────────────────────────────────────────────────────
+
+def key(f):
+    p = Path(f)
+    st = p.stat()
+    return hashlib.sha1(f"{p.resolve()}:{st.st_mtime_ns}:{st.st_size}".encode()).hexdigest()[:16]
+
+
+def still(f):
+    """an image of the wallpaper: itself, or a video's frame"""
+    if not is_video(f):
+        return f
+    out = CACHE / "frames" / (key(f) + ".jpg")
+    if not out.exists():
+        out.parent.mkdir(parents=True, exist_ok=True)
+        subprocess.run(["ffmpeg", "-loglevel", "error", "-y", "-ss", "2", "-i", f, "-frames:v", "1",
+                        "-q:v", "3", str(out)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    return str(out) if out.exists() else ""
+
+
+def thumb(f):
+    out = CACHE / "thumbs" / (key(f) + ".jpg")
+    if not out.exists():
+        src = still(f)
+        if not src:
+            return ""
+        out.parent.mkdir(parents=True, exist_ok=True)
+        sh("magick", src + "[0]", "-resize", "480x270^", "-gravity", "center", "-extent", "480x270",
+           "-quality", "86", str(out))
+    return str(out) if out.exists() else ""
+
+
+def walls(s):
+    found = []
+    for d in s["dirs"]:
+        d = Path(os.path.expanduser(d))
+        if not d.is_dir():
+            continue
+        for f in sorted(d.iterdir(), key=lambda p: p.name.lower()):
+            if f.is_file() and f.suffix.lower() in IMAGES | VIDEOS:
+                found.append(str(f))
+    return found
+
+
+# ── palette ─────────────────────────────────────────────────────────────
+
+def hex_rgb(h):
+    h = h.lstrip("#")
+    return tuple(int(h[i:i + 2], 16) / 255 for i in (0, 2, 4))
+
+
+def rgb_hex(r, g, b):
+    return "".join(f"{round(max(0, min(1, c)) * 255):02x}" for c in (r, g, b))
+
+
+def hls(hue, light, sat):
+    return rgb_hex(*colorsys.hls_to_rgb(hue % 1, light, sat))
+
+
+def ansi(c):
+    """16 terminal colours that belong to the wallpaper: fixed hues, nudged toward the primary"""
+    ph, pl, ps = colorsys.rgb_to_hls(*hex_rgb(c["primary"]))
+    pull = 0.06
+
+    def tint(h):
+        d = ((ph - h + 0.5) % 1) - 0.5
+        return h + d * pull
+
+    hues = {1: 0.0, 2: 0.36, 3: 0.12, 4: 0.6, 5: 0.82, 6: 0.5}
+    sat = 0.55 + min(ps, 0.6) * 0.3
+    out = [c["surface_container_high"]] + [""] * 15
+    for i, h in hues.items():
+        out[i] = hls(tint(h), 0.72, sat)
+        out[i + 8] = hls(tint(h), 0.80, sat)
+    out[4], out[12] = c["primary"], c["primary_fixed"] if "primary_fixed" in c else hls(ph, 0.85, ps)
+    out[7] = c["on_surface_variant"]
+    out[8] = c["outline"]
+    out[15] = c["on_surface"]
+    return out
+
+
+def palette(f, scheme):
+    src = still(f)
+    cached = CACHE / "palettes" / f"{key(f)}-{scheme}.json"
+    if cached.exists():
+        try:
+            return json.loads(cached.read_text())
+        except ValueError:
+            pass
+    c = dict(FALLBACK)
+    if src and shutil.which("matugen"):
+        r = subprocess.run(["matugen", "image", src, "-m", "dark", "-t", scheme, "--json", "hex",
+                            "--dry-run", "--prefer", "saturation"], capture_output=True, text=True)
+        try:
+            data = json.loads(r.stdout)
+            c = {k: v["dark"]["color"].lstrip("#") for k, v in data["colors"].items()}
+        except (ValueError, KeyError):
+            pass
+    c["ansi"] = ansi(c)
+    write(cached, json.dumps(c))
+    return c
+
+
+# ── apps ────────────────────────────────────────────────────────────────
+
+def shell(s, c):
+    """the palette the quickshell config watches"""
+    data = dict(c, wallpaper=s["wallpaper"], still=still(s["wallpaper"]), video=is_video(s["wallpaper"]))
+    write(CACHE / "palette.json", json.dumps(data, indent=2) + "\n")
+
+
+ARO = {
+    "background": lambda c: c["surface"] + "ff",
+    "frame": lambda c: c["surface_container"] + "ff",
+    "frame_focus": lambda c: c["surface_container_high"] + "ff",
+    "border_color": lambda c: c["surface_container_highest"] + "ff",
+    "accent": lambda c: c["primary"] + "ff",
+    "accent_soft": lambda c: c["primary"] + "40",
+    "text": lambda c: c["on_surface"] + "ff",
+    "text_dim": lambda c: c["on_surface_variant"] + "ff",
+    "bar_color": lambda c: c["surface_container_lowest"] + "ff",
+    "urgent": lambda c: c["error"] + "ff",
+    "drop_fill": lambda c: c["primary"] + "1f",
+    "drop_line": lambda c: c["primary"] + "cc",
+    "notify_color": lambda c: c["surface_container_high"] + "f2",
+    "scrim_color": lambda c: c["scrim"] + "8c",
+    "overview_tint": lambda c: c["surface_container_lowest"] + "80",
+}
+
+
+def aro(c):
+    path = CONF / "aro/config"
+    if not path.exists():
+        return
+    s = path.read_text()
+    for k, val in ARO.items():
+        s = re.sub(rf"^(\s*{k}\s*=\s*)(0x|#)?[0-9a-fA-F]{{6,8}}", lambda m: m.group(1) + "0x" + val(c), s, flags=re.M)
+    write(path, s)
+    sh("aroctl", "reload")
+
+
+def foot(c):
+    a = c["ansi"]
+    out = ["# generated by yoru", "", "[colors-dark]",
+           f"foreground={c['on_surface']}", f"background={c['surface_container_lowest']}", "alpha=0.86", "blur=yes"]
+    out += [f"regular{i}={a[i]}" for i in range(8)] + [f"bright{i}={a[i + 8]}" for i in range(8)]
+    out += [f"selection-foreground={c['on_primary_container']}", f"selection-background={c['primary_container']}",
+            f"cursor={c['on_primary']} {c['primary']}", f"urls={c['tertiary']}",
+            f"jump-labels={c['on_primary']} {c['primary']}", ""]
+    write(CONF / "foot/themes/yoru", "\n".join(out))
+    path = CONF / "foot/foot.ini"
+    if path.exists():
+        s = re.sub(r"^include=.*themes/\w+$", "include=~/.config/foot/themes/yoru", path.read_text(), flags=re.M)
+        write(path, s)
+    # recolour the terminals already open
+    seq = "".join(f"\033]4;{i};#{a[i]}\033\\" for i in range(16))
+    seq += (f"\033]10;#{c['on_surface']}\033\\\033]11;#{c['surface_container_lowest']}\033\\"
+            f"\033]12;#{c['primary']}\033\\\033]17;#{c['primary_container']}\033\\"
+            f"\033]19;#{c['on_primary_container']}\033\\").encode()
+    uid = os.getuid()
+    for pts in Path("/dev/pts").glob("[0-9]*"):
+        try:
+            if pts.stat().st_uid != uid:
+                continue
+            fd = os.open(pts, os.O_WRONLY | os.O_NOCTTY | os.O_NONBLOCK)
+            try:
+                os.write(fd, seq)
+            finally:
+                os.close(fd)
+        except OSError:
+            pass
+
+
+def gtk(c):
+    css = f"""/* generated by yoru */
+@define-color accent_color #{c['primary']};
+@define-color accent_bg_color #{c['primary']};
+@define-color accent_fg_color #{c['on_primary']};
+@define-color destructive_bg_color #{c['error']};
+@define-color destructive_fg_color #{c['on_error']};
+@define-color error_bg_color #{c['error']};
+@define-color error_fg_color #{c['on_error']};
+@define-color window_bg_color #{c['surface_container_low']};
+@define-color window_fg_color #{c['on_surface']};
+@define-color view_bg_color #{c['surface']};
+@define-color view_fg_color #{c['on_surface']};
+@define-color headerbar_bg_color #{c['surface_container']};
+@define-color headerbar_fg_color #{c['on_surface']};
+@define-color headerbar_backdrop_color @window_bg_color;
+@define-color popover_bg_color #{c['surface_container_high']};
+@define-color popover_fg_color #{c['on_surface']};
+@define-color card_bg_color #{c['surface_container']};
+@define-color card_fg_color #{c['on_surface']};
+@define-color dialog_bg_color #{c['surface_container_high']};
+@define-color dialog_fg_color #{c['on_surface']};
+@define-color sidebar_bg_color #{c['surface_container_low']};
+@define-color sidebar_fg_color #{c['on_surface']};
+@define-color sidebar_backdrop_color @sidebar_bg_color;
+@define-color sidebar_border_color #{c['outline_variant']};
+@define-color secondary_sidebar_bg_color #{c['surface_container']};
+@define-color secondary_sidebar_fg_color #{c['on_surface']};
+@define-color theme_selected_bg_color @accent_bg_color;
+@define-color theme_selected_fg_color @accent_fg_color;
+"""
+    root = f""":root {{
+    --accent-color: #{c['primary']};
+    --accent-bg-color: #{c['primary']};
+    --accent-fg-color: #{c['on_primary']};
+    --window-bg-color: #{c['surface_container_low']};
+    --window-fg-color: #{c['on_surface']};
+    --view-bg-color: #{c['surface']};
+    --view-fg-color: #{c['on_surface']};
+    --headerbar-bg-color: #{c['surface_container']};
+    --headerbar-fg-color: #{c['on_surface']};
+    --popover-bg-color: #{c['surface_container_high']};
+    --popover-fg-color: #{c['on_surface']};
+    --card-bg-color: #{c['surface_container']};
+    --card-fg-color: #{c['on_surface']};
+    --dialog-bg-color: #{c['surface_container_high']};
+    --dialog-fg-color: #{c['on_surface']};
+    --sidebar-bg-color: #{c['surface_container_low']};
+    --sidebar-fg-color: #{c['on_surface']};
+    --window-radius: 16px;
+}}
+"""
+    write(CONF / "gtk-3.0/yoru.css", css)
+    write(CONF / "gtk-4.0/yoru.css", css + root)
+    # kon looks for its own import before it backs gtk.css up; the comment keeps
+    # kon from mistaking this file for the user's original
+    for d in ("gtk-3.0", "gtk-4.0"):
+        f = CONF / d / "gtk.css"
+        if f.exists() and "yoru" not in f.read_text() and 'import url("kon.css")' not in f.read_text():
+            f.replace(f.with_name("gtk.css.pre-yoru"))
+        write(f, '/* generated by yoru; `rice kon` puts back @import url("kon.css") */\n@import url("yoru.css");\n')
+
+
+def fuzzel(c):
+    write(CONF / "fuzzel/fuzzel.ini", f"""# generated by yoru
+
+[main]
+font=Geist:size=11
+icon-theme=Papirus-Dark
+width=36
+lines=9
+horizontal-pad=20
+vertical-pad=16
+inner-pad=10
+line-height=26
+prompt="  "
+
+[colors]
+background={c['surface_container']}f2
+text={c['on_surface_variant']}ff
+prompt={c['primary']}ff
+placeholder={c['outline']}ff
+input={c['on_surface']}ff
+match={c['primary']}ff
+selection={c['secondary_container']}ff
+selection-text={c['on_secondary_container']}ff
+selection-match={c['primary']}ff
+counter={c['outline']}ff
+border={c['outline_variant']}ff
+
+[border]
+width=1
+radius=22
+selection-radius=14
+""")
+
+
+def swaylock(c):
+    write(CONF / "swaylock/config", f"""# generated by yoru
+scaling=fill
+color={c['surface']}
+font=Geist
+font-size=15
+indicator-radius=86
+indicator-thickness=6
+indicator-idle-visible
+
+ring-color={c['surface_container_highest']}ff
+inside-color={c['surface_container_lowest']}b3
+line-color=00000000
+separator-color=00000000
+text-color={c['on_surface']}ff
+key-hl-color={c['primary']}ff
+bs-hl-color={c['tertiary']}ff
+caps-lock-key-hl-color={c['tertiary']}ff
+caps-lock-bs-hl-color={c['error']}ff
+
+ring-ver-color={c['primary']}ff
+inside-ver-color={c['primary_container']}cc
+text-ver-color={c['on_primary_container']}ff
+line-ver-color=00000000
+
+ring-wrong-color={c['error']}ff
+inside-wrong-color={c['surface_container_lowest']}cc
+text-wrong-color={c['error']}ff
+line-wrong-color=00000000
+
+ring-clear-color={c['secondary']}ff
+inside-clear-color={c['surface_container_lowest']}b3
+text-clear-color={c['on_surface']}ff
+line-clear-color=00000000
+""")
+
+
+def btop(c):
+    a = c["ansi"]
+    keys = {
+        "main_bg": "", "main_fg": c["on_surface"], "title": c["on_surface"], "hi_fg": c["primary"],
+        "selected_bg": c["secondary_container"], "selected_fg": c["on_secondary_container"],
+        "inactive_fg": c["outline"], "proc_misc": c["tertiary"], "graph_text": c["on_surface_variant"],
+        "meter_bg": c["surface_container_highest"],
+        "cpu_box": c["outline_variant"], "mem_box": c["outline_variant"], "net_box": c["outline_variant"],
+        "proc_box": c["outline_variant"], "div_line": c["outline_variant"],
+        "temp_start": c["primary"], "temp_mid": c["tertiary"], "temp_end": a[1],
+        "cpu_start": c["primary"], "cpu_mid": c["tertiary"], "cpu_end": a[1],
+        "free_start": c["primary_container"], "free_mid": c["primary"], "free_end": c["primary"],
+        "cached_start": c["secondary_container"], "cached_mid": c["secondary"], "cached_end": c["secondary"],
+        "available_start": c["tertiary_container"], "available_mid": c["tertiary"], "available_end": c["tertiary"],
+        "used_start": c["primary"], "used_mid": c["tertiary"], "used_end": a[1],
+        "download_start": c["primary_container"], "download_mid": c["primary"], "download_end": a[12],
+        "upload_start": c["tertiary_container"], "upload_mid": c["tertiary"], "upload_end": a[13],
+    }
+    body = "\n".join(f'theme[{k}]="{"#" + v if v else ""}"' for k, v in keys.items())
+    write(CONF / "btop/themes/yoru.theme", f"# generated by yoru\n\n{body}\n")
+    path = CONF / "btop/btop.conf"
+    if path.exists():
+        write(path, re.sub(r'^color_theme = ".*"$', 'color_theme = "yoru"', path.read_text(), flags=re.M))
+
+
+def cava(c):
+    write(CONF / "cava/themes/yoru", f"""# generated by yoru
+[color]
+gradient = 1
+gradient_color_1 = '#{c['primary_container']}'
+gradient_color_2 = '#{c['primary']}'
+gradient_color_3 = '#{c['tertiary']}'
+""")
+    path = CONF / "cava/config"
+    if path.exists():
+        write(path, re.sub(r'^theme = ".*"$', 'theme = "yoru"', path.read_text(), flags=re.M))
+    sh("pkill", "-USR2", "-x", "cava")
+
+
+def starship(c):
+    a = c["ansi"]
+    cols = {
+        "blue": c["primary"], "red": a[1], "green": a[2], "yellow": a[3], "cyan": a[6], "magenta": a[5],
+        "white": c["on_surface"], "black": c["surface"], "rosewater": c["tertiary"], "flamingo": a[9],
+        "pink": a[13], "mauve": c["tertiary"], "maroon": a[1], "peach": a[11], "teal": a[6], "sky": a[14],
+        "sapphire": c["primary"], "lavender": c["secondary"], "text": c["on_surface"],
+        "subtext1": c["on_surface_variant"], "subtext0": c["on_surface_variant"], "overlay2": c["outline"],
+        "overlay1": c["outline"], "overlay0": c["outline_variant"], "surface2": c["surface_container_highest"],
+        "surface1": c["surface_container_high"], "surface0": c["surface_container"],
+        "base": c["surface"], "mantle": c["surface_container_low"], "crust": c["surface_container_lowest"],
+        "accent": c["primary"],
+    }
+    block = "# >>> yoru\n[palettes.yoru]\n" + "".join(f'{k} = "#{v}"\n' for k, v in cols.items()) + "# <<< yoru\n"
+    path = CONF / "starship.toml"
+    if not path.exists():
+        return
+    s = path.read_text()
+    s = re.sub(r'^palette = ".*"$', 'palette = "yoru"', s, count=1, flags=re.M)
+    if "# >>> yoru" in s:
+        s = re.sub(r"# >>> yoru.*?# <<< yoru\n", lambda m: block, s, flags=re.S)
+    else:
+        s = s.rstrip("\n") + "\n\n" + block
+    write(path, s)
+
+
+def fastfetch(c):
+    path = CONF / "fastfetch/config.jsonc"
+    try:
+        cfg = json.loads(path.read_text())
+    except (OSError, ValueError):
+        return
+    cfg.setdefault("display", {})["color"] = {"keys": "#" + c["primary"], "title": "#" + c["tertiary"]}
+    write(path, json.dumps(cfg, indent=2) + "\n")
+
+
+def cursor(s):
+    name = s.get("cursor")
+    dirs = (HOME / ".local/share/icons", HOME / ".icons", Path("/usr/share/icons"))
+    if not name or not any((d / name / "cursors").is_dir() for d in dirs):
+        return
+    path = CONF / "aro/config"
+    if path.exists():
+        t = path.read_text()
+        t2 = re.sub(r"^(\s*cursor_theme\s*=\s*).*$", lambda m: m.group(1) + name, t, count=1, flags=re.M)
+        if t2 != t:
+            write(path, t2)
+    for f in (CONF / "gtk-3.0/settings.ini", CONF / "gtk-4.0/settings.ini"):
+        if f.exists():
+            write(f, re.sub(r"^gtk-cursor-theme-name=.*$", "gtk-cursor-theme-name=" + name, f.read_text(), flags=re.M))
+    sh("gsettings", "set", "org.gnome.desktop.interface", "cursor-theme", name)
+
+
+def dark():
+    sh("gsettings", "set", "org.gnome.desktop.interface", "color-scheme", "prefer-dark")
+    for f in (CONF / "gtk-3.0/settings.ini", CONF / "gtk-4.0/settings.ini"):
+        if f.exists():
+            write(f, re.sub(r"^gtk-application-prefer-dark-theme=.*$", "gtk-application-prefer-dark-theme=1",
+                            f.read_text(), flags=re.M))
+
+
+def wallpaper(s):
+    # aro shows the still too: the overview, aro-lock and a crashed shell all fall back to it
+    img = still(s["wallpaper"])
+    if img:
+        sh("aroctl", "wallpaper", img)
+
+
+def apply(s, apps=True):
+    if not Path(s["wallpaper"]).is_file():
+        s["wallpaper"] = DEFAULTS["wallpaper"]
+    c = palette(s["wallpaper"], s["scheme"])
+    shell(s, c)
+    if apps and active():
+        cursor(s)
+        aro(c)
+        wallpaper(s)
+        foot(c)
+        gtk(c)
+        dark()
+        fuzzel(c)
+        swaylock(c)
+        btop(c)
+        cava(c)
+        starship(c)
+        fastfetch(c)
+    return c
+
+
+def main():
+    args = sys.argv[1:] or ["apply"]
+    s = state()
+    cmd = args[0]
+    if cmd == "apply":
+        apply(s)
+    elif cmd == "wall" and len(args) > 1:
+        target = args[1]
+        if target in ("next", "prev"):
+            ws = walls(s)
+            if not ws:
+                return 1
+            i = ws.index(s["wallpaper"]) if s["wallpaper"] in ws else -1
+            target = ws[(i + (1 if target == "next" else -1)) % len(ws)]
+        target = str(Path(os.path.expanduser(target)).resolve())
+        if not Path(target).is_file():
+            print(f"yoru: no such file: {target}", file=sys.stderr)
+            return 1
+        s["wallpaper"] = target
+        save_state(s)
+        apply(s)
+    elif cmd == "walls":
+        print(json.dumps([{"path": f, "thumb": thumb(f), "video": is_video(f), "name": Path(f).stem}
+                          for f in walls(s)]))
+    elif cmd == "restore":
+        apply(s, apps=False)
+        wallpaper(s)
+    elif cmd == "status":
+        print(s["wallpaper"])
+    else:
+        print(__doc__.strip(), file=sys.stderr)
+        return 2
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

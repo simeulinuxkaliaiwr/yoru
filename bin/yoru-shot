@@ -1,0 +1,22 @@
+#!/bin/sh
+# yoru-shot full|area: a screenshot to the clipboard and ~/Pictures/Screenshots,
+# shown in the island
+set -u
+dir=$HOME/Pictures/Screenshots
+mkdir -p "$dir"
+file=$dir/$(date +%Y-%m-%d_%H-%M-%S).png
+out=$(aroctl -j monitors | jq -r '.[] | select(.focused) | .name')
+
+case ${1:-full} in
+full)
+	grim -o "$out" "$file" ;;
+area)
+	accent=$(jq -r '.primary // "a9c7ff"' "$HOME/.cache/yoru/palette.json" 2>/dev/null)
+	geo=$(slurp -d -b 00000077 -c "${accent}ff" -s "${accent}22" -w 2) || exit 0
+	grim -g "$geo" "$file" ;;
+*)
+	echo "usage: yoru-shot full|area" >&2; exit 2 ;;
+esac
+
+wl-copy --type image/png < "$file"
+qs -c yoru ipc call toast shot "$file" >/dev/null 2>&1 || notify-send -i "$file" "Screenshot" "copied to the clipboard"

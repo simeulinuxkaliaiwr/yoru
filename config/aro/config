@@ -1,0 +1,203 @@
+# aro config — yoru
+#
+# This is the live config while yoru is the rice (`rice` swaps it with kon's;
+# the inactive one waits in ~/.config/aro/config.kon or config.yoru). The
+# colours are rewritten by `yoru` from the wallpaper, so edit the rest freely.
+# See man 5 aro. Colours are 0xRRGGBBAA.
+
+mod = super
+focus_follows_mouse = true
+cursor_theme = Bibata-Modern-Ice
+confirm_quit = true
+
+layout = scroll
+scroll_width = 0.5
+scroll_peek = 40
+bar = off                   # the island is the bar
+workspaces = 4
+workspace_slide = vertical
+workspace_slide_ms = 320
+
+# yoru draws the wallpaper itself (it moves); aro keeps a still copy under it
+# for the overview, the lock screen, and in case the shell isn't running
+wallpaper_dir = /home/elliot/Pictures/nightcore
+exec = yoru restore
+exec = qs -c yoru -d
+
+exec = fcitx5 -d
+
+# ── keyboard ─────────────────────────────────────────────────────────────
+keyboard_layout = br
+keyboard_repeat_rate = 35
+keyboard_repeat_delay = 300
+
+# ── pointer ──────────────────────────────────────────────────────────────
+mouse_accel = flat
+mouse_speed = 1.0
+mouse_natural_scroll = false
+lid_switch = true
+drag_threshold = 12
+resize_zone = 8
+resize_step = 0.04
+
+# ── shape ────────────────────────────────────────────────────────────────
+gaps = 10
+outer_gaps = 12
+border = 2
+radius = 16
+min_size = 80
+header_height = 0           # no title strips; the island says what's focused
+text_padding = 10
+float_min_width = 240
+float_min_height = 120
+float_scale = 0.5
+
+# ── glass ────────────────────────────────────────────────────────────────
+blur = true
+blur_passes = 3
+blur_radius = 8
+blur_layers = launcher
+opacity_unfocused = 0.94
+window_background = 00000000
+
+# ── colour (yoru rewrites these from the wallpaper) ──────────────────────
+background = 0x0f1218ff
+frame = 0x1b2028ff
+frame_focus = 0x262a33ff
+border_color = 0x30353eff
+accent = 0xa9c7ffff
+accent_soft = 0xa9c7ff40
+text = 0xe0e2ecff
+text_dim = 0xc3c6d1ff
+bar_color = 0x0a0d12ff
+urgent = 0xffb4abff
+drop_fill = 0xa9c7ff1f
+drop_line = 0xa9c7ffcc
+notify_color = 0x262a33f2
+scrim_color = 0x0000008c
+overview_tint = 0x0a0d1280
+
+font = Geist 10
+font_small = Geist 9
+
+# ── motion: slower and springier than kon ────────────────────────────────
+anim_ms = 420
+fullscreen_anim_ms = 260
+focus_anim_ms = 180
+drop_anim_ms = 200
+open_scale = 0.9
+overview_ms = 380
+
+# ── startup ──────────────────────────────────────────────────────────────
+exec = systemctl --user import-environment WAYLAND_DISPLAY DISPLAY XDG_CURRENT_DESKTOP
+exec = systemctl --user restart xdg-desktop-portal xdg-desktop-portal-gtk
+exec = wl-paste --watch cliphist store
+exec = swayidle -w timeout 600 'aro-lock -f' before-sleep 'aro-lock -f'
+# notifications: the island is the daemon, so no mako here
+
+# ── rules ────────────────────────────────────────────────────────────────
+exec = foot --app-id dropterm
+rule = app_id:dropterm  scratchpad  size 70% 55%  position 15% 6%
+rule = app_id:*pavucontrol*  float  size 800 500  center
+rule = app_id:mpv  no_border  no_radius  opacity 1
+rule = app_id:aurora  float  size 52% 25%  position 2% 6%  opacity_unfocused 1
+
+# ── bindings ─────────────────────────────────────────────────────────────
+# The first bind line replaces the built-in bindings entirely.
+
+# the island
+bind = mod+a, spawn, qs -c yoru ipc call island toggle launcher
+bind = mod+v, spawn, qs -c yoru ipc call island toggle clip
+bind = mod+x, spawn, qs -c yoru ipc call island toggle control
+bind = mod+m, spawn, qs -c yoru ipc call island toggle media
+bind = mod+w, spawn, qs -c yoru ipc call island toggle walls
+bind = mod+shift+e, spawn, qs -c yoru ipc call island toggle power
+bind = mod+shift+w, spawn, yoru wall next
+
+# switch rices: yoru <-> kon
+bind = mod+ctrl+r, spawn, rice toggle
+
+bind = mod+q, spawn, foot
+bind = mod+shift+a, spawn, fuzzel
+bind = mod+c, close
+bind = mod+space, float
+bind = mod+shift+space, sticky
+bind = mod+t, layout, toggle
+bind = mod+r, width, next
+bind = mod+o, overview
+bind = mod+Tab, overview
+bind = alt+Tab, switch, prev
+bind = mod+shift+Tab, switch, next
+bind = mod+escape, spawn, aro-lock -f
+bind = mod+f, maximize
+bind = mod+shift+f, fullscreen
+bind = mod+b, split, right
+bind = mod+s, split, down
+bind = mod+n, spawn, /home/elliot/Projects/nightcore-finder/nightcore-finder
+bind = mod+shift+n, spawn, foot --app-id aurora -o font=monospace:size=5 ~/.local/bin/aurora
+
+# screenshots and colours
+bind = Print, spawn, yoru-shot full
+bind = mod+Print, spawn, yoru-shot area
+bind = mod+shift+c, spawn, sh -c 'c=$(hyprpicker -f hex -a -q) && qs -c yoru ipc call toast say "$c" "copied to the clipboard"'
+
+bind = mod+h, focus, left
+bind = mod+j, focus, down
+bind = mod+k, focus, up
+bind = mod+l, focus, right
+
+bind = mod+shift+h, move, left
+bind = mod+shift+j, move, down
+bind = mod+shift+k, move, up
+bind = mod+shift+l, move, right
+
+bind = mod+ctrl+h, resize, left
+bind = mod+ctrl+j, resize, down
+bind = mod+ctrl+k, resize, up
+bind = mod+ctrl+l, resize, right
+
+bind = mod+alt+h, move_workspace, left
+bind = mod+alt+j, move_workspace, down
+bind = mod+alt+k, move_workspace, up
+bind = mod+alt+l, move_workspace, right
+
+# ── laptop keys: the island shows the change ─────────────────────────────
+bind = XF86AudioRaiseVolume, spawn, wpctl set-volume -l 1.0 @DEFAULT_AUDIO_SINK@ 5%+
+bind = XF86AudioLowerVolume, spawn, wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-
+bind = XF86AudioMute, spawn, wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle
+bind = XF86AudioMicMute, spawn, wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle && qs -c yoru ipc call osd mic
+bind = XF86MonBrightnessUp, spawn, brightnessctl -q set 5%+ && qs -c yoru ipc call osd brightness
+bind = XF86MonBrightnessDown, spawn, brightnessctl -q set 5%- && qs -c yoru ipc call osd brightness
+bind = XF86AudioPlay, spawn, playerctl play-pause
+bind = XF86AudioNext, spawn, playerctl next
+bind = XF86AudioPrev, spawn, playerctl previous
+
+bind = mod+1, workspace, 1
+bind = mod+2, workspace, 2
+bind = mod+3, workspace, 3
+bind = mod+4, workspace, 4
+bind = mod+5, workspace, 5
+bind = mod+6, workspace, 6
+bind = mod+7, workspace, 7
+bind = mod+8, workspace, 8
+
+bind = mod+shift+1, sendto, 1
+bind = mod+shift+2, sendto, 2
+bind = mod+shift+3, sendto, 3
+bind = mod+shift+4, sendto, 4
+bind = mod+shift+5, sendto, 5
+bind = mod+shift+6, sendto, 6
+bind = mod+shift+7, sendto, 7
+bind = mod+shift+8, sendto, 8
+
+# scratchpad and tabbed groups
+bind = mod+apostrophe, scratchpad_show, dropterm
+bind = mod+shift+minus, scratchpad
+bind = mod+minus, scratchpad_show
+bind = mod+alt+Left, group, left
+bind = mod+alt+Down, group, down
+bind = mod+alt+Up, group, up
+bind = mod+alt+Right, group, right
+bind = mod+shift+g, ungroup
+bind = mod+bracketright, tab, next
+bind = mod+bracketleft, tab, prev
