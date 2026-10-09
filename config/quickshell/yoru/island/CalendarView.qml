@@ -81,9 +81,11 @@ Item {
         }
     }
     WheelHandler { onWheel: e => v.offset += e.angleDelta.y > 0 ? -1 : 1 }
-    Keys.onPressed: e => {
-        if (e.key === Qt.Key_Left || e.key === Qt.Key_H) v.offset--;
-        else if (e.key === Qt.Key_Right || e.key === Qt.Key_L) v.offset++;
-        else if (e.key === Qt.Key_Escape) v.isle.close();
+    function key(e) {
+        if (e.key === Qt.Key_Left || e.key === Qt.Key_H || e.key === Qt.Key_Up || e.key === Qt.Key_K) offset--;
+        else if (e.key === Qt.Key_Right || e.key === Qt.Key_L || e.key === Qt.Key_Down || e.key === Qt.Key_J) offset++;
+        else if (e.key === Qt.Key_T || e.key === Qt.Key_Home) offset = 0;
+        else return false;
+        return true;
     }
 }

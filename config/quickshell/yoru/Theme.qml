@@ -80,9 +80,10 @@ Singleton {
     readonly property var emphasized: [0.05, 0.7, 0.1, 1.0, 1, 1]
     readonly property var standard: [0.2, 0.0, 0.0, 1.0, 1, 1]
     readonly property var effects: [0.34, 0.8, 0.34, 1.0, 1, 1]
-    readonly property int fast: 220
-    readonly property int normal: 380
-    readonly property int slow: 560
+    readonly property real pace: 1 / Math.max(0.25, Config.o.appearance.speed)
+    readonly property int fast: 220 * pace
+    readonly property int normal: 380 * pace
+    readonly property int slow: 560 * pace
     readonly property int recolourMs: 1100
 
     readonly property string home: Quickshell.env("HOME")

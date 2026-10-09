@@ -3,7 +3,7 @@
 
     yoru                    apply the current wallpaper's palette everywhere
     yoru wall FILE          a new wallpaper (image or video): palette, apps, shell
-    yoru wall next|prev     the next or previous one in the wallpaper folders
+    yoru wall next|prev|random   another one from the wallpaper folders
     yoru walls              every wallpaper as JSON, with thumbnails (the picker reads this)
     yoru restore            put aro's wallpaper back (for aro's exec)
     yoru status             the current wallpaper
@@ -27,6 +27,7 @@ HOME = Path.home()
 CONF = HOME / ".config"
 CACHE = HOME / ".cache/yoru"
 STATE = CONF / "yoru/yoru.json"
+SETTINGS = CONF / "yoru/config.json"        # the settings window's file
 RICE = HOME / ".local/state/rice/current"
 os.environ["PATH"] = f"{HOME}/.local/bin:{os.environ.get('PATH', '')}"
 
@@ -69,11 +70,18 @@ def state():
         s.update(json.loads(STATE.read_text()))
     except (OSError, ValueError):
         pass
+    # the settings window owns the scheme and the folders
+    try:
+        cfg = json.loads(SETTINGS.read_text())
+        s["scheme"] = cfg.get("appearance", {}).get("scheme") or s["scheme"]
+        s["dirs"] = cfg.get("wallpaper", {}).get("dirs") or s["dirs"]
+    except (OSError, ValueError):
+        pass
     return s
 
 
 def save_state(s):
-    write(STATE, json.dumps(s, indent=2) + "\n")
+    write(STATE, json.dumps({"wallpaper": s["wallpaper"]}, indent=2) + "\n")
 
 
 def active():
@@ -245,7 +253,8 @@ def foot(c):
     seq = "".join(f"\033]4;{i};#{a[i]}\033\\" for i in range(16))
     seq += (f"\033]10;#{c['on_surface']}\033\\\033]11;#{c['surface_container_lowest']}\033\\"
             f"\033]12;#{c['primary']}\033\\\033]17;#{c['primary_container']}\033\\"
-            f"\033]19;#{c['on_primary_container']}\033\\").encode()
+            f"\033]19;#{c['on_primary_container']}\033\\")
+    seq = seq.encode()
     uid = os.getuid()
     for pts in Path("/dev/pts").glob("[0-9]*"):
         try:
@@ -495,10 +504,8 @@ def dark():
 
 
 def wallpaper(s):
-    # aro shows the still too: the overview, aro-lock and a crashed shell all fall back to it
-    img = still(s["wallpaper"])
-    if img:
-        sh("aroctl", "wallpaper", img)
+    # the shell draws the wallpaper; aropaper would only sit underneath it
+    sh("aroctl", "wallpaper", "none")
 
 
 def apply(s, apps=True):
@@ -530,12 +537,16 @@ def main():
         apply(s)
     elif cmd == "wall" and len(args) > 1:
         target = args[1]
-        if target in ("next", "prev"):
+        if target in ("next", "prev", "random"):
             ws = walls(s)
             if not ws:
                 return 1
             i = ws.index(s["wallpaper"]) if s["wallpaper"] in ws else -1
-            target = ws[(i + (1 if target == "next" else -1)) % len(ws)]
+            if target == "random":
+                import random
+                target = random.choice([w for w in ws if w != s["wallpaper"]] or ws)
+            else:
+                target = ws[(i + (1 if target == "next" else -1)) % len(ws)]
         target = str(Path(os.path.expanduser(target)).resolve())
         if not Path(target).is_file():
             print(f"yoru: no such file: {target}", file=sys.stderr)

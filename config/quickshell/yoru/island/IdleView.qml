@@ -1,5 +1,6 @@
 import Quickshell
 import QtQuick
+import Quickshell.Widgets
 import qs
 import qs.parts
 
@@ -34,11 +35,20 @@ Item {
                     Rectangle {
                         required property var modelData
                         readonly property bool on: modelData.index === v.cur
-                        width: on ? 22 : 8
-                        height: 8
-                        radius: 4
+                        readonly property bool numbers: Config.o.island.workspaces === "numbers"
+                        width: numbers ? (on ? 26 : 18) : (on ? 22 : 8)
+                        height: numbers ? 18 : 8
+                        radius: numbers ? 9 : 4
+                        Txt {
+                            anchors.centerIn: parent
+                            visible: parent.numbers
+                            text: parent.modelData.index
+                            size: 10; weight: Font.DemiBold
+                            color: parent.on ? Theme.inkPrimary : Theme.ink
+                        }
                         anchors.verticalCenter: parent.verticalCenter
-                        color: on ? Theme.primary : modelData.windows > 0 ? Theme.inkDim : Theme.alpha(Theme.inkDim, 0.28)
+                        color: on ? Theme.primary : numbers ? (modelData.windows > 0 ? Theme.surfaceHighest : "transparent")
+                             : modelData.windows > 0 ? Theme.inkDim : Theme.alpha(Theme.inkDim, 0.28)
                         Behavior on width { NumberAnimation { duration: Theme.normal; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.spatial } }
                         Behavior on color { ColorAnimation { duration: Theme.fast } }
                         MouseArea {
@@ -54,7 +64,7 @@ Item {
         // ── now playing: a live activity that grows the island ─────
         Item {
             id: mediaSeg
-            readonly property bool on: !!Media.player && Media.title !== ""
+            readonly property bool on: Config.o.island.showMedia && !!Media.player && Media.title !== ""
             visible: width > 1
             implicitWidth: on ? mediaRow.implicitWidth : 0
             implicitHeight: 36
@@ -66,11 +76,10 @@ Item {
                 id: mediaRow
                 anchors.verticalCenter: parent.verticalCenter
                 spacing: 8
-                Rectangle {
+                ClippingRectangle {
                     width: 22; height: 22; radius: 7
                     anchors.verticalCenter: parent.verticalCenter
                     color: Theme.surfaceHigh
-                    clip: true
                     Image {
                         anchors.fill: parent
                         source: Media.art
@@ -101,7 +110,7 @@ Item {
         // ── the time ────────────────────────────────────────────────
         Txt {
             anchors.verticalCenter: parent.verticalCenter
-            text: Qt.formatTime(clock.date, "HH:mm")
+            text: Qt.formatTime(clock.date, Config.o.island.clock24 ? "HH:mm" : "h:mm AP")
             size: 14
             weight: Font.DemiBold
             font.features: { "tnum": 1 }
@@ -139,6 +148,7 @@ Item {
                 }
                 Txt {
                     anchors.verticalCenter: parent.verticalCenter
+                    visible: Config.o.island.batteryPercent
                     text: Math.round(Status.charge * 100)
                     size: 11; weight: Font.Medium
                     color: Theme.inkDim

@@ -1,5 +1,6 @@
 import Quickshell
 import QtQuick
+import Quickshell.Widgets
 import qs
 import qs.parts
 
@@ -18,7 +19,7 @@ Item {
 
     HoverHandler { id: hover }
 
-    Rectangle {
+    ClippingRectangle {
         id: pic
         x: 16
         anchors.verticalCenter: parent.verticalCenter
@@ -26,7 +27,6 @@ Item {
         height: v.shot ? 63 : 44
         radius: v.shot ? 10 : 14
         color: Theme.surfaceHigh
-        clip: true
         Image {
             anchors.fill: parent
             source: v.img

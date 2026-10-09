@@ -58,7 +58,7 @@ Scope {
     }
     Timer {
         id: toastTimer
-        interval: island.toast?.notif?.urgency === 2 ? 12000 : 5500
+        interval: island.toast?.notif?.urgency === 2 ? 12000 : Config.o.island.toastSeconds * 1000
         onTriggered: {
             if (island.hoverToast) restart();
             else island.dropToast();
@@ -94,7 +94,11 @@ Scope {
                 : island.flash !== "" && here ? island.flash
                 : "idle"
 
-            // clicks outside the open island close it
+            // While the island is open, a clear sheet covers the screen: a click
+            // on it closes the island, and it holds the keyboard: aro focuses a layer
+            // surface when it maps, but (until layers.c handles it) not one that asks
+            // for the keyboard later, as the island would. Keys go to the open view:
+            // its key(event), and its query for typing.
             LazyLoader {
                 active: perScreen.openHere
                 PanelWindow {
@@ -104,11 +108,37 @@ Scope {
                     exclusionMode: ExclusionMode.Ignore
                     WlrLayershell.layer: WlrLayer.Top
                     WlrLayershell.namespace: "yoru-scrim"
-                    WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
+                    WlrLayershell.keyboardFocus: WlrKeyboardFocus.Exclusive
                     MouseArea {
                         anchors.fill: parent
                         acceptedButtons: Qt.AllButtons
                         onClicked: island.close()
+                    }
+                    TextInput {
+                        id: proxy
+                        width: 1; height: 1
+                        opacity: 0
+                        focus: true
+                        Component.onCompleted: forceActiveFocus()
+                        onTextChanged: {
+                            const v = win.current;
+                            if (v && v.query !== undefined) v.query = text;
+                        }
+                        Keys.onPressed: e => {
+                            if (e.key === Qt.Key_Escape) { island.close(); e.accepted = true; return; }
+                            const v = win.current;
+                            if (v && typeof v.key === "function" && v.key(e)) e.accepted = true;
+                        }
+                        Connections {
+                            target: island
+                            function onModeChanged() { proxy.text = ""; }
+                        }
+                        Connections {
+                            target: win.current
+                            ignoreUnknownSignals: true
+                            // a view can clear what was typed (the launcher after a launch)
+                            function onQueryChanged() { if (win.current.query === "" && proxy.text !== "") proxy.text = ""; }
+                        }
                     }
                 }
             }
@@ -123,7 +153,7 @@ Scope {
                 exclusiveZone: 46
                 WlrLayershell.layer: WlrLayer.Overlay
                 WlrLayershell.namespace: "yoru-island"
-                WlrLayershell.keyboardFocus: perScreen.openHere ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
+                WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
                 mask: Region { item: shape }
 
                 readonly property var views: ({
@@ -207,19 +237,6 @@ Scope {
                     Face { name: "power"; PowerView { id: powerView; isle: island } }
                 }
 
-                // Escape closes whatever is open, even views without a text field
-                Item {
-                    id: keys
-                    Keys.onEscapePressed: island.close()
-                }
-                Connections {
-                    target: perScreen
-                    function onOpenHereChanged() {
-                        if (!perScreen.openHere) return;
-                        if (island.mode === "calendar") calendarView.forceActiveFocus();
-                        else if (["media", "control"].includes(island.mode)) keys.forceActiveFocus();
-                    }
-                }
             }
         }
     }

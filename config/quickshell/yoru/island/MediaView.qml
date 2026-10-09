@@ -1,4 +1,5 @@
 import QtQuick
+import Quickshell.Widgets
 import QtQuick.Effects
 import qs
 import qs.parts
@@ -32,13 +33,12 @@ Item {
         opacity: 0.32
     }
 
-    Rectangle {
+    ClippingRectangle {
         id: cover
         x: 22; y: 22
         width: 152; height: 152
         radius: 22
         color: Theme.surfaceHigh
-        clip: true
         Image {
             anchors.fill: parent
             source: Media.art

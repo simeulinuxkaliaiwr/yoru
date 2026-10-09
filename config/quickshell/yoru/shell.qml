@@ -12,14 +12,37 @@ ShellRoot {
     settings.watchFiles: false
 
     Wallpaper { id: wallpaper }
+
+    // a new wallpaper every so often, if the settings ask for it
+    Timer {
+        interval: Math.max(1, Config.o.wallpaper.rotateMinutes) * 60000
+        running: Config.o.wallpaper.rotateMinutes > 0
+        repeat: true
+        onTriggered: Quickshell.execDetached(["yoru", "wall", Config.o.wallpaper.shuffle ? "random" : "next"])
+    }
     Desktop {}
     Island { id: island }
+    Lock { id: lockScreen }
 
     // the binds in ~/.config/aro/config call these
     IpcHandler {
         target: "island"
         function toggle(mode: string): void { island.open(mode, ""); }
         function close(): void { island.close(); }
+    }
+    // yoru-lock calls this; false sends it to swaylock instead
+    IpcHandler {
+        target: "lock"
+        function lock(): bool {
+            if (!Config.o.lock.enabled) return false;
+            lockScreen.lockNow();
+            return true;
+        }
+        function locked(): bool { return lockScreen.locked; }
+    }
+    IpcHandler {
+        target: "wallpaper"
+        function preview(file: string, transition: string): void { wallpaper.show(file, transition); }
     }
     IpcHandler {
         target: "osd"

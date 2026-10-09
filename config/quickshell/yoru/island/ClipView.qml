@@ -20,7 +20,17 @@ Item {
         return q === "" ? entries : entries.filter(e => e.text.toLowerCase().includes(q));
     }
 
-    onShownChanged: if (shown) { input.text = ""; input.forceActiveFocus(); load.running = true; }
+    onShownChanged: if (shown) { query = ""; load.running = true; }
+    onQueryChanged: list.currentIndex = 0
+
+    function key(e) {
+        const ctrl = e.modifiers & Qt.ControlModifier;
+        if (e.key === Qt.Key_Down || (ctrl && e.key === Qt.Key_J)) { list.incrementCurrentIndex(); return true; }
+        if (e.key === Qt.Key_Up || (ctrl && e.key === Qt.Key_K)) { list.decrementCurrentIndex(); return true; }
+        if (e.key === Qt.Key_Return || e.key === Qt.Key_Enter) { if (list.currentItem) pick(list.currentItem.modelData); return true; }
+        if (e.key === Qt.Key_Delete && (e.modifiers & Qt.ShiftModifier)) { if (list.currentItem) forget(list.currentItem.modelData); return true; }
+        return false;
+    }
 
     Process {
         id: load
@@ -52,27 +62,35 @@ Item {
         width: parent.width - 24; height: 44
         radius: 22
         color: Theme.surfaceMid
-        Icon { id: ic; x: 14; anchors.verticalCenter: parent.verticalCenter; name: "content_paste"; size: 20; color: Theme.primary }
-        TextInput {
-            id: input
-            anchors { left: ic.right; leftMargin: 10; right: parent.right; rightMargin: 16; verticalCenter: parent.verticalCenter }
-            color: Theme.ink
-            font { family: Theme.sans; pixelSize: 15 }
-            onTextChanged: { v.query = text; list.currentIndex = 0; }
-            Keys.onPressed: e => {
-                const ctrl = e.modifiers & Qt.ControlModifier;
-                if (e.key === Qt.Key_Down || (ctrl && e.key === Qt.Key_J)) { list.incrementCurrentIndex(); e.accepted = true; }
-                else if (e.key === Qt.Key_Up || (ctrl && e.key === Qt.Key_K)) { list.decrementCurrentIndex(); e.accepted = true; }
-                else if (e.key === Qt.Key_Return || e.key === Qt.Key_Enter) { if (list.currentItem) v.pick(list.currentItem.modelData); e.accepted = true; }
-                else if (e.key === Qt.Key_Delete && (e.modifiers & Qt.ShiftModifier)) { if (list.currentItem) v.forget(list.currentItem.modelData); e.accepted = true; }
-                else if (e.key === Qt.Key_Escape) { v.isle.close(); e.accepted = true; }
+        Icon { id: glass; x: 14; anchors.verticalCenter: parent.verticalCenter; name: "content_paste"; size: 20; color: Theme.primary }
+        Txt {
+            id: typed
+            anchors { left: glass.right; leftMargin: 10; verticalCenter: parent.verticalCenter }
+            width: Math.min(implicitWidth, field.width - 70)
+            text: v.query
+            size: 15
+            elide: Text.ElideLeft
+        }
+        Rectangle {
+            id: caret
+            anchors { left: typed.right; leftMargin: 1; verticalCenter: parent.verticalCenter }
+            width: 2; height: 20; radius: 1
+            color: Theme.primary
+            visible: v.shown
+            SequentialAnimation on opacity {
+                running: v.shown; loops: Animation.Infinite
+                NumberAnimation { to: 1; duration: 0 }
+                PauseAnimation { duration: 530 }
+                NumberAnimation { to: 0; duration: 0 }
+                PauseAnimation { duration: 530 }
             }
-            Txt {
-                anchors.verticalCenter: parent.verticalCenter
-                visible: input.text === ""
-                text: "Clipboard history  ·  shift+Del forgets"
-                size: 15; color: Theme.outline
-            }
+        }
+        Txt {
+            anchors { left: glass.right; leftMargin: 14; verticalCenter: parent.verticalCenter }
+            visible: v.query === ""
+            text: "Clipboard history  ·  shift+Del forgets"
+            size: 15
+            color: Theme.outline
         }
     }
 

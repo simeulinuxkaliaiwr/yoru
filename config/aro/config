@@ -18,9 +18,8 @@ workspaces = 4
 workspace_slide = vertical
 workspace_slide_ms = 320
 
-# yoru draws the wallpaper itself (it moves); aro keeps a still copy under it
-# for the overview, the lock screen, and in case the shell isn't running
-wallpaper_dir = /home/elliot/Pictures/nightcore
+# yoru draws the wallpaper itself (it moves), so aro draws none
+wallpaper = none
 exec = yoru restore
 exec = qs -c yoru -d
 
@@ -92,7 +91,7 @@ overview_ms = 380
 exec = systemctl --user import-environment WAYLAND_DISPLAY DISPLAY XDG_CURRENT_DESKTOP
 exec = systemctl --user restart xdg-desktop-portal xdg-desktop-portal-gtk
 exec = wl-paste --watch cliphist store
-exec = swayidle -w timeout 600 'aro-lock -f' before-sleep 'aro-lock -f'
+exec = yoru-idle                # swayidle with yoru's lock screen
 # notifications: the island is the daemon, so no mako here
 
 # ── rules ────────────────────────────────────────────────────────────────
@@ -100,6 +99,7 @@ exec = foot --app-id dropterm
 rule = app_id:dropterm  scratchpad  size 70% 55%  position 15% 6%
 rule = app_id:*pavucontrol*  float  size 800 500  center
 rule = app_id:mpv  no_border  no_radius  opacity 1
+rule = title:yoru*settings  float  size 1000 700  center
 rule = app_id:aurora  float  size 52% 25%  position 2% 6%  opacity_unfocused 1
 
 # ── bindings ─────────────────────────────────────────────────────────────
@@ -113,6 +113,7 @@ bind = mod+m, spawn, qs -c yoru ipc call island toggle media
 bind = mod+w, spawn, qs -c yoru ipc call island toggle walls
 bind = mod+shift+e, spawn, qs -c yoru ipc call island toggle power
 bind = mod+shift+w, spawn, yoru wall next
+bind = mod+i, spawn, qs -n -p ~/.config/quickshell/yoru/settings.qml
 
 # switch rices: yoru <-> kon
 bind = mod+ctrl+r, spawn, rice toggle
@@ -128,7 +129,7 @@ bind = mod+o, overview
 bind = mod+Tab, overview
 bind = alt+Tab, switch, prev
 bind = mod+shift+Tab, switch, next
-bind = mod+escape, spawn, aro-lock -f
+bind = mod+escape, spawn, yoru-lock
 bind = mod+f, maximize
 bind = mod+shift+f, fullscreen
 bind = mod+b, split, right

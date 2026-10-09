@@ -16,8 +16,24 @@ Item {
     implicitWidth: 620
     implicitHeight: 64 + (list.count > 0 ? Math.min(list.count, 7) * 54 + 14 : 0) + (answer !== "" ? 58 : 0)
 
-    onShownChanged: {
-        if (shown) { input.text = ""; input.forceActiveFocus(); list.currentIndex = 0; }
+    onShownChanged: if (shown) { query = ""; list.currentIndex = 0; }
+
+    // keys from the island's keyboard sheet; typing arrives as `query`
+    function key(e) {
+        const ctrl = e.modifiers & Qt.ControlModifier;
+        if (e.key === Qt.Key_Down || (ctrl && e.key === Qt.Key_J) || (e.key === Qt.Key_Tab && !(e.modifiers & Qt.ShiftModifier))) {
+            list.incrementCurrentIndex(); return true;
+        }
+        if (e.key === Qt.Key_Up || (ctrl && e.key === Qt.Key_K) || e.key === Qt.Key_Backtab) {
+            list.decrementCurrentIndex(); return true;
+        }
+        if (e.key === Qt.Key_Return || e.key === Qt.Key_Enter) {
+            if (answer !== "" && (list.count === 0 || query.trim().startsWith("="))) {
+                Quickshell.execDetached(["wl-copy", answer]); isle.close();
+            } else if (list.currentItem) launch(list.currentItem.modelData);
+            return true;
+        }
+        return false;
     }
 
     // ── how often each app was opened ───────────────────────────────
@@ -90,7 +106,7 @@ Item {
     }
     onQueryChanged: { calcSoon.restart(); list.currentIndex = 0; }
 
-    // ── the search field ────────────────────────────────────────────
+    // ── the search field: shows what the island's keyboard sheet typed
     Rectangle {
         id: field
         x: 12; y: 12
@@ -98,36 +114,34 @@ Item {
         radius: 22
         color: Theme.surfaceMid
         Icon { id: glass; x: 14; anchors.verticalCenter: parent.verticalCenter; name: "search"; size: 20; color: Theme.primary }
-        TextInput {
-            id: input
-            anchors { left: glass.right; leftMargin: 10; right: parent.right; rightMargin: 16; verticalCenter: parent.verticalCenter }
-            color: Theme.ink
-            selectionColor: Theme.primaryContainer
-            selectedTextColor: Theme.inkPrimaryContainer
-            font { family: Theme.sans; pixelSize: 15 }
-            onTextChanged: v.query = text
-            Keys.onPressed: e => {
-                const ctrl = e.modifiers & Qt.ControlModifier;
-                if (e.key === Qt.Key_Down || (ctrl && e.key === Qt.Key_J) || (e.key === Qt.Key_Tab && !(e.modifiers & Qt.ShiftModifier))) {
-                    list.incrementCurrentIndex(); e.accepted = true;
-                } else if (e.key === Qt.Key_Up || (ctrl && e.key === Qt.Key_K) || e.key === Qt.Key_Backtab) {
-                    list.decrementCurrentIndex(); e.accepted = true;
-                } else if (e.key === Qt.Key_Return || e.key === Qt.Key_Enter) {
-                    if (v.answer !== "" && (list.count === 0 || v.query.trim().startsWith("="))) {
-                        Quickshell.execDetached(["wl-copy", v.answer]); v.isle.close();
-                    } else if (list.currentItem) v.launch(list.currentItem.modelData);
-                    e.accepted = true;
-                } else if (e.key === Qt.Key_Escape) {
-                    v.isle.close(); e.accepted = true;
-                }
+        Txt {
+            id: typed
+            anchors { left: glass.right; leftMargin: 10; verticalCenter: parent.verticalCenter }
+            width: Math.min(implicitWidth, field.width - 70)
+            text: v.query
+            size: 15
+            elide: Text.ElideLeft
+        }
+        Rectangle {
+            id: caret
+            anchors { left: typed.right; leftMargin: 1; verticalCenter: parent.verticalCenter }
+            width: 2; height: 20; radius: 1
+            color: Theme.primary
+            visible: v.shown
+            SequentialAnimation on opacity {
+                running: v.shown; loops: Animation.Infinite
+                NumberAnimation { to: 1; duration: 0 }
+                PauseAnimation { duration: 530 }
+                NumberAnimation { to: 0; duration: 0 }
+                PauseAnimation { duration: 530 }
             }
-            Txt {
-                anchors.verticalCenter: parent.verticalCenter
-                visible: input.text === ""
-                text: "Search apps, or do some maths"
-                size: 15
-                color: Theme.outline
-            }
+        }
+        Txt {
+            anchors { left: glass.right; leftMargin: 14; verticalCenter: parent.verticalCenter }
+            visible: v.query === ""
+            text: "Search apps, or do some maths"
+            size: 15
+            color: Theme.outline
         }
     }
 

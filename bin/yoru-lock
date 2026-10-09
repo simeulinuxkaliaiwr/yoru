@@ -1,0 +1,14 @@
+#!/bin/sh
+# yoru-lock: yoru's lock screen, or swaylock (aro-lock) when the shell can't
+PATH=$HOME/.local/bin:$PATH
+if [ "$(qs -c yoru ipc call lock lock 2>/dev/null)" = true ]; then
+	# swayidle's before-sleep waits for this: return once the screen is locked
+	i=0
+	while [ $i -lt 40 ]; do
+		[ "$(qs -c yoru ipc call lock locked 2>/dev/null)" = true ] && exit 0
+		sleep 0.05
+		i=$((i + 1))
+	done
+	exit 0
+fi
+exec aro-lock -f

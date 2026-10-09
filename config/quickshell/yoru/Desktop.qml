@@ -5,13 +5,16 @@ import QtQuick
 import QtQuick.Effects
 import qs
 import qs.parts
+import qs.desktop
 
-// on the wallpaper, under the windows: a big quiet clock, and the music
-// rising off the bottom edge while something plays
+// on the wallpaper, under the windows: the clock, a column of widgets, and
+// the music rising off the bottom edge while something plays. What shows and
+// where is in the settings (mod+i → Desktop).
 Scope {
     id: desk
 
     SystemClock { id: clock; precision: SystemClock.Minutes }
+    readonly property var c: Config.o.desktop
 
     Variants {
         model: Quickshell.screens
@@ -21,67 +24,99 @@ Scope {
             required property var modelData
             readonly property bool covered: Aro.busy(modelData.name) || Aro.fullscreen(modelData.name)
 
-            PanelWindow {
-                screen: scr.modelData
-                anchors { bottom: true; left: true }
-                margins { left: 64; bottom: 56 }
-                implicitWidth: 760
-                implicitHeight: 260
-                color: "transparent"
-                exclusionMode: ExclusionMode.Ignore
-                WlrLayershell.layer: WlrLayer.Bottom
-                WlrLayershell.namespace: "yoru-clock"
-                WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
-                mask: Region {}
+            // ── the clock ───────────────────────────────────────────
+            LazyLoader {
+                active: desk.c.clock
+                PanelWindow {
+                    id: clockWin
+                    screen: scr.modelData
+                    readonly property string pos: desk.c.clockPosition
+                    // a strip across the screen; the clock sits in it where asked
+                    anchors { left: true; right: true; top: pos !== "bottom-left"; bottom: pos !== "top-left" }
+                    implicitHeight: 380
+                    color: "transparent"
+                    exclusionMode: ExclusionMode.Ignore
+                    WlrLayershell.layer: WlrLayer.Bottom
+                    WlrLayershell.namespace: "yoru-clock"
+                    WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
+                    mask: Region {}
 
-                Column {
-                    id: face
-                    anchors { left: parent.left; bottom: parent.bottom }
-                    spacing: -6
-                    layer.enabled: true
-                    layer.effect: MultiEffect {
-                        shadowEnabled: true
-                        shadowColor: Qt.rgba(0, 0, 0, 0.55)
-                        shadowBlur: 0.8
-                        shadowVerticalOffset: 2
+                    Column {
+                        id: face
+                        readonly property string style: desk.c.clockStyle
+                        readonly property bool centred: clockWin.pos === "center"
+                        x: centred ? (parent.width - width) / 2 : 64
+                        y: centred ? (parent.height - height) / 2 - 40
+                         : clockWin.pos === "top-left" ? 70 : parent.height - height - 56
+                        spacing: face.style === "stacked" ? 6 : -6
+                        layer.enabled: true
+                        layer.effect: MultiEffect {
+                            shadowEnabled: true
+                            shadowColor: Qt.rgba(0, 0, 0, 0.55)
+                            shadowBlur: 0.8
+                            shadowVerticalOffset: 2
+                        }
+                        Txt {
+                            anchors.horizontalCenter: face.centred ? parent.horizontalCenter : undefined
+                            visible: face.style !== "stacked"
+                            text: Qt.formatTime(clock.date, Config.o.island.clock24 ? "HH:mm" : "h:mm")
+                            size: face.style === "bold" ? 124 : 136
+                            weight: face.style === "bold" ? Font.Bold : Font.ExtraLight
+                            font.letterSpacing: face.style === "bold" ? -3 : -6
+                            font.features: { "tnum": 1 }
+                        }
+                        Column {
+                            anchors.horizontalCenter: face.centred ? parent.horizontalCenter : undefined
+                            visible: face.style === "stacked"
+                            spacing: -34
+                            Txt { text: Qt.formatTime(clock.date, Config.o.island.clock24 ? "HH" : "hh"); size: 150; weight: Font.Black; color: Theme.primary; font.features: { "tnum": 1 } }
+                            Txt { text: Qt.formatTime(clock.date, "mm"); size: 150; weight: Font.Black; font.features: { "tnum": 1 } }
+                        }
+                        Row {
+                            anchors.horizontalCenter: face.centred ? parent.horizontalCenter : undefined
+                            spacing: 12
+                            leftPadding: face.centred ? 0 : 8
+                            Rectangle { width: 26; height: 3; radius: 2; color: Theme.primary; anchors.verticalCenter: parent.verticalCenter }
+                            Txt {
+                                text: Qt.formatDate(clock.date, "dddd, d MMMM")
+                                size: 22; weight: Font.Light
+                                opacity: 0.85
+                            }
+                        }
                     }
-                    Txt {
-                        text: Qt.formatTime(clock.date, "HH:mm")
-                        size: 136
-                        weight: Font.ExtraLight
-                        font.letterSpacing: -6
-                        font.features: { "tnum": 1 }
-                        color: Theme.ink
-                    }
-                    Row {
+                }
+            }
+
+            // ── the widgets ─────────────────────────────────────────
+            LazyLoader {
+                active: desk.c.widgets && (desk.c.weather || desk.c.system || desk.c.media)
+                PanelWindow {
+                    screen: scr.modelData
+                    anchors { top: true; right: desk.c.widgetSide === "right"; left: desk.c.widgetSide === "left" }
+                    margins { top: 70; right: 28; left: 28 }
+                    implicitWidth: 320
+                    implicitHeight: col.implicitHeight + 4
+                    color: "transparent"
+                    exclusionMode: ExclusionMode.Ignore
+                    WlrLayershell.layer: WlrLayer.Bottom
+                    WlrLayershell.namespace: "yoru-widgets"
+                    WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
+                    mask: Region { item: col }
+
+                    Column {
+                        id: col
+                        width: 320
                         spacing: 12
-                        leftPadding: 8
-                        Rectangle { width: 26; height: 3; radius: 2; color: Theme.primary; anchors.verticalCenter: parent.verticalCenter }
-                        Txt {
-                            text: Qt.formatDate(clock.date, "dddd, d MMMM")
-                            size: 22; weight: Font.Light
-                            color: Theme.ink
-                            opacity: 0.85
-                        }
-                    }
-                    Item { width: 1; height: 14 }
-                    Row {
-                        visible: Media.title !== ""
-                        spacing: 8
-                        leftPadding: 10
-                        Icon { name: Media.playing ? "graphic_eq" : "music_note"; size: 18; color: Theme.primary }
-                        Txt {
-                            width: Math.min(implicitWidth, 560)
-                            text: Media.title + (Media.artist ? "  ·  " + Media.artist : "")
-                            size: 14; color: Theme.inkDim
-                        }
+                        WeatherCard { visible: desk.c.weather && Weather.ready }
+                        SystemCard { visible: desk.c.system }
+                        MediaCard { visible: desk.c.media && Media.title !== "" }
                     }
                 }
             }
 
             // ── the visualizer ──────────────────────────────────────
             LazyLoader {
-                active: Media.playing && !scr.covered
+                active: desk.c.visualizer && Media.playing && !scr.covered
                 PanelWindow {
                     id: vis
                     screen: scr.modelData
@@ -104,7 +139,6 @@ Scope {
                     }
 
                     Row {
-                        id: bars
                         anchors { bottom: parent.bottom; horizontalCenter: parent.horizontalCenter }
                         spacing: 7
                         opacity: 0.6

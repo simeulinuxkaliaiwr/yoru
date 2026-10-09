@@ -16,8 +16,19 @@ Dark, with colours taken from the wallpaper and motion everywhere.
 - **Colours from the wallpaper.** Material 3 roles from matugen, faded across
   the shell and pushed into aro's borders, foot (and open terminals), GTK,
   fuzzel, swaylock, btop, cava, starship and fastfetch.
-- **The desktop.** A large thin clock, and a visualizer rising off the bottom
-  edge while music plays.
+- **Wallpaper transitions.** Ripple, fade, wipe, disc, stripes, zoom,
+  honeycomb and pixelate (or a random one each time), with adjustable length
+  and edge softness. aropaper doesn't run under yoru: the shell draws it all.
+- **The desktop.** A clock (thin, bold or stacked; bottom left, centre or top
+  left), weather, system rings and now playing widgets, and a visualizer
+  rising off the bottom edge while music plays.
+- **A lock screen.** The wallpaper blurred, a big clock, an animated password
+  pill that shakes at a wrong password, the music and power buttons. If the
+  shell ever dies while locked, aro stays locked: from a TTY,
+  `WAYLAND_DISPLAY=wayland-0 aro-lock` takes over and unlocks normally.
+- **Settings (mod+i).** A window in the style of end-4's: Quick, Wallpaper,
+  Desktop, Island, Lock, Weather, About. It writes
+  `~/.config/yoru/config.json`, which the shell follows live.
 
 ## Install
 
@@ -49,6 +60,8 @@ Edits to the live one follow it when you switch. The very first switch keeps
 | `mod+m` | player |
 | `mod+w` / `mod+shift+w` | wallpaper picker / next wallpaper |
 | `mod+shift+e` | power |
+| `mod+i` | settings |
+| `mod+escape` | lock |
 | `mod+o`, `mod+Tab` | aro's overview |
 | `Print`, `mod+Print` | screenshot, area |
 | `mod+ctrl+r` | back to kon |

@@ -19,7 +19,7 @@ Item {
         { icon: "restart_alt", label: "Restart", cmd: ["systemctl", "reboot"] },
         { icon: "power_settings_new", label: "Shut down", cmd: ["systemctl", "poweroff"] },
     ]
-    onShownChanged: if (shown) { sel = 0; keys.forceActiveFocus(); }
+    onShownChanged: if (shown) sel = 0
     function run(i) { isle.close(); Quickshell.execDetached(actions[i].cmd); }
 
     Txt { anchors.horizontalCenter: parent.horizontalCenter; y: 22; text: "Leaving so soon?"; size: 16; weight: Font.DemiBold }
@@ -60,16 +60,11 @@ Item {
         }
     }
 
-    Item {
-        id: keys
-        focus: true
-        Keys.onPressed: e => {
-            if (e.key === Qt.Key_Left || e.key === Qt.Key_H) v.sel = (v.sel + 4) % 5;
-            else if (e.key === Qt.Key_Right || e.key === Qt.Key_L || e.key === Qt.Key_Tab) v.sel = (v.sel + 1) % 5;
-            else if (e.key === Qt.Key_Return || e.key === Qt.Key_Enter) v.run(v.sel);
-            else if (e.key === Qt.Key_Escape) v.isle.close();
-            else return;
-            e.accepted = true;
-        }
+    function key(e) {
+        if (e.key === Qt.Key_Left || e.key === Qt.Key_H) sel = (sel + 4) % 5;
+        else if (e.key === Qt.Key_Right || e.key === Qt.Key_L || e.key === Qt.Key_Tab) sel = (sel + 1) % 5;
+        else if (e.key === Qt.Key_Return || e.key === Qt.Key_Enter) run(sel);
+        else return false;
+        return true;
     }
 }

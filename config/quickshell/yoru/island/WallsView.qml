@@ -1,6 +1,7 @@
 import Quickshell
 import Quickshell.Io
 import QtQuick
+import Quickshell.Widgets
 import qs
 import qs.parts
 
@@ -16,7 +17,19 @@ Item {
     implicitWidth: Math.min(screen.width - 120, 1240)
     implicitHeight: 290
 
-    onShownChanged: if (shown) { list.forceActiveFocus(); if (walls.length === 0) loading = true; query.running = true; }
+    function key(e) {
+        if (e.key === Qt.Key_Left || e.key === Qt.Key_H) { list.decrementCurrentIndex(); return true; }
+        if (e.key === Qt.Key_Right || e.key === Qt.Key_L) { list.incrementCurrentIndex(); return true; }
+        if (e.key === Qt.Key_Home) { list.currentIndex = 0; return true; }
+        if (e.key === Qt.Key_End) { list.currentIndex = list.count - 1; return true; }
+        if (e.key === Qt.Key_Return || e.key === Qt.Key_Enter || e.key === Qt.Key_Space) {
+            if (list.currentIndex >= 0) apply(walls[list.currentIndex]);
+            return true;
+        }
+        if (e.key === Qt.Key_R) { apply(walls[Math.floor(Math.random() * walls.length)]); return true; }
+        return false;
+    }
+    onShownChanged: if (shown) { if (walls.length === 0) loading = true; query.running = true; }
 
     Process {
         id: query
@@ -61,13 +74,6 @@ Item {
         preferredHighlightEnd: width / 2 + 160
         highlightMoveDuration: Theme.slow
         boundsBehavior: Flickable.StopAtBounds
-        keyNavigationEnabled: true
-        Keys.onPressed: e => {
-            if (e.key === Qt.Key_H) { decrementCurrentIndex(); e.accepted = true; }
-            else if (e.key === Qt.Key_L) { incrementCurrentIndex(); e.accepted = true; }
-            else if (e.key === Qt.Key_Return || e.key === Qt.Key_Enter) { if (currentIndex >= 0) v.apply(v.walls[currentIndex]); e.accepted = true; }
-            else if (e.key === Qt.Key_Escape) { v.isle.close(); e.accepted = true; }
-        }
         delegate: Item {
             id: card
             required property var modelData
@@ -75,7 +81,7 @@ Item {
             readonly property bool current: modelData.path === Theme.wallpaper
             readonly property bool sel: ListView.isCurrentItem
             width: 320; height: 196
-            Rectangle {
+            ClippingRectangle {
                 id: frame
                 anchors.centerIn: parent
                 width: 320; height: 180
@@ -85,11 +91,10 @@ Item {
                 color: Theme.surfaceHigh
                 border.width: card.current ? 3 : 0
                 border.color: Theme.primary
-                clip: true
                 Behavior on scale { NumberAnimation { duration: Theme.slow; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.spatial } }
                 Behavior on opacity { NumberAnimation { duration: Theme.normal } }
                 Image {
-                    anchors { fill: parent; margins: frame.border.width }
+                    anchors.fill: parent
                     source: card.modelData.thumb ? "file://" + card.modelData.thumb : ""
                     fillMode: Image.PreserveAspectCrop
                     sourceSize: Qt.size(480, 270)

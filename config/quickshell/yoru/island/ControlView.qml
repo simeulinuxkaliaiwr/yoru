@@ -1,5 +1,6 @@
 import Quickshell
 import QtQuick
+import Quickshell.Widgets
 import qs
 import qs.parts
 
@@ -131,11 +132,11 @@ Item {
             width: parent.width; height: 64
             radius: 22
             color: Theme.surfaceMid
-            Rectangle {
+            ClippingRectangle {
                 id: art
                 x: 10; anchors.verticalCenter: parent.verticalCenter
                 width: 44; height: 44; radius: 12
-                color: Theme.surfaceHigh; clip: true
+                color: Theme.surfaceHigh
                 Image { anchors.fill: parent; source: Media.art; fillMode: Image.PreserveAspectCrop; sourceSize: Qt.size(88, 88); asynchronous: true }
             }
             Column {

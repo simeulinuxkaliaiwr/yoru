@@ -1,0 +1,297 @@
+import Quickshell
+import Quickshell.Wayland
+import Quickshell.Services.Pam
+import Quickshell.Widgets
+import QtQuick
+import QtQuick.Effects
+import qs
+import qs.parts
+
+// yoru's lock screen (ext-session-lock): the wallpaper, blurred, with a clock,
+// a password pill and the music. If this shell dies while locked, aro keeps
+// the session locked and lets another locker take over: from a TTY,
+// `WAYLAND_DISPLAY=wayland-0 aro-lock` unlocks with your password as usual.
+Scope {
+    id: root
+
+    property string pw: ""
+    property bool checking: false
+    property bool failed: false
+    property bool leaving: false        // the unlock animation is playing
+    property int fails: 0
+    readonly property bool locked: lock.locked
+    signal shake()
+
+    function lockNow() {
+        if (lock.locked) return;
+        pw = ""; failed = false; checking = false; leaving = false;
+        lock.locked = true;
+    }
+    function submit() {
+        if (pw === "" || checking) return;
+        checking = true;
+        failed = false;
+        pam.start();
+    }
+
+    PamContext {
+        id: pam
+        config: "swaylock"              // `auth include login`, the same as swaylock
+        onResponseRequiredChanged: if (responseRequired) respond(root.pw)
+        onCompleted: result => {
+            root.checking = false;
+            if (result === PamResult.Success) {
+                root.leaving = true;
+                away.start();
+            } else {
+                root.failed = true;
+                root.fails++;
+                root.pw = "";
+                root.shake();
+            }
+        }
+        onError: root.checking = false
+    }
+    Timer { id: away; interval: 520; onTriggered: { lock.locked = false; root.leaving = false; root.pw = ""; } }
+
+    SystemClock { id: clock; precision: SystemClock.Seconds }
+
+    WlSessionLock {
+        id: lock
+
+        WlSessionLockSurface {
+            id: surf
+            color: "black"
+
+            // ── the wallpaper, blurred and dimmed ──────────────────
+            Image {
+                id: wall
+                anchors.fill: parent
+                source: Theme.still ? "file://" + Theme.still : ""
+                fillMode: Image.PreserveAspectCrop
+                sourceSize: Qt.size(width / 2, height / 2)   // blurred anyway
+                visible: false
+            }
+            MultiEffect {
+                id: blurred
+                anchors.fill: parent
+                source: wall
+                blurEnabled: true
+                blurMax: 64
+                blur: shown ? Config.o.lock.blur : 0
+                brightness: shown ? -Config.o.lock.dim : 0
+                saturation: 0.1
+                property bool shown: lock.locked && !root.leaving
+                Behavior on blur { NumberAnimation { duration: 700; easing.type: Easing.OutCubic } }
+                Behavior on brightness { NumberAnimation { duration: 700 } }
+            }
+
+            Item {
+                id: face
+                anchors.fill: parent
+                readonly property bool on: lock.locked && !root.leaving
+                opacity: on ? 1 : 0
+                scale: on ? 1 : 1.06
+                Behavior on opacity { NumberAnimation { duration: 450; easing.type: Easing.OutCubic } }
+                Behavior on scale { NumberAnimation { duration: 700; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.emphasized } }
+
+                // ── status, top right ────────────────────────────────
+                Row {
+                    anchors { top: parent.top; right: parent.right; margins: 28 }
+                    spacing: 14
+                    Icon { name: Status.netIcon; size: 20; fill: 1; color: Theme.ink }
+                    Row {
+                        visible: Status.hasBattery
+                        spacing: 4
+                        Icon { name: Status.batteryIcon; size: 20; fill: 1; rotation: 90; color: Theme.ink }
+                        Txt { text: Math.round(Status.charge * 100) + "%"; size: 14; weight: Font.Medium; anchors.verticalCenter: parent.verticalCenter }
+                    }
+                }
+
+                // ── the clock ────────────────────────────────────────
+                Column {
+                    id: time
+                    anchors { horizontalCenter: parent.horizontalCenter; top: parent.top; topMargin: parent.height * 0.14 }
+                    spacing: 0
+                    layer.enabled: true
+                    layer.effect: MultiEffect { shadowEnabled: true; shadowColor: Qt.rgba(0, 0, 0, 0.6); shadowBlur: 0.9; shadowVerticalOffset: 2 }
+                    readonly property string style: Config.o.lock.clockStyle
+                    Txt {
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        visible: time.style !== "stacked"
+                        text: Qt.formatTime(clock.date, "HH:mm")
+                        size: 150
+                        weight: time.style === "bold" ? Font.Bold : Font.ExtraLight
+                        font.letterSpacing: time.style === "bold" ? -4 : -8
+                        font.features: { "tnum": 1 }
+                    }
+                    Column {
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        visible: time.style === "stacked"
+                        spacing: -40
+                        Txt { anchors.horizontalCenter: parent.horizontalCenter; text: Qt.formatTime(clock.date, "HH"); size: 160; weight: Font.Bold; color: Theme.primary; font.features: { "tnum": 1 } }
+                        Txt { anchors.horizontalCenter: parent.horizontalCenter; text: Qt.formatTime(clock.date, "mm"); size: 160; weight: Font.Bold; font.features: { "tnum": 1 } }
+                    }
+                    Txt {
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        text: Qt.formatDate(clock.date, "dddd, d MMMM")
+                        size: 22; weight: Font.Light
+                        opacity: 0.9
+                    }
+                }
+
+                // ── who, and the password ────────────────────────────
+                Column {
+                    id: who
+                    anchors { horizontalCenter: parent.horizontalCenter; bottom: parent.bottom; bottomMargin: parent.height * 0.2 }
+                    spacing: 16
+                    layer.enabled: true
+                    layer.effect: MultiEffect { shadowEnabled: true; shadowColor: Qt.rgba(0, 0, 0, 0.6); shadowBlur: 0.9; shadowVerticalOffset: 2 }
+
+                    ClippingRectangle {
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        width: 88; height: 88; radius: 44
+                        color: Theme.primaryContainer
+                        Txt {
+                            anchors.centerIn: parent
+                            visible: avatar.status !== Image.Ready
+                            text: (Quickshell.env("USER") || "?")[0].toUpperCase()
+                            size: 38; weight: Font.DemiBold; color: Theme.inkPrimaryContainer
+                        }
+                        Image {
+                            id: avatar
+                            anchors.fill: parent
+                            source: "file://" + Theme.home + "/.face"
+                            fillMode: Image.PreserveAspectCrop
+                            sourceSize: Qt.size(176, 176)
+                        }
+                    }
+                    Txt {
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        text: root.failed ? (root.fails > 2 ? "Still not it — caps lock?" : "That's not it")
+                            : root.checking ? "Checking…" : "Welcome back, " + Quickshell.env("USER")
+                        size: 15; weight: Font.Medium
+                        color: root.failed ? Theme.danger : Theme.ink
+                    }
+
+                    Rectangle {
+                        id: pill
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        width: 340; height: 54; radius: 27
+                        color: Theme.alpha(Theme.surfaceLowest, 0.6)
+                        border.width: input.activeFocus ? 2 : 1
+                        border.color: root.failed ? Theme.danger : root.checking ? Theme.tertiary : Theme.alpha(Theme.primary, 0.7)
+                        Behavior on border.color { ColorAnimation { duration: Theme.fast } }
+
+                        TextInput {
+                            id: input
+                            anchors.fill: parent
+                            opacity: 0
+                            echoMode: TextInput.Password
+                            focus: true
+                            enabled: !root.checking
+                            Component.onCompleted: forceActiveFocus()
+                            onTextChanged: root.pw = text
+                            Keys.onReturnPressed: root.submit()
+                            Keys.onEnterPressed: root.submit()
+                            Keys.onEscapePressed: text = ""
+                            Connections {
+                                target: root
+                                function onPwChanged() { if (root.pw === "" && input.text !== "") input.text = ""; }
+                            }
+                        }
+                        // one dot per character, popping in
+                        Row {
+                            anchors.centerIn: parent
+                            anchors.horizontalCenterOffset: -14
+                            spacing: 8
+                            Repeater {
+                                model: Math.min(root.pw.length, 18)
+                                Rectangle {
+                                    width: 10; height: 10; radius: 5
+                                    color: Theme.ink
+                                    scale: 0
+                                    Component.onCompleted: scale = 1
+                                    Behavior on scale { NumberAnimation { duration: 260; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.spatial } }
+                                }
+                            }
+                        }
+                        Txt {
+                            anchors.centerIn: parent
+                            visible: root.pw === ""
+                            text: "Password"
+                            size: 15; color: Theme.outline
+                        }
+                        Rectangle {
+                            anchors { right: parent.right; rightMargin: 7; verticalCenter: parent.verticalCenter }
+                            width: 40; height: 40; radius: root.checking ? 12 : 20
+                            color: root.pw !== "" ? Theme.primary : "transparent"
+                            Behavior on color { ColorAnimation { duration: Theme.fast } }
+                            Behavior on radius { NumberAnimation { duration: Theme.normal } }
+                            rotation: root.checking ? 360 : 0
+                            RotationAnimation on rotation {
+                                running: root.checking; loops: Animation.Infinite
+                                from: 0; to: 360; duration: 900
+                            }
+                            Icon {
+                                anchors.centerIn: parent
+                                name: root.checking ? "progress_activity" : "arrow_forward"
+                                size: 22
+                                color: root.pw !== "" ? Theme.inkPrimary : Theme.outline
+                            }
+                            MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: root.submit() }
+                        }
+
+                        // a wrong password shakes the pill, like a head saying no
+                        SequentialAnimation {
+                            id: shakeAnim
+                            NumberAnimation { target: pill; property: "anchors.horizontalCenterOffset"; to: -18; duration: 50 }
+                            NumberAnimation { target: pill; property: "anchors.horizontalCenterOffset"; to: 16; duration: 70 }
+                            NumberAnimation { target: pill; property: "anchors.horizontalCenterOffset"; to: -12; duration: 70 }
+                            NumberAnimation { target: pill; property: "anchors.horizontalCenterOffset"; to: 8; duration: 70 }
+                            NumberAnimation { target: pill; property: "anchors.horizontalCenterOffset"; to: 0; duration: 90; easing.type: Easing.OutCubic }
+                        }
+                        Connections { target: root; function onShake() { shakeAnim.restart(); } }
+                    }
+                }
+
+                // ── the music ────────────────────────────────────────
+                Rectangle {
+                    visible: Config.o.lock.media && Media.title !== ""
+                    anchors { horizontalCenter: parent.horizontalCenter; bottom: parent.bottom; bottomMargin: 36 }
+                    width: 380; height: 72; radius: 26
+                    color: Theme.alpha(Theme.surfaceLowest, 0.55)
+                    ClippingRectangle {
+                        id: art
+                        x: 12; anchors.verticalCenter: parent.verticalCenter
+                        width: 48; height: 48; radius: 14
+                        color: Theme.surfaceHigh
+                        Image { anchors.fill: parent; source: Media.art; fillMode: Image.PreserveAspectCrop; sourceSize: Qt.size(96, 96); asynchronous: true }
+                    }
+                    Column {
+                        anchors { left: art.right; leftMargin: 12; right: ctl.left; rightMargin: 8; verticalCenter: parent.verticalCenter }
+                        Txt { width: parent.width; text: Media.title; size: 14; weight: Font.DemiBold }
+                        Txt { width: parent.width; text: Media.artist; size: 12; color: Theme.inkDim }
+                    }
+                    Row {
+                        id: ctl
+                        anchors { right: parent.right; rightMargin: 12; verticalCenter: parent.verticalCenter }
+                        IconButton { icon: "skip_previous"; size: 36; onClicked: Media.prev() }
+                        IconButton { icon: Media.playing ? "pause" : "play_arrow"; size: 40; active: true; onClicked: Media.toggle() }
+                        IconButton { icon: "skip_next"; size: 36; onClicked: Media.next() }
+                    }
+                }
+
+                // ── power ────────────────────────────────────────────
+                Row {
+                    visible: Config.o.lock.power
+                    anchors { right: parent.right; bottom: parent.bottom; margins: 28 }
+                    spacing: 10
+                    IconButton { icon: "bedtime"; filled: true; size: 44; onClicked: Quickshell.execDetached(["systemctl", "suspend"]) }
+                    IconButton { icon: "restart_alt"; filled: true; size: 44; onClicked: Quickshell.execDetached(["systemctl", "reboot"]) }
+                    IconButton { icon: "power_settings_new"; filled: true; size: 44; onClicked: Quickshell.execDetached(["systemctl", "poweroff"]) }
+                }
+            }
+        }
+    }
+}

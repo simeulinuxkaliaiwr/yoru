@@ -1,0 +1,6 @@
+#!/bin/sh
+# yoru-idle: swayidle with yoru's lock screen, after the settings' idle time
+PATH=$HOME/.local/bin:$PATH
+min=$(jq -r '.lock.lockAfterMinutes // 10' "$HOME/.config/yoru/config.json" 2>/dev/null)
+case $min in '' | *[!0-9]*) min=10 ;; esac
+exec swayidle -w timeout $((min * 60)) yoru-lock before-sleep yoru-lock

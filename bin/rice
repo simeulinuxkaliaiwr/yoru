@@ -90,7 +90,16 @@ def stop(name):
         run("qs", "kill", "-c", "yoru")
 
 
+IDLE = {
+    "kon": ["swayidle", "-w", "timeout", "600", "aro-lock -f", "before-sleep", "aro-lock -f"],
+    "yoru": ["yoru-idle"],
+}
+
+
 def start(name):
+    # the idle locker started at login belongs to the other rice
+    run("pkill", "-x", "swayidle")
+    spawn(*IDLE[name])
     if name == "kon":
         spawn("mako")
         spawn("qs", "-n", "-c", "aroclip", "-d")
