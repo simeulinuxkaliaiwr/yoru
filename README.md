@@ -13,6 +13,10 @@ Dark, with colours taken from the wallpaper and motion everywhere.
 - **A living wallpaper.** Drawn by the shell: it drifts with the workspaces
   (parallax), plays videos (paused while windows cover it), and a new one
   ripples out of the island through a GPU shader.
+- **Live wallpapers that colour the shell.** A video's palette comes from
+  frames across its whole loop, and the island and widgets drift with its
+  scenes as it plays (worked out once, in the background, then cached).
+  Videos can keep playing under windows, or pause to save battery.
 - **Colours from the wallpaper.** Material 3 roles from matugen, faded across
   the shell and pushed into aro's borders, foot (and open terminals), GTK,
   fuzzel, swaylock, btop, cava, starship and fastfetch.

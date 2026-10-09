@@ -84,7 +84,8 @@ Singleton {
     readonly property int fast: 220 * pace
     readonly property int normal: 380 * pace
     readonly property int slow: 560 * pace
-    readonly property int recolourMs: 1100
+    // following a video drifts slower than a change of wallpaper
+    readonly property int recolourMs: videoOn && !artOn ? 2400 : 1100
 
     readonly property string home: Quickshell.env("HOME")
     readonly property string cacheDir: home + "/.cache/yoru"
@@ -103,7 +104,18 @@ Singleton {
     property string artFor: ""
     readonly property bool artOn: Config.o.appearance.musicColours && art !== null
                                   && artFor === Media.art && (Media.playing || artHold.running)
-    readonly property var palette: artOn ? art : base
+    // a video wallpaper's colours across its loop (`yoru timeline`), followed by
+    // where the video is; paused, the colours stay where the video stopped
+    property var timeline: []
+    property real videoPos: 0           // seconds, from Wallpaper
+    readonly property bool videoOn: Config.o.wallpaper.liveColours && video && timeline.length > 1
+    readonly property int step: {
+        if (!videoOn) return -1;
+        let i = 0;
+        while (i + 1 < timeline.length && timeline[i + 1].t <= videoPos) i++;
+        return i;
+    }
+    readonly property var palette: artOn ? art : step >= 0 ? Object.assign({}, base, timeline[step].c) : base
     onPaletteChanged: if (palette) apply(palette)
 
     // between tracks, or a short pause: keep the art's colours a moment
@@ -169,6 +181,7 @@ Singleton {
             theme.wallpaper = p.wallpaper ?? "";
             theme.still = p.still ?? "";
             theme.video = !!p.video;
+            theme.timeline = p.timeline ?? [];
             theme.base = p;
             if (!theme.artOn) theme.apply(p);
         }

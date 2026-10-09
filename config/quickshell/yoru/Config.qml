@@ -38,6 +38,7 @@ Singleton {
                 property real smoothness: 0.3                 // the soft edge, 0..1
                 property bool parallax: true
                 property bool pauseCovered: true              // videos pause under windows
+                property bool liveColours: true               // the shell follows a video wallpaper's colours as it plays
                 property int rotateMinutes: 0                 // 0: never change on its own
                 property bool shuffle: true
                 property list<string> dirs: ["~/Pictures/nightcore", "~/Pictures/Wallpapers"]

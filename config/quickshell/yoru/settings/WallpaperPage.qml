@@ -35,7 +35,11 @@ Column {
             Toggle { checked: c.parallax; onToggled: on => c.parallax = on }
         }
         SetRow {
-            icon: "pause_circle"; label: "Pause videos under windows"; hint: "Saves battery: live wallpapers only play on an empty workspace"
+            icon: "motion_photos_on"; label: "Colours follow the video"; hint: "The island and widgets drift with a live wallpaper's scenes"
+            Toggle { checked: c.liveColours; onToggled: on => c.liveColours = on }
+        }
+        SetRow {
+            icon: "pause_circle"; label: "Pause videos under windows"; hint: "Saves battery: off keeps live wallpapers playing behind your windows"
             Toggle { checked: c.pauseCovered; onToggled: on => c.pauseCovered = on }
         }
         SetRow {

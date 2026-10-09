@@ -5,6 +5,7 @@
     yoru wall FILE          a new wallpaper (image or video): palette, apps, shell
     yoru wall next|prev|random   another one from the wallpaper folders
     yoru walls              every wallpaper as JSON, with thumbnails (the picker reads this)
+    yoru timeline FILE      a video's colours across its loop (yoru starts it itself)
     yoru art URL            a palette from album art, as JSON (the shell uses it while music plays)
     yoru restore            put aro's wallpaper back (for aro's exec)
     yoru status             the current wallpaper
@@ -177,9 +178,79 @@ def ansi(c):
     return out
 
 
+# ── video wallpapers: frames across the loop ────────────────────────────
+
+SHELL_ROLES = ("surface", "surface_container_lowest", "surface_container_low", "surface_container",
+               "surface_container_high", "surface_container_highest", "on_surface", "on_surface_variant",
+               "outline", "outline_variant", "primary", "on_primary", "primary_container", "on_primary_container",
+               "secondary", "secondary_container", "on_secondary_container", "tertiary", "tertiary_container",
+               "on_tertiary_container", "error")
+
+
+def frames(f):
+    """a small frame every couple of seconds across the video, at most 30: [(seconds, path)]"""
+    d = CACHE / "frames" / key(f)
+    meta = d / "step"
+    if not meta.exists():
+        r = subprocess.run(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", f],
+                           capture_output=True, text=True)
+        try:
+            dur = float(r.stdout.strip())
+        except ValueError:
+            return []
+        step = max(2.0, dur / 30)
+        d.mkdir(parents=True, exist_ok=True)
+        subprocess.run(["ffmpeg", "-loglevel", "error", "-y", "-i", f, "-vf", f"fps=1/{step},scale=256:-2",
+                        "-q:v", "4", str(d / "%03d.jpg")], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        meta.write_text(str(step))
+    step = float(meta.read_text())
+    return [((int(p.stem) - 1) * step, str(p)) for p in sorted(d.glob("[0-9]*.jpg"))]
+
+
+def matugen(img, scheme):
+    r = subprocess.run(["matugen", "image", img, "-m", "dark", "-t", scheme, "--json", "hex",
+                        "--dry-run", "--prefer", "saturation"], capture_output=True, text=True)
+    try:
+        return {k: v["dark"]["color"].lstrip("#") for k, v in json.loads(r.stdout)["colors"].items()}
+    except (ValueError, KeyError):
+        return None
+
+
+def mosaic(f):
+    """every sampled frame in one picture, so the palette speaks for the whole loop"""
+    out = CACHE / "frames" / key(f) / "mosaic.jpg"
+    if not out.exists():
+        fs = [p for _, p in frames(f)]
+        if not fs:
+            return ""
+        sh("magick", "montage", *fs, "-tile", "6x", "-geometry", "+0+0", str(out))
+    return str(out) if out.exists() else ""
+
+
+def timeline_file(f, scheme):
+    return CACHE / "timelines" / f"{key(f)}-{scheme}.json"
+
+
+def timeline(f, scheme):
+    """a palette for each sampled moment, for the shell to drift through as the video plays"""
+    out = timeline_file(f, scheme)
+    if out.exists():
+        try:
+            return json.loads(out.read_text())
+        except ValueError:
+            pass
+    steps = []
+    for t, img in frames(f):
+        c = matugen(img, scheme)
+        if c:
+            steps.append({"t": t, "c": {k: c[k] for k in SHELL_ROLES if k in c}})
+    write(out, json.dumps(steps))
+    return steps
+
+
 def palette(f, scheme):
-    src = still(f)
-    cached = CACHE / "palettes" / f"{key(f)}-{scheme}.json"
+    src = (mosaic(f) or still(f)) if is_video(f) else still(f)
+    cached = CACHE / "palettes" / f"{key(f)}-{scheme}{'-loop' if is_video(f) else ''}.json"
     if cached.exists():
         try:
             return json.loads(cached.read_text())
@@ -241,8 +312,17 @@ def art_palette(url, scheme):
 # ── apps ────────────────────────────────────────────────────────────────
 
 def shell(s, c):
-    """the palette the quickshell config watches"""
-    data = dict(c, wallpaper=s["wallpaper"], still=still(s["wallpaper"]), video=is_video(s["wallpaper"]))
+    """the palette the quickshell config watches; a video's colour timeline goes
+    with it once worked out (in the background the first time: `yoru timeline`)"""
+    f = s["wallpaper"]
+    data = dict(c, wallpaper=f, still=still(f), video=is_video(f))
+    if is_video(f):
+        tl = timeline_file(f, s["scheme"])
+        if tl.exists():
+            data["timeline"] = json.loads(tl.read_text())
+        else:
+            subprocess.Popen(["yoru", "timeline", f], stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+                             stderr=subprocess.DEVNULL, start_new_session=True)
     write(CACHE / "palette.json", json.dumps(data, indent=2) + "\n")
 
 
@@ -694,6 +774,11 @@ def main():
     elif cmd == "walls":
         print(json.dumps([{"path": f, "thumb": thumb(f), "video": is_video(f), "name": Path(f).stem}
                           for f in walls(s)]))
+    elif cmd == "timeline" and len(args) > 1:
+        # worked out once per video, then handed to the shell if it's still the wallpaper
+        timeline(args[1], s["scheme"])
+        if s["wallpaper"] == args[1]:
+            shell(s, palette(args[1], s["scheme"]))
     elif cmd == "art" and len(args) > 1:
         # a palette from album art, for the shell while the track plays
         c = art_palette(args[1], s["scheme"])

@@ -163,6 +163,13 @@ Scope {
                             // a video under windows costs the blur a redraw every frame
                             readonly property bool wantPlay: !win.covered || win.moving
                             onWantPlayChanged: wantPlay ? play() : pause()
+                            // tell the theme where the loop is, for its colours
+                            Timer {
+                                interval: 1000; repeat: true; triggeredOnStart: true
+                                running: slot.z > 0 && Theme.videoOn && win.modelData === Quickshell.screens[0]
+                                         && parent.playbackState === MediaPlayer.PlayingState
+                                onTriggered: Theme.videoPos = parent.position / 1000
+                            }
                         }
                     }
                 }
