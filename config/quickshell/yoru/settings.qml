@@ -1,6 +1,7 @@
 //@ pragma IconTheme Papirus-Dark
 // yoru's settings window (mod+i):  qs -p ~/.config/quickshell/yoru/settings.qml
 // It edits ~/.config/yoru/config.json; the shell picks every change up live.
+// YORU_SETTINGS_PAGE=clock opens on a page by its id.
 
 import Quickshell
 import QtQuick
@@ -14,76 +15,142 @@ ShellRoot {
     FloatingWindow {
         id: win
         title: "yoru settings"
-        implicitWidth: 1000
-        implicitHeight: 700
+        implicitWidth: 1100
+        implicitHeight: 740
         color: Theme.surface
         onClosed: Qt.quit()
 
-        // YORU_SETTINGS_PAGE=2 opens on the third page (Desktop)
-        property int page: Math.max(0, Math.min(pages.length - 1, parseInt(Quickshell.env("YORU_SETTINGS_PAGE") || "0") || 0))
+        // id, icon, name, what it's for, group, words to find it by
         readonly property var pages: [
-            { icon: "tune", label: "Quick", comp: quick },
-            { icon: "wallpaper", label: "Wallpaper", comp: wall },
-            { icon: "desktop_windows", label: "Desktop", comp: desk },
-            { icon: "toolbar", label: "Island", comp: isl },
-            { icon: "lock", label: "Lock", comp: lck },
-            { icon: "partly_cloudy_day", label: "Weather", comp: wth },
-            { icon: "info", label: "About", comp: abt },
+            { id: "quick", icon: "tune", name: "Quick", about: "The wallpaper, its colours and how fast things move", group: "Look", words: "scheme colour palette music speed animation" },
+            { id: "wallpaper", icon: "wallpaper", name: "Wallpaper", about: "Transitions, live wallpapers and where they come from", group: "Look", words: "transition fade wipe disc parallax video folders rotate shuffle" },
+            { id: "clock", icon: "schedule", name: "Clock", about: "The clock on the desktop", group: "Look", words: "time style kanji serif analog position" },
+            { id: "widgets", icon: "widgets", name: "Widgets", about: "Which widgets, what they sit on, and where", group: "Look", words: "weather calendar system media today arrangement column grid row free glass neon" },
+            { id: "layouts", icon: "dashboard_customize", name: "Widget layouts", about: "How each widget lays itself out", group: "Look", words: "hero pill week date cover chips bars rings" },
+            { id: "visualizer", icon: "graphic_eq", name: "Visualizer", about: "The music, rising off the bottom of the screen", group: "Look", words: "cava bars wave mirror dots audio" },
+            { id: "island", icon: "toolbar", name: "Island", about: "The bar that becomes everything", group: "Shell", words: "clock 24 hour battery workspaces notifications" },
+            { id: "focus", icon: "timer", name: "Focus & quiet", about: "The focus timer and do not disturb", group: "Shell", words: "pomodoro break dnd quiet hours night" },
+            { id: "lock", icon: "lock", name: "Lock screen", about: "What you see when you come back", group: "Shell", words: "blur dim idle password power" },
+            { id: "weather", icon: "partly_cloudy_day", name: "Weather", about: "Where the forecast is for", group: "More", words: "city fahrenheit location" },
+            { id: "about", icon: "info", name: "About", about: "yoru, its keys, and the way back to kon", group: "More", words: "keys rice kon config" },
         ]
-        Component { id: quick; QuickPage {} }
-        Component { id: wall; WallpaperPage {} }
-        Component { id: desk; DesktopPage {} }
-        Component { id: isl; IslandPage {} }
-        Component { id: lck; LockPage {} }
-        Component { id: wth; WeatherPage {} }
-        Component { id: abt; AboutPage {} }
+        readonly property var comps: ({
+            quick: quickC, wallpaper: wallC, clock: clockC, widgets: widgetsC, layouts: layoutsC, visualizer: visC,
+            island: islandC, focus: focusC, lock: lockC, weather: weatherC, about: aboutC
+        })
+        Component { id: quickC; QuickPage {} }
+        Component { id: wallC; WallpaperPage {} }
+        Component { id: clockC; ClockPage {} }
+        Component { id: widgetsC; WidgetsPage {} }
+        Component { id: layoutsC; LayoutsPage {} }
+        Component { id: visC; VisualizerPage {} }
+        Component { id: islandC; IslandPage {} }
+        Component { id: focusC; FocusPage {} }
+        Component { id: lockC; LockPage {} }
+        Component { id: weatherC; WeatherPage {} }
+        Component { id: aboutC; AboutPage {} }
 
-        // ── the rail ────────────────────────────────────────────────
-        Column {
-            id: rail
-            x: 12; y: 20
-            width: 88
-            spacing: 6
-            Txt {
-                anchors.horizontalCenter: parent.horizontalCenter
-                text: "夜"; size: 30; color: Theme.primary
-                bottomPadding: 14
+        property string current: {
+            const want = Quickshell.env("YORU_SETTINGS_PAGE") || "quick";
+            return pages.some(p => p.id === want) ? want : "quick";
+        }
+        readonly property var page: pages.find(p => p.id === current)
+        property string query: ""
+        readonly property var found: pages.filter(p => query === "" || (p.name + " " + p.about + " " + p.words).toLowerCase().includes(query.toLowerCase()))
+
+        // ── the sidebar ─────────────────────────────────────────────
+        Item {
+            id: side
+            width: 236
+            anchors { top: parent.top; bottom: parent.bottom; left: parent.left }
+
+            Row {
+                x: 22; y: 22
+                spacing: 10
+                Txt { text: "夜"; size: 30; color: Theme.primary; font.family: "Noto Sans JP" }
+                Column {
+                    anchors.verticalCenter: parent.verticalCenter
+                    Txt { text: "yoru"; size: 16; weight: Font.DemiBold }
+                    Txt { text: "settings"; size: 11; color: Theme.inkDim }
+                }
             }
-            Repeater {
-                model: win.pages
-                Item {
-                    id: tab
-                    required property var modelData
-                    required property int index
-                    readonly property bool on: win.page === index
-                    width: 88; height: 62
-                    Rectangle {
-                        anchors.horizontalCenter: parent.horizontalCenter
-                        y: 2
-                        width: tab.on ? 60 : 32; height: 32; radius: 16
-                        color: tab.on ? Theme.secondaryContainer : "transparent"
-                        Behavior on width { NumberAnimation { duration: Theme.normal; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.spatial } }
-                        Icon {
-                            anchors.centerIn: parent
-                            name: tab.modelData.icon; size: 22; fill: tab.on ? 1 : 0
-                            color: tab.on ? Theme.inkSecondaryContainer : Theme.inkDim
+
+            Rectangle {
+                id: search
+                x: 14; y: 80
+                width: parent.width - 28; height: 40
+                radius: 20
+                color: Theme.surfaceMid
+                border.width: field.activeFocus ? 2 : 0
+                border.color: Theme.primary
+                Icon { id: glass; x: 12; anchors.verticalCenter: parent.verticalCenter; name: "search"; size: 18; color: Theme.inkDim }
+                TextInput {
+                    id: field
+                    anchors { left: glass.right; leftMargin: 8; right: parent.right; rightMargin: 12; verticalCenter: parent.verticalCenter }
+                    color: Theme.ink
+                    font { family: Theme.sans; pixelSize: 13 }
+                    onTextChanged: win.query = text
+                    Keys.onReturnPressed: if (win.found.length) win.current = win.found[0].id
+                    Keys.onEscapePressed: text = ""
+                    Txt { anchors.verticalCenter: parent.verticalCenter; visible: field.text === ""; text: "Find a setting"; size: 13; color: Theme.outline }
+                }
+            }
+
+            Flickable {
+                anchors { top: search.bottom; topMargin: 12; left: parent.left; right: parent.right; bottom: parent.bottom; bottomMargin: 12 }
+                contentHeight: list.implicitHeight
+                clip: true
+                boundsBehavior: Flickable.StopAtBounds
+                Column {
+                    id: list
+                    width: parent.width
+                    Repeater {
+                        model: ["Look", "Shell", "More"]
+                        Column {
+                            id: group
+                            required property string modelData
+                            readonly property var items: win.found.filter(p => p.group === modelData)
+                            visible: items.length > 0
+                            width: list.width
+                            Txt { x: 26; topPadding: 12; bottomPadding: 6; text: group.modelData.toUpperCase(); size: 10; weight: Font.Bold; color: Theme.outline; font.letterSpacing: 1.5 }
+                            Repeater {
+                                model: group.items
+                                Item {
+                                    id: tab
+                                    required property var modelData
+                                    readonly property bool on: win.current === modelData.id
+                                    width: list.width; height: 44
+                                    Rectangle {
+                                        x: 12; width: parent.width - 24; height: 40
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        radius: 20
+                                        color: tab.on ? Theme.secondaryContainer : hover.containsMouse ? Theme.alpha(Theme.ink, 0.06) : "transparent"
+                                        Behavior on color { ColorAnimation { duration: Theme.fast } }
+                                    }
+                                    Icon {
+                                        x: 28; anchors.verticalCenter: parent.verticalCenter
+                                        name: tab.modelData.icon; size: 20; fill: tab.on ? 1 : 0
+                                        color: tab.on ? Theme.inkSecondaryContainer : Theme.inkDim
+                                    }
+                                    Txt {
+                                        x: 60; anchors.verticalCenter: parent.verticalCenter
+                                        text: tab.modelData.name; size: 13
+                                        weight: tab.on ? Font.DemiBold : Font.Normal
+                                        color: tab.on ? Theme.inkSecondaryContainer : Theme.ink
+                                    }
+                                    MouseArea { id: hover; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: win.current = tab.modelData.id }
+                                }
+                            }
                         }
                     }
-                    Txt {
-                        anchors.horizontalCenter: parent.horizontalCenter
-                        y: 38
-                        text: tab.modelData.label; size: 12
-                        weight: tab.on ? Font.DemiBold : Font.Normal
-                        color: tab.on ? Theme.ink : Theme.inkDim
-                    }
-                    MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: win.page = tab.index }
+                    Txt { visible: win.found.length === 0; x: 26; topPadding: 12; text: "Nothing matches"; size: 12; color: Theme.outline }
                 }
             }
         }
 
         // ── the page ────────────────────────────────────────────────
         Rectangle {
-            anchors { left: rail.right; leftMargin: 12; right: parent.right; top: parent.top; bottom: parent.bottom; margins: 12 }
+            anchors { left: side.right; right: parent.right; top: parent.top; bottom: parent.bottom; margins: 12; leftMargin: 0 }
             radius: 28
             color: Theme.surfaceLowest
 
@@ -98,15 +165,17 @@ ShellRoot {
                     id: holder
                     width: scroll.width
                     spacing: 18
-                    Txt {
+                    Column {
+                        id: head
                         leftPadding: 8; topPadding: 6
-                        text: win.pages[win.page].label
-                        size: 28; weight: Font.DemiBold
+                        spacing: 2
+                        Txt { text: win.page.name; size: 28; weight: Font.DemiBold }
+                        Txt { text: win.page.about; size: 13; color: Theme.inkDim }
                     }
                     Loader {
                         id: loader
                         width: parent.width
-                        sourceComponent: win.pages[win.page].comp
+                        sourceComponent: win.comps[win.current]
                         onLoaded: { item.width = Qt.binding(() => loader.width); scroll.contentY = 0; enter.restart(); }
                     }
                 }
@@ -115,7 +184,7 @@ ShellRoot {
             ParallelAnimation {
                 id: enter
                 NumberAnimation { target: loader; property: "opacity"; from: 0; to: 1; duration: Theme.normal }
-                NumberAnimation { target: loader; property: "y"; from: 40; to: holder.children[0].height + 18; duration: Theme.slow; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.emphasized }
+                NumberAnimation { target: loader; property: "y"; from: head.height + 58; to: head.height + 18; duration: Theme.slow; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.emphasized }
             }
         }
     }

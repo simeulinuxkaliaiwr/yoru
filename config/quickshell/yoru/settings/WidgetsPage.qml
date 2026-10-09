@@ -6,26 +6,57 @@ Column {
     spacing: 14
     readonly property var c: Config.o.desktop
 
-    Section {
-        icon: "schedule"; title: "Clock"
-        SetRow { icon: "visibility"; label: "Show the clock"; Toggle { checked: c.clock; onToggled: on => c.clock = on } }
-        SetRow { icon: "format_size"; label: "Style" }
-        Choice {
-            x: 10; current: c.clockStyle
-            options: [{ value: "thin", label: "Thin" }, { value: "bold", label: "Bold" }, { value: "stacked", label: "Stacked" },
-                      { value: "outline", label: "Outline" }, { value: "mono", label: "Mono" }, { value: "split", label: "Split" },
-                      { value: "words", label: "Words" }, { value: "kanji", label: "漢字" }, { value: "serif", label: "Serif" },
-                      { value: "analog", label: "Analog" }]
-            onPicked: v => c.clockStyle = v
-        }
-        SetRow { icon: "picture_in_picture"; label: "Position" }
-        Choice {
-            x: 10; current: c.clockPosition
-            options: [{ value: "bottom-left", label: "Bottom left" }, { value: "center", label: "Centre" }, { value: "top-left", label: "Top left" }]
-            onPicked: v => c.clockPosition = v
-        }
-        Item { width: 1; height: 8 }
+    // roughly where each widget lands, for the preview
+    readonly property var names: ["day", "weather", "calendar", "system", "media"].filter(n => c.widgets && c[n])
+    readonly property var labels: ({ day: "Today", weather: "Weather", calendar: "Calendar", system: "System", media: "Now playing" })
+    function spotOf(n) {
+        if (c.arrangement === "row") return "top-center";
+        if (c.arrangement === "free") return c.spots[n] || "top-right";
+        return c.widgetSide === "left" ? "top-left" : "top-right";
     }
+    function boxes() {
+        const out = [], bySpot = {};
+        names.forEach(n => (bySpot[spotOf(n)] = bySpot[spotOf(n)] || []).push(n));
+        for (const spot in bySpot) {
+            const list = bySpot[spot], w = 320, h = 150, gap = 14;
+            const grid = c.arrangement === "grid";
+            list.forEach((n, i) => {
+                let x, y;
+                if (spot === "top-center") { x = (1920 - list.length * (w + gap)) / 2 + i * (w + gap); y = 70; }
+                else {
+                    const col = grid ? i % 2 : 0, row = grid ? Math.floor(i / 2) : i;
+                    const right = spot.endsWith("right");
+                    x = right ? 1920 - 28 - w - (grid ? (1 - col) * (w + gap) : 0) : 28 + col * (w + gap);
+                    const top = spot.startsWith("top") ? 70 : spot.startsWith("bottom") ? 1080 - 56 - h * list.length : (1080 - h * list.length) / 2;
+                    y = top + row * (h + gap);
+                }
+                out.push({ name: n, x: x, y: y, w: w, h: h });
+            });
+        }
+        return out;
+    }
+
+    Section {
+        icon: "preview"; title: "Preview"
+        ScreenPreview {
+            x: 10
+            Repeater {
+                model: boxes()
+                Rectangle {
+                    required property var modelData
+                    x: modelData.x; y: modelData.y; width: modelData.w; height: modelData.h
+                    radius: 28
+                    color: Theme.alpha(Theme.surfaceLowest, 0.7)
+                    border.width: 3; border.color: Theme.alpha(Theme.primary, 0.7)
+                    Txt { anchors.centerIn: parent; text: labels[parent.modelData.name]; size: 34; weight: Font.DemiBold }
+                    Behavior on x { NumberAnimation { duration: Theme.slow; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.spatial } }
+                    Behavior on y { NumberAnimation { duration: Theme.slow; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.spatial } }
+                }
+            }
+        }
+        Item { width: 1; height: 10 }
+    }
+
 
     Section {
         icon: "widgets"; title: "Widgets"
@@ -79,48 +110,5 @@ Column {
                 Item { width: 1; height: 6 }
             }
         }
-    }
-
-    Section {
-        icon: "style"; title: "Widget layouts"
-        Repeater {
-            model: [
-                ["weatherStyle", "Weather", "partly_cloudy_day", [["card", "Card"], ["hero", "Hero"], ["pill", "Pill"]]],
-                ["calendarStyle", "Calendar", "calendar_month", [["month", "Month"], ["week", "Week"], ["date", "Date"]]],
-                ["systemStyle", "System", "monitoring", [["rings", "Rings"], ["bars", "Bars"], ["chips", "Chips"]]],
-                ["mediaStyle", "Now playing", "album", [["card", "Card"], ["cover", "Cover"], ["pill", "Pill"]]],
-                ["dayStyle", "Today", "hourglass_bottom", [["bars", "Bars"], ["rings", "Rings"]]],
-            ]
-            SetRow {
-                required property var modelData
-                icon: modelData[2]; label: modelData[1]
-                Choice {
-                    width: 330
-                    current: c[parent.parent.modelData[0]] ?? ""
-                    options: parent.parent.modelData[3].map(o => ({ value: o[0], label: o[1] }))
-                    onPicked: v => c[parent.parent.modelData[0]] = v
-                }
-            }
-        }
-    }
-
-    Section {
-        icon: "graphic_eq"; title: "Visualizer"
-        SetRow { icon: "music_note"; label: "Show while music plays"; Toggle { checked: c.visualizer; onToggled: on => c.visualizer = on } }
-        SetRow {
-            icon: "layers"; label: "Show on busy workspaces"; hint: "It stays under the windows, showing through the gaps and see-through windows"
-            Toggle { checked: c.visualizerBusy; onToggled: on => c.visualizerBusy = on }
-        }
-        SetRow {
-            icon: "opacity"; label: "Opacity"
-            Range { value: c.visualizerOpacity; from: 0.15; to: 1; step: 0.05; decimals: 0; shownScale: 100; suffix: "%"; onMoved: v => c.visualizerOpacity = v }
-        }
-        SetRow { icon: "equalizer"; label: "Style" }
-        Choice {
-            x: 10; current: c.visualizerStyle
-            options: [{ value: "bars", label: "Bars" }, { value: "mirror", label: "Mirror" }, { value: "wave", label: "Wave" }, { value: "dots", label: "Dots" }]
-            onPicked: v => c.visualizerStyle = v
-        }
-        Item { width: 1; height: 8 }
     }
 }
