@@ -28,11 +28,11 @@ Item {
                 }
                 // scale to a slowly falling peak: loud or quiet, the tallest bar
                 // reaches near the top and the rest keep their proportions
-                vis.peak = Math.max(top, vis.peak * 0.994);
+                vis.peak = Math.max(top, vis.peak * 0.997);
                 const out = new Array(vis.n);
                 for (let i = 0; i < vis.n; i++) {
                     const v = 0.92 * Math.pow(r[i] / Math.max(vis.peak, 0.12), 1.5);
-                    out[i] = Math.max(v, (vis.levels[i] ?? 0) * 0.8);   // rise at once, fall slowly
+                    out[i] = Math.max(v, (vis.levels[i] ?? 0) * 0.88);  // rise at once, fall slowly
                 }
                 vis.levels = out;
                 stall.restart();
@@ -53,9 +53,14 @@ Item {
     readonly property real gap: style === "dots" ? 8 : 7
     readonly property real barW: Math.max(3, (width - (n - 1) * gap) / n)
 
+    // only the chosen style exists: a hidden one would still update every frame
+    Loader { anchors.fill: parent; active: vis.style === "bars" || vis.style === "dots"; sourceComponent: barsC }
+    Loader { anchors.fill: parent; active: vis.style === "mirror"; sourceComponent: mirrorC }
+    Loader { anchors.fill: parent; active: vis.style === "wave"; sourceComponent: waveC }
+
     // ── bars, rising off the bottom ─────────────────────────────────
+    Component { id: barsC; Item {
     Row {
-        visible: vis.style === "bars" || vis.style === "dots"
         anchors { bottom: parent.bottom; horizontalCenter: parent.horizontalCenter }
         spacing: vis.gap
         Repeater {
@@ -82,7 +87,7 @@ Item {
                     anchors { bottom: parent.bottom; horizontalCenter: parent.horizontalCenter }
                     spacing: 5
                     Repeater {
-                        model: 9
+                        model: vis.style === "dots" ? 9 : 0
                         Rectangle {
                             required property int index
                             readonly property bool lit: (8 - index) / 9 < vis.levels[parent.parent.index]
@@ -95,9 +100,11 @@ Item {
         }
     }
 
+    } }
+
     // ── mirror: bars growing both ways from a line ──────────────────
+    Component { id: mirrorC; Item {
     Row {
-        visible: vis.style === "mirror"
         anchors { verticalCenter: parent.verticalCenter; horizontalCenter: parent.horizontalCenter }
         spacing: vis.gap
         Repeater {
@@ -113,9 +120,11 @@ Item {
         }
     }
 
+    } }
+
     // ── wave: one smooth filled line ────────────────────────────────
+    Component { id: waveC; Item {
     Shape {
-        visible: vis.style === "wave"
         anchors.fill: parent
         preferredRendererType: Shape.CurveRenderer
         ShapePath {
@@ -143,4 +152,5 @@ Item {
             PathLine { x: vis.width; y: vis.height }
         }
     }
+    } }
 }

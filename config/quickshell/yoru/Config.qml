@@ -49,6 +49,8 @@ Singleton {
                 property string clockPosition: "bottom-left"  // bottom-left, center, top-left
                 property bool visualizer: true
                 property string visualizerStyle: "bars"       // bars, mirror, wave, dots
+                property bool visualizerBusy: true            // on workspaces with windows too
+                property real visualizerOpacity: 0.85
                 property bool widgets: true
                 property string widgetSide: "right"
                 property string widgetStyle: "glass"          // glass, solid, tonal, outline, neon, minimal

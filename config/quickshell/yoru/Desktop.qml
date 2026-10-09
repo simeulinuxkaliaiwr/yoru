@@ -22,7 +22,11 @@ Scope {
             id: scr
             required property var modelData
             readonly property bool covered: Aro.busy(modelData.name) || Aro.fullscreen(modelData.name)
-            readonly property bool visOn: desk.c.visualizer && Media.playing && !covered
+            readonly property bool busy: Aro.busy(modelData.name)
+            // always under the windows: on a busy workspace it shows through the
+            // gaps and the see-through windows. Never behind a fullscreen one
+            readonly property bool visOn: desk.c.visualizer && Media.playing && !Aro.fullscreen(modelData.name)
+                && (!busy || desk.c.visualizerBusy)
 
             // ── the clock ───────────────────────────────────────────
             LazyLoader {
@@ -48,7 +52,7 @@ Scope {
                         x: centred ? (parent.width - width) / 2 : 64
                         // the clock steps up out of the visualizer's way
                         y: centred ? (parent.height - height) / 2 - 40
-                         : clockWin.pos === "top-left" ? 70 : parent.height - height - 56 - (scr.visOn ? 110 : 0)
+                         : clockWin.pos === "top-left" ? 70 : parent.height - height - 56 - (scr.visOn && !scr.busy ? 110 : 0)
                         Behavior on y { NumberAnimation { duration: Theme.slow; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.spatial } }
                         layer.enabled: true
                         layer.effect: MultiEffect {
@@ -115,7 +119,7 @@ Scope {
                     Visualizer {
                         anchors { fill: parent; leftMargin: 24; rightMargin: 24; bottomMargin: 6 }
                         style: desk.c.visualizerStyle
-                        opacity: scr.visOn ? 0.85 : 0
+                        opacity: scr.visOn ? desk.c.visualizerOpacity : 0
                         Behavior on opacity { NumberAnimation { duration: 500 } }
                     }
                 }
