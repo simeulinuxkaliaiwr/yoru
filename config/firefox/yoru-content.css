@@ -1,0 +1,6 @@
+/* yoru for web pages, rendered by `yoru`: quiet scrollbars, and no white flash */
+:root { scrollbar-color: #{{primary}}99 transparent; }
+
+@-moz-document url("about:blank"), url("about:newtab"), url("about:home"), url("about:privatebrowsing") {
+  html, body { background: #{{surface}} !important; color: #{{on_surface}} !important; }
+}

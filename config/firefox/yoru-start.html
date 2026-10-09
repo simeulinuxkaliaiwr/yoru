@@ -1,0 +1,136 @@
+<!doctype html>
+<!-- yoru's start page, rendered by `yoru` from the wallpaper's palette -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>yoru</title>
+<style>
+:root {
+  --surface: #{{surface}}; --low: #{{surface_container_lowest}}; --mid: #{{surface_container}};
+  --high: #{{surface_container_high}}; --ink: #{{on_surface}}; --dim: #{{on_surface_variant}};
+  --outline: #{{outline_variant}}; --primary: #{{primary}}; --on-primary: #{{on_primary}};
+  --tertiary: #{{tertiary}}; --pc: #{{primary_container}}; --on-pc: #{{on_primary_container}};
+  --ease: cubic-bezier(.38, 1.21, .22, 1);
+}
+* { box-sizing: border-box; margin: 0; }
+html, body { height: 100%; background: var(--low); color: var(--ink); font-family: "Geist", sans-serif; overflow: hidden; }
+.wall {
+  position: fixed; inset: -40px;
+  background: url("yoru-wall.jpg") center / cover no-repeat;
+  filter: blur(22px) saturate(1.1) brightness(.55);
+  transform: scale(1.06);
+  animation: settle 1.6s cubic-bezier(.05, .7, .1, 1) both;
+}
+@keyframes settle { from { transform: scale(1.14); filter: blur(40px) brightness(.3); } }
+main {
+  position: relative; height: 100%;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px;
+}
+.rise { animation: rise .9s var(--ease) both; }
+@keyframes rise { from { opacity: 0; transform: translateY(24px) scale(.97); } }
+.hello { font-size: 18px; color: var(--dim); animation-delay: .05s; }
+.clock { font-size: 128px; font-weight: 200; letter-spacing: -6px; line-height: .9; font-variant-numeric: tabular-nums; animation-delay: .1s; }
+.date { font-size: 18px; color: var(--dim); display: flex; gap: 12px; align-items: center; animation-delay: .15s; }
+.date::before { content: ""; width: 26px; height: 3px; border-radius: 2px; background: var(--primary); }
+form {
+  margin-top: 18px; width: min(640px, 86vw); height: 58px; border-radius: 29px;
+  display: flex; align-items: center; gap: 8px; padding: 0 8px 0 10px;
+  background: color-mix(in srgb, var(--low) 72%, transparent);
+  border: 1px solid color-mix(in srgb, var(--ink) 12%, transparent);
+  backdrop-filter: blur(16px);
+  transition: border-color .2s, box-shadow .3s;
+  animation-delay: .2s;
+}
+form:focus-within { border-color: var(--primary); box-shadow: 0 0 0 4px color-mix(in srgb, var(--primary) 22%, transparent), 0 12px 40px rgba(0,0,0,.35); }
+#engine {
+  height: 40px; padding: 0 14px; border: 0; border-radius: 20px; cursor: pointer;
+  background: var(--pc); color: var(--on-pc); font: 600 13px "Geist", sans-serif;
+  transition: transform .3s var(--ease);
+}
+#engine:active { transform: scale(.94); }
+input {
+  flex: 1; height: 100%; border: 0; outline: 0; background: transparent;
+  color: var(--ink); font: 17px "Geist", sans-serif;
+}
+input::placeholder { color: color-mix(in srgb, var(--dim) 70%, transparent); }
+.links { display: flex; gap: 14px; margin-top: 10px; }
+.links a {
+  width: 112px; height: 104px; border-radius: 26px; text-decoration: none; color: var(--ink);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;
+  background: color-mix(in srgb, var(--low) 62%, transparent);
+  border: 1px solid color-mix(in srgb, var(--ink) 9%, transparent);
+  backdrop-filter: blur(14px);
+  position: relative;
+  transition: transform .35s var(--ease), background .2s, border-radius .35s var(--ease);
+}
+.links a:nth-child(1) { animation-delay: .26s } .links a:nth-child(2) { animation-delay: .3s }
+.links a:nth-child(3) { animation-delay: .34s } .links a:nth-child(4) { animation-delay: .38s }
+.links a:hover, .links a:focus-visible { transform: translateY(-6px); border-radius: 20px; background: color-mix(in srgb, var(--pc) 75%, transparent); outline: 0; }
+.links img { width: 34px; height: 34px; padding: 5px; border-radius: 11px; background: color-mix(in srgb, var(--ink) 92%, transparent); }
+.links span { font-size: 13px; font-weight: 500; }
+.links kbd {
+  position: absolute; top: 8px; right: 10px; font: 600 10px "Geist Mono", monospace; color: var(--dim);
+}
+.keys { position: fixed; bottom: 18px; width: 100%; text-align: center; font-size: 12px; color: var(--dim); opacity: .7; }
+.keys kbd { font: 11px "Geist Mono", monospace; padding: 2px 6px; border-radius: 6px; background: color-mix(in srgb, var(--high) 70%, transparent); }
+</style>
+</head>
+<body>
+<div class="wall"></div>
+<main>
+  <div class="hello rise" id="hello"></div>
+  <div class="clock rise" id="clock"></div>
+  <div class="date rise" id="date"></div>
+  <form class="rise" id="search">
+    <button type="button" id="engine" title="Switch where you search (Tab)"></button>
+    <input id="q" autocomplete="off" autofocus placeholder="Search, or type an address">
+  </form>
+  <nav class="links">
+    <a class="rise" href="https://github.com"><kbd>1</kbd><img src="https://icons.duckduckgo.com/ip3/github.com.ico" alt=""><span>GitHub</span></a>
+    <a class="rise" href="https://youtube.com"><kbd>2</kbd><img src="https://icons.duckduckgo.com/ip3/youtube.com.ico" alt=""><span>YouTube</span></a>
+    <a class="rise" href="https://reddit.com"><kbd>3</kbd><img src="https://icons.duckduckgo.com/ip3/reddit.com.ico" alt=""><span>Reddit</span></a>
+    <a class="rise" href="https://claude.ai"><kbd>4</kbd><img src="https://icons.duckduckgo.com/ip3/claude.ai.ico" alt=""><span>Claude</span></a>
+  </nav>
+</main>
+<div class="keys"><kbd>1</kbd>–<kbd>4</kbd> links · <kbd>/</kbd> search · <kbd>Tab</kbd> engine</div>
+<script>
+const $ = id => document.getElementById(id);
+const user = "{{user}}";
+function tick() {
+  const d = new Date(), h = d.getHours();
+  $("clock").textContent = d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false });
+  $("date").textContent = d.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" });
+  $("hello").textContent = (h < 5 ? "Good night" : h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening") + ", " + user;
+}
+tick(); setInterval(tick, 1000);
+
+const ENGINES = [
+  { n: "Google", u: "https://www.google.com/search?q=" },
+  { n: "DuckDuckGo", u: "https://duckduckgo.com/?q=" },
+  { n: "YouTube", u: "https://www.youtube.com/results?search_query=" },
+  { n: "GitHub", u: "https://github.com/search?q=" },
+  { n: "Wikipedia", u: "https://en.wikipedia.org/w/index.php?search=" },
+];
+let ei = 0;
+try { ei = Math.min(+localStorage.getItem("yoru.engine") || 0, ENGINES.length - 1); } catch (e) {}
+function showEngine() { $("engine").textContent = ENGINES[ei].n; }
+function nextEngine() { ei = (ei + 1) % ENGINES.length; try { localStorage.setItem("yoru.engine", ei); } catch (e) {} showEngine(); }
+showEngine();
+$("engine").onclick = () => { nextEngine(); $("q").focus(); };
+$("search").onsubmit = e => {
+  e.preventDefault();
+  const q = $("q").value.trim();
+  if (!q) return;
+  const url = /^[a-z]+:\/\//i.test(q) ? q : /^[\w-]+(\.[\w-]+)+(\/\S*)?$/.test(q) ? "https://" + q : ENGINES[ei].u + encodeURIComponent(q);
+  location.href = url;
+};
+document.addEventListener("keydown", e => {
+  const typing = document.activeElement === $("q");
+  if (e.key === "Tab") { e.preventDefault(); nextEngine(); $("q").focus(); return; }
+  if (e.key === "/" && !typing) { e.preventDefault(); $("q").focus(); return; }
+  if (!typing && /^[1-4]$/.test(e.key)) { location.href = document.querySelectorAll(".links a")[+e.key - 1].href; }
+  if (e.key === "Escape") $("q").blur();
+});
+</script>
+</body>
+</html>

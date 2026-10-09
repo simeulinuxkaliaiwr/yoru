@@ -80,6 +80,28 @@ def restore_desktop():
                                 f.read_text(), flags=re.M))
 
 
+# ── firefox: the rice that is on, on the next restart (colours at once) ─
+
+def firefox_kon():
+    """yoru set Firefox up (see `yoru`'s firefox()); point it back at kon's files"""
+    for root in (CONF / "mozilla/firefox", HOME / ".mozilla/firefox"):
+        for rice_css in root.glob("*/chrome/rice.css"):
+            chrome = rice_css.parent
+            rice_css.write_text('@import url("kon.css");\n' if (chrome / "kon.css").exists() else "")
+            (chrome / "rice-content.css").write_text(
+                '@import url("kon-content.css");\n' if (chrome / "kon-content.css").exists() else "")
+    cur = HOME / "startpages/current.html"
+    if cur.is_symlink():
+        cur.unlink()
+        cur.symlink_to("aero-start.html")
+    wal = HOME / ".cache/wal/colors.json"
+    old = wal.with_name("colors.json.pre-yoru")
+    if old.exists():
+        shutil.copy(old, wal)
+        if shutil.which("pywalfox"):
+            run("pywalfox", "update")
+
+
 # ── each rice's shell ───────────────────────────────────────────────────
 
 def stop(name):
@@ -103,6 +125,7 @@ def start(name):
     if name == "kon":
         spawn("mako")
         spawn("qs", "-n", "-c", "aroclip", "-d")
+        firefox_kon()
         theme = run("kon", "status") or "aero"
         run("kon", theme)                     # every app, the cursor, the wallpaper
         restore_desktop()

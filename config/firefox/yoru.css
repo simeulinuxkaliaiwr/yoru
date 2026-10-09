@@ -1,0 +1,105 @@
+/* yoru for Firefox, rendered by `yoru` ({{name}}).
+ * Colours come from the theme Pywalfox paints from yoru's palette, so a new
+ * wallpaper recolours Firefox at once; the palette's own values are the
+ * fallback. The shapes: pill tabs, a centred address pill, the page as a card.
+ * Shapes need a Firefox restart; colours don't. */
+
+:root {
+  --y-frame: var(--lwt-accent-color, #{{surface_container_lowest}});
+  --y-bar: var(--toolbar-bgcolor, #{{surface_container_low}});
+  --y-ink: var(--toolbar-color, #{{on_surface}});
+  --y-tab: var(--tab-selected-bgcolor, #{{surface_container_high}});
+  --y-field: var(--toolbar-field-background-color, #{{surface_container}});
+  --y-accent: var(--toolbar-field-focus-border-color, #{{primary}});
+  --y-radius: 14px;
+
+  --tab-min-height: 32px !important;
+  --tab-border-radius: 11px !important;
+  --tab-block-margin: 5px !important;
+  --toolbarbutton-border-radius: 10px !important;
+  --urlbar-min-height: 34px !important;
+  --arrowpanel-border-radius: 16px !important;
+  --panel-border-radius: 16px !important;
+  font-family: "Geist", sans-serif !important;
+}
+
+/* no title bar buttons: aro tiles, and closes with mod+c */
+.titlebar-buttonbox-container, .titlebar-spacer { display: none !important; }
+
+#navigator-toolbox {
+  background: var(--y-frame) !important;
+  border-bottom: 0 !important;
+}
+#TabsToolbar, #titlebar, #nav-bar, #PersonalToolbar {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+/* ── tabs: pills ─────────────────────────────────────────────────── */
+#tabbrowser-tabs { padding-inline: 6px !important; border: 0 !important; }
+.tabbrowser-tab { padding-inline: 2px !important; }
+.tab-background {
+  border-radius: var(--tab-border-radius) !important;
+  outline: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  transition: background-color 180ms ease, box-shadow 180ms ease !important;
+}
+.tabbrowser-tab:hover .tab-background:not([selected]) {
+  background: color-mix(in srgb, var(--y-ink) 8%, transparent) !important;
+}
+.tab-background[selected], .tabbrowser-tab[selected] .tab-background,
+.tabbrowser-tab[multiselected] .tab-background {
+  background: var(--y-tab) !important;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, .28), inset 0 0 0 1px color-mix(in srgb, var(--y-ink) 7%, transparent) !important;
+}
+.tab-label { font: 500 12.5px "Geist", sans-serif !important; }
+.tabbrowser-tab:not([selected]) .tab-label { opacity: .72; }
+.tab-close-button { border-radius: 8px !important; }
+.tabbrowser-tab:not([selected], :hover) .tab-close-button { opacity: 0; }
+.tab-context-line, .tab-loading-burst { display: none !important; }
+#tabs-newtab-button, #new-tab-button { border-radius: 10px !important; }
+
+/* ── the address bar: a centred pill ─────────────────────────────── */
+#nav-bar { padding-block: 2px 6px !important; }
+#urlbar-container {
+  flex: 0 1 720px !important;
+  margin-inline: auto !important;
+}
+#urlbar-background, .urlbar-background {
+  border-radius: 999px !important;
+  border: 1px solid color-mix(in srgb, var(--y-ink) 10%, transparent) !important;
+  background: var(--y-field) !important;
+  box-shadow: none !important;
+}
+#urlbar[open] #urlbar-background, #urlbar[open] .urlbar-background {
+  border-radius: 20px !important;
+}
+#urlbar[focused] #urlbar-background, #urlbar[focused] .urlbar-background {
+  outline: 2px solid var(--y-accent) !important;
+  outline-offset: -1px !important;
+}
+#urlbar-input, .urlbar-input { font: 14px "Geist", sans-serif !important; text-align: center; }
+#urlbar[focused] #urlbar-input, #urlbar[focused] .urlbar-input { text-align: start; }
+#identity-box, #tracking-protection-icon-container { border-radius: 999px !important; }
+.urlbarView-row { border-radius: 12px !important; }
+
+/* ── the page: a card floating on the frame ──────────────────────── */
+#browser { background: var(--y-frame) !important; }
+#tabbrowser-tabbox {
+  margin: 0 8px 8px !important;
+  border-radius: var(--y-radius) !important;
+  overflow: clip !important;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, .35) !important;
+  outline: 1px solid color-mix(in srgb, var(--y-ink) 8%, transparent) !important;
+}
+#sidebar-main, #sidebar-box { background: var(--y-frame) !important; }
+
+/* ── menus and panels ────────────────────────────────────────────── */
+menupopup, panel {
+  --panel-border-radius: 14px !important;
+  --panel-padding: 6px !important;
+}
+menupopup menuitem, menupopup menu { border-radius: 8px !important; }
+toolbarbutton .toolbarbutton-icon, toolbarbutton .toolbarbutton-badge-stack { border-radius: 10px !important; }

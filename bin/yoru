@@ -478,6 +478,102 @@ def fastfetch(c):
     write(path, json.dumps(cfg, indent=2) + "\n")
 
 
+# ── firefox ─────────────────────────────────────────────────────────────
+
+HERE = Path(__file__).resolve().parent.parent
+STARTPAGES = HOME / "startpages"
+WAL = HOME / ".cache/wal/colors.json"
+
+
+def firefox_profiles():
+    """every Firefox profile that has been used, old and XDG locations"""
+    import configparser
+    found = []
+    for root in (CONF / "mozilla/firefox", HOME / ".mozilla/firefox"):
+        ini = configparser.ConfigParser()
+        try:
+            ini.read(root / "profiles.ini")
+        except configparser.Error:
+            continue
+        for sec in ini.sections():
+            if "Path" not in ini[sec]:
+                continue
+            d = Path(ini[sec]["Path"])
+            d = d if d.is_absolute() else root / d
+            if (d / "prefs.js").exists() and d.resolve() not in found:
+                found.append(d.resolve())
+    return found
+
+
+def render(text, c):
+    return re.sub(r"\{\{(\w+)\}\}", lambda m: str(c.get(m.group(1), "")), text)
+
+
+def firefox_chrome(profile):
+    """userChrome.css and userContent.css import rice.css, which names the rice that is
+    on. The first time, the old files become kon's: kon.css and kon-content.css"""
+    chrome = profile / "chrome"
+    chrome.mkdir(exist_ok=True)
+    for name, kon, rice in (("userChrome.css", "kon.css", "rice.css"),
+                            ("userContent.css", "kon-content.css", "rice-content.css")):
+        f = chrome / name
+        if f.exists() and rice not in f.read_text():
+            f.replace(chrome / (kon if not (chrome / kon).exists() else name + ".pre-yoru"))
+        if not f.exists() or rice not in f.read_text():
+            write(f, f"/* `rice` points {rice} at the rice that is on: kon or yoru */\n@import url(\"{rice}\");\n")
+    user = profile / "user.js"
+    pref = 'user_pref("toolkit.legacyUserProfileCustomizations.stylesheets", true);'
+    if pref not in (user.read_text() if user.exists() else ""):
+        with open(user, "a") as fh:
+            fh.write("\n// load chrome/userChrome.css and chrome/userContent.css\n" + pref + "\n")
+    return chrome
+
+
+def firefox(s, c):
+    tpl = HERE / "config/firefox"
+    if not tpl.is_dir():
+        return
+    p = dict(c, name=Path(s["wallpaper"]).name, user=os.environ.get("USER", ""))
+    for profile in firefox_profiles():
+        chrome = firefox_chrome(profile)
+        write(chrome / "yoru.css", render((tpl / "yoru.css").read_text(), p))
+        write(chrome / "yoru-content.css", render((tpl / "yoru-content.css").read_text(), p))
+        write(chrome / "rice.css", '@import url("yoru.css");\n')
+        write(chrome / "rice-content.css", '@import url("yoru-content.css");\n')
+    # the start page, with the wallpaper beside it
+    STARTPAGES.mkdir(exist_ok=True)
+    img = still(s["wallpaper"])
+    if img:
+        sh("magick", img + "[0]", "-resize", "1920x1080^", "-quality", "85", str(STARTPAGES / "yoru-wall.jpg"))
+    write(STARTPAGES / "yoru-start.html", render((tpl / "yoru-start.html").read_text(), p))
+    cur = STARTPAGES / "current.html"
+    if cur.is_symlink() or not cur.exists():
+        cur.unlink(missing_ok=True)
+        cur.symlink_to("yoru-start.html")
+    pywal(c)
+
+
+def pywal(c):
+    """Pywalfox paints Firefox's theme from pywal's colours: background is color0,
+    the accents color10 and color13, the text color15. The first write keeps
+    whatever was there as colors.json.pre-yoru, for `rice kon` to put back"""
+    a = c["ansi"]
+    cols = {f"color{i}": "#" + a[i] for i in range(16)}
+    cols.update(color0="#" + c["surface_container_low"], color8="#" + c["surface_container_high"],
+                color10="#" + c["primary"], color13="#" + c["tertiary"],
+                color7="#" + c["on_surface_variant"], color15="#" + c["on_surface"])
+    data = {"wallpaper": c.get("still", ""), "alpha": "100",
+            "special": {"background": "#" + c["surface_container_low"], "foreground": "#" + c["on_surface"],
+                        "cursor": "#" + c["primary"]},
+            "colors": cols}
+    if WAL.exists() and "yoru" not in WAL.read_text() and not WAL.with_name("colors.json.pre-yoru").exists():
+        shutil.copy(WAL, WAL.with_name("colors.json.pre-yoru"))
+    data["yoru"] = True
+    write(WAL, json.dumps(data, indent=2) + "\n")
+    if shutil.which("pywalfox"):
+        sh("pywalfox", "update")
+
+
 def cursor(s):
     name = s.get("cursor")
     dirs = (HOME / ".local/share/icons", HOME / ".icons", Path("/usr/share/icons"))
@@ -526,6 +622,7 @@ def apply(s, apps=True):
         cava(c)
         starship(c)
         fastfetch(c)
+        firefox(s, c)
     return c
 
 

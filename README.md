@@ -28,6 +28,10 @@ Dark, with colours taken from the wallpaper and motion everywhere.
   pill that shakes at a wrong password, the music and power buttons. If the
   shell ever dies while locked, aro stays locked: from a TTY,
   `WAYLAND_DISPLAY=wayland-0 aro-lock` takes over and unlocks normally.
+- **Firefox.** Pill tabs, a rounded address bar and the page as a floating
+  card, coloured live from the wallpaper through Pywalfox, and a yoru start
+  page. kon's own Firefox CSS is kept as `chrome/kon.css` and comes back with
+  `rice kon` (shapes change on Firefox's next start, colours at once).
 - **Settings (mod+i).** A window in the style of end-4's: Quick, Wallpaper,
   Desktop, Island, Lock, Weather, About. It writes
   `~/.config/yoru/config.json`, which the shell follows live.
