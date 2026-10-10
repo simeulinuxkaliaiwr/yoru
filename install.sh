@@ -43,7 +43,7 @@ if [ -z "$wms" ]; then
 fi
 [ -n "$wms" ] || { warn "none of aro, Hyprland or niri is installed: yoru needs one of them"; exit 1; }
 
-# ── what yoru needs ─────────────────────────────────────────────────────
+# what yoru needs
 # the Arch package for a command, where its name differs
 pkg() {
 	case $1 in
@@ -53,34 +53,52 @@ pkg() {
 	fc-cache) echo fontconfig ;; python3) echo python ;; *) echo "$1" ;;
 	esac
 }
-missing=""
-for c in qs matugen magick jq curl python3 bsdtar fc-cache; do has "$c" || missing="$missing $c"; done
-if [ -n "$missing" ]; then
-	warn "yoru can't run without:$missing"
-	printf '   on Arch: pacman -S'; for c in $missing; do printf ' %s' "$(pkg "$c")"; done
-	printf '   (quickshell and matugen may come from the AUR)\n'
-	exit 1
-fi
-lack=""
-for need in "ffmpeg:video wallpapers" "cava:the visualizer" "cliphist:clipboard history" "wl-copy:copying" \
-	"grim:screenshots" "slurp:area screenshots" "wl-screenrec:screen recording" "hyprpicker:the colour picker" \
-	"brightnessctl:brightness" "wpctl:volume" "playerctl:media keys" "qalc:sums in the launcher" \
-	"nmcli:Wi-Fi in the control centre" "wlsunset:night light" "swayidle:locking when idle" \
-	"swaylock:the fallback lock" "zenity:the photo widget's picker" "inotifywait:restarting after edits" \
-	"notify-send:fallback notices"; do
-	has "${need%%:*}" || lack="$lack\n   $(pkg "${need%%:*}") — ${need#*:}"
+# what's only in the AUR: an AUR helper builds it, if there is one
+aur() { case $1 in wl-screenrec) return 0 ;; *) return 1 ;; esac; }
+needs="qs matugen magick jq curl python3 bsdtar fc-cache"
+# and what only some features use: video wallpapers, the visualizer, clipboard history, copying,
+# screenshots, recording, the colour picker, brightness, volume, media keys, sums in the launcher,
+# Wi-Fi, night light, locking when idle, the fallback lock, the photo widget's picker,
+# restarting after edits, fallback notices
+wants="ffmpeg cava cliphist wl-copy grim slurp wl-screenrec hyprpicker brightnessctl wpctl playerctl qalc
+	nmcli wlsunset swayidle swaylock zenity inotifywait notify-send"
+repo="" fromaur=""
+for c in $needs $wants; do
+	has "$c" && continue
+	if aur "$c"; then fromaur="$fromaur $(pkg "$c")"; else repo="$repo $(pkg "$c")"; fi
 done
-[ -z "$lack" ] || { warn "optional, for:"; printf "$lack\n"; }
-fc-list | grep -q "Noto Color Emoji" || warn "no Noto Color Emoji font: the launcher's emoji (:) need it (noto-fonts-emoji)"
+fc-list | grep -q "Noto Color Emoji" || repo="$repo noto-fonts-emoji"
+opts=--needed; $yes && opts="$opts --noconfirm"
+if has pacman; then
+	if [ -n "$repo" ]; then
+		say "running: sudo pacman -S $opts$repo"
+		sudo pacman -S $opts $repo || warn "pacman didn't install everything"
+	fi
+	if [ -n "$fromaur" ]; then
+		helper=""
+		for h in paru yay; do has "$h" && { helper=$h; break; }; done
+		if [ -n "$helper" ]; then
+			say "running: $helper -S $opts$fromaur"
+			$helper -S $opts $fromaur || warn "$helper didn't install$fromaur"
+		else
+			warn "from the AUR, if you'd like them:$fromaur"
+		fi
+	fi
+elif [ -n "$repo$fromaur" ]; then
+	warn "install these with your package manager (Arch's names):$repo$fromaur"
+fi
+missing=""
+for c in $needs; do has "$c" || missing="$missing $c"; done
+[ -z "$missing" ] || { warn "yoru can't run without:$missing"; exit 1; }
 
-# ── the shell and the scripts ───────────────────────────────────────────
+# the shell and the scripts
 say "linking the shell and the scripts"
 mkdir -p "$cfg/quickshell" "$bin" "$cfg/yoru"
 ln -sfn "$here/config/quickshell/yoru" "$cfg/quickshell/yoru"
 for f in yoru yoru-shell yoru-watch yoru-shot yoru-lock yoru-idle rice; do ln -sf "$here/bin/$f" "$bin/$f"; done
 case :$PATH: in *":$bin:"*) ;; *) warn "$bin isn't on your PATH: the compositor's binds call yoru from there" ;; esac
 
-# ── fonts and the cursor ────────────────────────────────────────────────
+# fonts and the cursor
 if ! fc-list | grep -q "Material Symbols Rounded" || ! fc-list | grep -q "Geist:"; then
 	say "fonts: Geist and Material Symbols Rounded"
 	tmp=$(mktemp -d)
@@ -107,7 +125,7 @@ if [ ! -d "$icons/Bibata-Modern-Ice" ]; then
 	curl -fsSL https://github.com/ful1e5/Bibata_Cursor/releases/download/v2.0.7/Bibata-Modern-Ice.tar.xz | tar -xJ -C "$icons"
 fi
 
-# ── the compositors ─────────────────────────────────────────────────────
+# the compositors
 # adds LINE to the end of FILE once, after a backup, asking first unless --yes
 hook() {
 	file=$1 line=$2
