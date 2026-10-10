@@ -81,7 +81,8 @@ Dark, with colours taken from the wallpaper and motion everywhere.
 
 Needs: quickshell, aro, matugen, imagemagick, ffmpeg, cava, cliphist, grim,
 slurp, jq, brightnessctl, wireplumber, qalculate, networkmanager, wlsunset,
-swaylock, zenity (the photo widget's picker). The installer fetches the Geist,
+swaylock, zenity (the photo widget's picker), inotify-tools (optional: restarts the
+shell when its files change). The installer fetches the Geist,
 Material Symbols, Noto Sans JP and Instrument Serif fonts and the Bibata cursor.
 
 aro starts the shell with `yoru-shell`, which raises its open-file limit and,

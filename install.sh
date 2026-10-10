@@ -18,7 +18,7 @@ done
 say "linking the shell and the scripts"
 mkdir -p "$cfg/quickshell" "$bin" "$cfg/yoru"
 ln -sfn "$here/config/quickshell/yoru" "$cfg/quickshell/yoru"
-for f in yoru yoru-shell yoru-shot yoru-lock yoru-idle rice; do ln -sf "$here/bin/$f" "$bin/$f"; done
+for f in yoru yoru-shell yoru-watch yoru-shot yoru-lock yoru-idle rice; do ln -sf "$here/bin/$f" "$bin/$f"; done
 cp "$here/config/aro/config" "$cfg/yoru/aro.config"
 
 if ! fc-list | grep -q "Material Symbols Rounded" || ! fc-list | grep -q "Geist:"; then

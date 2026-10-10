@@ -1,0 +1,23 @@
+#!/bin/sh
+# restarts yoru's shell when its files change (Quickshell's own hot reload
+# crashes 0.3.1, so the shell turns it off). yoru-shell starts this; one runs
+# at a time. It only restarts a shell that's running, so it never brings yoru
+# up over kon, and never while the screen is locked (that would drop the lock).
+exec 9>"${XDG_RUNTIME_DIR:-/tmp}/yoru-watch.lock"
+flock -n 9 || exit 0
+
+dir=$(readlink -f "$HOME/.config/quickshell/yoru")
+events="-e close_write -e moved_to -e create -e delete"
+# editors' swap and backup files
+skip='(\.swp|\.swx|~|/\.#[^/]*|/4913)$'
+
+while inotifywait -qq -r $events --exclude "$skip" "$dir"; do
+	# a git checkout or a shader rebuild saves a burst: wait for a quiet second
+	while inotifywait -qq -r -t 1 $events --exclude "$skip" "$dir"; do :; done
+	pgrep -f -x 'qs -n -c yoru -d.*' >/dev/null || continue
+	while [ "$(qs ipc -c yoru call lock locked 2>/dev/null)" = true ]; do sleep 2; done
+	qs kill -c yoru >/dev/null 2>&1
+	# starting before the old one has gone races it
+	n=0; while pgrep -f -x 'qs -n -c yoru -d.*' >/dev/null && [ $n -lt 50 ]; do sleep 0.1; n=$((n + 1)); done
+	yoru-shell >/dev/null 2>&1 9>&-   # the shell mustn't hold our lock
+done
