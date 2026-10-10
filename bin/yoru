@@ -166,6 +166,17 @@ def brightness(f, cache):
 BANDS = {"night": (0, 0.45), "dawn": (0.3, 0.75), "evening": (0.25, 0.7), "day": (0.55, 1.0)}
 
 
+def wall_brightness(f):
+    path = CACHE / "brightness.json"
+    try:
+        cache = json.loads(path.read_text())
+    except (OSError, ValueError):
+        cache = {}
+    b = brightness(f, cache)
+    write(path, json.dumps(cache))
+    return b
+
+
 def walls_for(s, period):
     own = s.get("timeDirs", {}).get(period, "")
     if own:
@@ -361,7 +372,7 @@ def shell(s, c):
     """the palette the quickshell config watches; a video's colour timeline goes
     with it once worked out (in the background the first time: `yoru timeline`)"""
     f = s["wallpaper"]
-    data = dict(c, wallpaper=f, still=still(f), video=is_video(f))
+    data = dict(c, wallpaper=f, still=still(f), video=is_video(f), bright=wall_brightness(f))
     if is_video(f):
         tl = timeline_file(f, s["scheme"])
         if tl.exists():

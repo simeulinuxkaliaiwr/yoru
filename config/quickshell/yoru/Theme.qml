@@ -35,6 +35,7 @@ Singleton {
     property string wallpaper: ""
     property string still: ""           // the wallpaper as an image (a video's frame)
     property bool video: false
+    property real bright: 0.5           // how bright the wallpaper is, 0..1
 
     // the island is darker than any surface: it reads as a hole in the screen
     readonly property color island: Qt.darker(surfaceLowest, 1.6)
@@ -179,6 +180,7 @@ Singleton {
             let p;
             try { p = JSON.parse(text()); } catch (e) { return; }
             theme.wallpaper = p.wallpaper ?? "";
+            theme.bright = p.bright ?? 0.5;
             theme.still = p.still ?? "";
             theme.video = !!p.video;
             theme.timeline = p.timeline ?? [];

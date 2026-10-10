@@ -53,7 +53,8 @@ Scope {
     function outside() {
         if (!Weather.ready) return "";
         const c = Weather.code;
-        if (c <= 1) return Weather.day ? "" : "aurora";
+        // an aurora only shows up against a dark picture
+        if (c <= 1) return Weather.day || Theme.bright > 0.45 ? "" : "aurora";
         if (c === 45 || c === 48) return "fog";
         if ((c >= 51 && c <= 67) || (c >= 80 && c <= 82)) return "rain";
         if ((c >= 71 && c <= 77) || c === 85 || c === 86) return "snow";
@@ -243,25 +244,38 @@ Scope {
                 }
             }
 
-            // the sky over the picture. It stands still under windows, like a video
-            ShaderEffect {
-                id: skyFx
+            // the sky over the picture, drawn at half size and 30 frames a second
+            // (it's soft anyway; full size at 60 kept the GPU 30% busy), and
+            // stopped under windows whatever the videos do
+            Item {
+                id: skyBox
                 anchors.fill: parent
                 visible: root.sky > 0 && root.skyFade > 0
                 opacity: root.skyFade
-                property real time: 0
-                property real aspect: width / height
-                property real kind: root.sky
-                property real amount: root.skyAmount
-                property real wind: root.skyWind
-                property color tint: Qt.tint("#ffffff", Theme.alpha(Theme.primary, 0.18))
-                property color glowA: Theme.primary
-                property color glowB: Theme.tertiary
-                fragmentShader: Qt.resolvedUrl("shaders/sky.frag.qsb")
-                FrameAnimation {
-                    running: skyFx.visible && !(win.covered && !win.moving)
+                layer.enabled: visible
+                layer.textureSize: Qt.size(Math.ceil(width / 2), Math.ceil(height / 2))
+                layer.smooth: true
+                readonly property bool hidden: Aro.busy(win.modelData.name) || Aro.fullscreen(win.modelData.name)
+                // seconds since it started, from the clock, so a late tick doesn't slow it
+                property real t0: Date.now()
+                Timer {
+                    interval: 33; repeat: true
+                    running: skyBox.visible && (!skyBox.hidden || win.moving)
                     // wrapped well before a float loses the fractions of a second
-                    onTriggered: skyFx.time = (skyFx.time + frameTime) % 20000
+                    onTriggered: skyFx.time = ((Date.now() - skyBox.t0) / 1000) % 20000
+                }
+                ShaderEffect {
+                    id: skyFx
+                    anchors.fill: parent
+                    property real time: 0
+                    property real aspect: width / height
+                    property real kind: root.sky
+                    property real amount: root.skyAmount
+                    property real wind: root.skyWind
+                    property color tint: Qt.tint("#ffffff", Theme.alpha(Theme.primary, 0.18))
+                    property color glowA: Theme.primary
+                    property color glowB: Theme.tertiary
+                    fragmentShader: Qt.resolvedUrl("shaders/sky.frag.qsb")
                 }
             }
 
