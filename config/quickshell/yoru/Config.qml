@@ -154,7 +154,7 @@ Singleton {
             }
 
             property JsonObject weather: JsonObject {
-                property string city: "São Paulo"             // empty: from your IP
+                property string city: ""                      // empty: from your IP (ipinfo.io)
                 property bool fahrenheit: false
             }
         }
