@@ -24,15 +24,28 @@ Dark, with colours taken from the wallpaper and motion everywhere.
   honeycomb and pixelate (or a random one each time), with adjustable length
   and edge softness. aropaper doesn't run under yoru: the shell draws it all.
 - **The desktop.** A clock in ten styles (thin, bold, stacked, outline, mono,
-  split, words, kanji, serif, analog; bottom left, centre or top left),
-  widgets (today, weather, calendar, system, now playing), each with its own
-  layouts (weather: card, hero, pill; calendar: month, week, a tear-off date;
-  system: rings, bars, chips; now playing: card, cover, pill), placed in a
-  column, a grid, a row under the island or each in its own spot, on six
-  looks (glass, solid, tonal, outline, neon, minimal), and a visualizer while music
-  plays (bars, mirror, wave or dots).
-- **A lock screen.** The wallpaper blurred, a big clock, an animated password
-  pill that shakes at a wrong password, the music and power buttons. If the
+  split, words, kanji, serif, analog), widgets (today, weather, calendar,
+  system, now playing), each with its own layouts (weather: card, hero, pill,
+  a 24-hour graph, split; calendar: month, week, a tear-off date, dots;
+  system: rings, bars, chips, a history graph; now playing: card, cover,
+  pill, a turning record; today: bars, rings, the sun's arc), in a column, a
+  grid, a row under the island, or placed by hand. They sit on ten looks
+  (glass, frosted, solid, tonal, gradient, stack, outline, neon, HUD,
+  minimal), and a visualizer rises while music plays (bars, mirror, wave or dots).
+- **Edit mode (mod+e).** The desktop's widgets, live, over everything: drag
+  them where you like (they snap to a grid, the screen's middle and edges,
+  and each other), pull a corner to resize, give each its own layout, look
+  and size, pick several (Ctrl+click, a lasso, Ctrl+A) to move them together,
+  drag them onto another monitor, undo anything. Add more from a palette of
+  live previews, as many as you like, including eleven that only live here:
+  a clock in any style or a Material cookie, world clocks, synced lyrics
+  (from lrclib.net, stretched to fit nightcore and slowed uploads), a photo
+  or a folder slideshow cut to a shape, notes, a to-do list you tick off on
+  the desktop, focus/stopwatch/countdown timers, a quote of the day, a user
+  card, app shortcuts, and a countdown to a date.
+- **A lock screen.** The wallpaper blurred, a big clock, your picture
+  (`~/.face`), a password pill whose characters pop in as Material shapes
+  (or dots) and that shakes at a wrong password, the music and power buttons. If the
   shell ever dies while locked, aro stays locked: from a TTY,
   `WAYLAND_DISPLAY=wayland-0 aro-lock` takes over and unlocks normally.
 - **Live activities.** A focus timer (with a break, and notifications held
@@ -41,10 +54,12 @@ Dark, with colours taken from the wallpaper and motion everywhere.
   its colours from the cover.
 - **Firefox.** Pill tabs, a rounded address bar and the page as a floating
   card, coloured live from the wallpaper through Pywalfox, and a yoru start
-  page. kon's own Firefox CSS is kept as `chrome/kon.css` and comes back with
+  page with its own settings: three layouts, your links, the greeting, the
+  search engine, and new tabs that type straight into its search. kon's own Firefox CSS is kept as `chrome/kon.css` and comes back with
   `rice kon` (shapes change on Firefox's next start, colours at once).
-- **Settings (mod+i).** A window in the style of end-4's: Quick, Wallpaper,
-  Desktop, Island, Lock, Weather, About. It writes
+- **Settings (mod+i).** A window in the style of end-4's, with search and live
+  previews: Quick, Wallpaper, Clock, Widgets, Widget layouts, Visualizer,
+  Start page, Island, Focus & quiet, Lock screen, Weather, About. It writes
   `~/.config/yoru/config.json`, which the shell follows live.
 
 ## Install
@@ -54,8 +69,17 @@ Dark, with colours taken from the wallpaper and motion everywhere.
 
 Needs: quickshell, aro, matugen, imagemagick, ffmpeg, cava, cliphist, grim,
 slurp, jq, brightnessctl, wireplumber, qalculate, networkmanager, wlsunset,
-swaylock. The installer fetches the Geist and Material Symbols fonts and the
-Bibata cursor.
+swaylock, zenity (the photo widget's picker). The installer fetches the Geist,
+Material Symbols, Noto Sans JP and Instrument Serif fonts and the Bibata cursor.
+
+aro starts the shell with `yoru-shell`, which raises its open-file limit and,
+on a machine with NVIDIA's driver installed but no NVIDIA card, keeps that
+driver out.
+
+Firefox's start page and its empty, ready-to-type new tabs need a small
+loader installed once, as root (the start page's settings show this too):
+
+    sudo install -m644 config/firefox/mozilla.cfg /usr/lib/firefox/
 
 ## Switching
 
@@ -78,6 +102,7 @@ Edits to the live one follow it when you switch. The very first switch keeps
 | `mod+w` / `mod+shift+w` | wallpaper picker / next wallpaper |
 | `mod+shift+e` | power |
 | `mod+i` | settings |
+| `mod+e` | edit the desktop's widgets |
 | `mod+Tab` | window picker (type to filter) |
 | `mod+/` | every key, from your aro config |
 | `mod+p` | focus timer |
