@@ -31,6 +31,12 @@ Scope {
         mode = m;
     }
     function close() { mode = "idle"; }
+    // opens the launcher with something already typed (`island search ":snow"`)
+    property string typed: ""
+    function search(text) {
+        if (mode !== "launcher") open("launcher");
+        typed = text;
+    }
 
     // ── passing states ──────────────────────────────────────────────
     function showOsd(kind) {
@@ -119,7 +125,8 @@ Scope {
                         width: 1; height: 1
                         opacity: 0
                         focus: true
-                        Component.onCompleted: forceActiveFocus()
+                        // made after the island opened: take what `search` typed
+                        Component.onCompleted: { forceActiveFocus(); if (island.typed !== "") { text = island.typed; island.typed = ""; } }
                         onTextChanged: {
                             const v = win.current;
                             if (v && v.query !== undefined) v.query = text;
@@ -132,6 +139,7 @@ Scope {
                         Connections {
                             target: island
                             function onModeChanged() { proxy.text = ""; }
+                            function onTypedChanged() { if (island.typed !== "") { proxy.text = island.typed; island.typed = ""; } }
                         }
                         Connections {
                             target: win.current

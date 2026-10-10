@@ -40,6 +40,7 @@ ShellRoot {
     IpcHandler {
         target: "island"
         function toggle(mode: string): void { island.open(mode, ""); }
+        function search(text: string): void { island.search(text); }
         function close(): void { island.close(); }
     }
     Connections {

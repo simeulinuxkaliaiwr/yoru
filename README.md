@@ -99,7 +99,7 @@ Edits to the live one follow it when you switch. The very first switch keeps
 
 | | |
 |---|---|
-| `mod+a` | launcher (apps, `=` maths) |
+| `mod+a` | launcher: apps, maths and units, `:` emoji, `?` web search, `>` a command |
 | `mod+v` | clipboard, with previews of images and whole texts |
 | `mod+x` | control centre |
 | `mod+m` | player |
