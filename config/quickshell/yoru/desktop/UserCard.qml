@@ -21,16 +21,19 @@ Card {
     property real uptime: 0
     FileView { id: hostFile; path: "/etc/hostname"; onLoaded: c.host = text().trim() }
     FileView { id: up; path: "/proc/uptime"; onLoaded: c.uptime = parseFloat(text()) }
-    Timer { interval: 60000; repeat: true; running: true; onTriggered: up.reload() }
+    Timer { interval: 60000; repeat: true; running: true; onTriggered: { up.reload(); findFace.running = true; } }
     readonly property string upFor: {
         const m = Math.floor(uptime / 60), h = Math.floor(m / 60), d = Math.floor(h / 24);
         return d > 0 ? d + "d " + (h % 24) + "h" : h > 0 ? h + "h " + (m % 60) + "m" : m + "m";
     }
-    // ~/.face, else the picture AccountsService keeps, else a letter
+    // ~/.face, else the picture AccountsService keeps, else a letter. Looked
+    // for again every minute; the file's mtime in the URL makes a replaced
+    // picture a new image (Qt caches by URL)
     property string face: ""
     Process {
+        id: findFace
         running: true
-        command: ["sh", "-c", "for f in \"$HOME/.face\" \"$HOME/.face.icon\" \"/var/lib/AccountsService/icons/$USER\"; do [ -s \"$f\" ] && { echo \"$f\"; break; }; done"]
+        command: ["sh", "-c", "for f in \"$HOME/.face\" \"$HOME/.face.icon\" \"/var/lib/AccountsService/icons/$USER\"; do [ -s \"$f\" ] && { echo \"file://$f?$(stat -c %Y \"$f\")\"; break; }; done"]
         stdout: StdioCollector { onStreamFinished: c.face = text.trim() }
     }
 
@@ -42,7 +45,7 @@ Card {
         Image {
             id: pic
             anchors.fill: parent
-            source: c.face ? "file://" + c.face : ""
+            source: c.face
             fillMode: Image.PreserveAspectCrop
             sourceSize: Qt.size(face.width * 2, face.height * 2)
             asynchronous: true

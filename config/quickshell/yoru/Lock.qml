@@ -60,11 +60,12 @@ Scope {
     SystemClock { id: clock; precision: SystemClock.Seconds }
 
     // your picture: ~/.face, else ~/.face.icon, else the one AccountsService keeps
-    // (what display managers and GNOME set). Looked for at each lock, so a new one shows
+    // (what display managers and GNOME set). Looked for at each lock; the file's
+    // mtime in the URL makes a replaced picture a new image (Qt caches by URL)
     property string face: ""
     Process {
         id: findFace
-        command: ["sh", "-c", "for f in \"$HOME/.face\" \"$HOME/.face.icon\" \"/var/lib/AccountsService/icons/$USER\"; do [ -s \"$f\" ] && { echo \"$f\"; break; }; done"]
+        command: ["sh", "-c", "for f in \"$HOME/.face\" \"$HOME/.face.icon\" \"/var/lib/AccountsService/icons/$USER\"; do [ -s \"$f\" ] && { echo \"file://$f?$(stat -c %Y \"$f\")\"; break; }; done"]
         stdout: StdioCollector { onStreamFinished: root.face = text.trim() }
     }
     Component.onCompleted: findFace.running = true
@@ -152,7 +153,7 @@ Scope {
                         Image {
                             id: avatar
                             anchors.fill: parent
-                            source: root.face ? "file://" + root.face : ""
+                            source: root.face
                             fillMode: Image.PreserveAspectCrop
                             sourceSize: Qt.size(176, 176)
                         }
