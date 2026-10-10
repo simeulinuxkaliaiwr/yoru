@@ -47,11 +47,12 @@ Item {
                 [/set-mute @DEFAULT_AUDIO_SINK/, "Media keys", "Mute"], [/AUDIO_SOURCE/, "Media keys", "Mute the microphone"],
                 [/brightnessctl.*\+/, "Media keys", "Brighter"], [/brightnessctl.*-/, "Media keys", "Dimmer"],
                 [/play-pause/, "Media keys", "Play / pause"], [/playerctl next/, "Media keys", "Next track"],
-                [/playerctl previous/, "Media keys", "Previous track"], [/--app-id aurora/, "Apps", "Aurora"],
-                [/nightcore-finder/, "Apps", "nightcore-finder"], [/^foot$/, "Apps", "Terminal"], [/^fuzzel/, "Apps", "fuzzel"],
+                [/playerctl previous/, "Media keys", "Previous track"],
+                [/^foot$/, "Apps", "Terminal"], [/^fuzzel/, "Apps", "fuzzel"],
             ];
             for (const [re, g, w] of spawns) if (re.test(arg)) return [g, w];
-            return ["Apps", arg.split(" ")[0]];
+            // anything else by its program's name, not its path
+            return ["Apps", arg.split(" ")[0].split("/").pop()];
         }
         const words = {
             close: "Close the window", float: "Float / tile", fullscreen: "Fullscreen", maximize: "Maximize",

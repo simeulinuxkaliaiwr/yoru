@@ -101,7 +101,6 @@ rule = app_id:dropterm  scratchpad  size 70% 55%  position 15% 6%
 rule = app_id:*pavucontrol*  float  size 800 500  center
 rule = app_id:mpv  no_border  no_radius  opacity 1
 rule = title:yoru*settings  float  size 1100 740  center
-rule = app_id:aurora  float  size 52% 25%  position 2% 6%  opacity_unfocused 1
 
 # ── bindings ─────────────────────────────────────────────────────────────
 # The first bind line replaces the built-in bindings entirely.
@@ -137,8 +136,6 @@ bind = mod+f, maximize
 bind = mod+shift+f, fullscreen
 bind = mod+b, split, right
 bind = mod+s, split, down
-bind = mod+n, spawn, /home/elliot/Projects/nightcore-finder/nightcore-finder
-bind = mod+shift+n, spawn, foot --app-id aurora -o font=monospace:size=5 ~/.local/bin/aurora
 
 # screenshots and colours
 bind = Print, spawn, yoru-shot full
