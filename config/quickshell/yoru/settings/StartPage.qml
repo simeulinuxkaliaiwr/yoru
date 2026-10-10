@@ -27,7 +27,7 @@ Column {
         setLinks(l);
     }
 
-    // ── a small Firefox with the page in it ─────────────────────────
+    // a small Firefox with the page in it
     Section {
         icon: "preview"; title: "Preview"
         ClippingRectangle {
@@ -209,7 +209,7 @@ Column {
         Item { width: 1; height: 4 }
     }
 
-    // ── how it's laid out and how it behaves ────────────────────────
+    // how it's laid out and how it behaves
     Section {
         icon: "tab"; title: "Start page"
         SetRow { icon: "dashboard"; label: "Layout"; hint: "Centred tiles, a poster down the left, or only the search and some icons" }
@@ -250,7 +250,7 @@ Column {
         SetRow { icon: "contrast"; label: "Wallpaper dim"; Range { value: page.c.dim; from: 0; to: 0.85; step: 0.05; shownScale: 100; suffix: "%"; onMoved: v => page.c.dim = v } }
     }
 
-    // ── the links ───────────────────────────────────────────────────
+    // the links
     Section {
         icon: "link"; title: "Links"
         Txt { x: 10; width: parent.width - 20; text: "Up to nine; the number keys open them in order."; size: 12; color: Theme.inkDim; bottomPadding: 8 }
@@ -290,7 +290,7 @@ Column {
         Item { width: 1; height: 8 }
     }
 
-    // ── Firefox's half: needs root once ─────────────────────────────
+    // Firefox's half: needs root once
     Section {
         id: setup
         icon: "extension"; title: "Firefox"

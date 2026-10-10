@@ -66,7 +66,7 @@ Card {
         Bar { label: "Year"; value: c.year }
     }
 
-    // ── sun: where it is between rising and setting ─────────────────
+    // sun: where it is between rising and setting
     Item {
         id: sun
         anchors.fill: parent

@@ -67,7 +67,7 @@ Item {
         Txt { width: parent.width; text: Media.artist; size: 13; color: Theme.inkDim }
     }
 
-    // ── progress: a wave while playing, a straight line while paused
+    // progress: a wave while playing, a straight line while paused
     Item {
         id: bar
         anchors { left: cover.right; leftMargin: 20; right: parent.right; rightMargin: 22 }

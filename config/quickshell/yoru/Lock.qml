@@ -77,7 +77,7 @@ Scope {
             id: surf
             color: "black"
 
-            // ── the wallpaper, blurred and dimmed ──────────────────
+            // the wallpaper, blurred and dimmed
             Image {
                 id: wall
                 anchors.fill: parent
@@ -109,7 +109,7 @@ Scope {
                 Behavior on opacity { NumberAnimation { duration: 450; easing.type: Easing.OutCubic } }
                 Behavior on scale { NumberAnimation { duration: 700; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.emphasized } }
 
-                // ── status, top right ────────────────────────────────
+                // status, top right
                 Row {
                     anchors { top: parent.top; right: parent.right; margins: 28 }
                     spacing: 14
@@ -122,7 +122,7 @@ Scope {
                     }
                 }
 
-                // ── the clock ────────────────────────────────────────
+                // the clock
                 Column {
                     id: time
                     anchors { horizontalCenter: parent.horizontalCenter; top: parent.top; topMargin: parent.height * 0.14 }
@@ -132,7 +132,7 @@ Scope {
                     ClockFace { style: Config.o.lock.clockStyle; centred: true; k: 1.05; anchors.horizontalCenter: parent.horizontalCenter }
                 }
 
-                // ── who, and the password ────────────────────────────
+                // who, and the password
                 Column {
                     id: who
                     anchors { horizontalCenter: parent.horizontalCenter; bottom: parent.bottom; bottomMargin: parent.height * 0.2 }
@@ -268,7 +268,7 @@ Scope {
                     }
                 }
 
-                // ── the focus timer, while it runs ───────────────────
+                // the focus timer, while it runs
                 Rectangle {
                     visible: Focus.active
                     anchors { horizontalCenter: parent.horizontalCenter; bottom: parent.bottom; bottomMargin: Config.o.lock.media && Media.title !== "" ? 120 : 36 }
@@ -291,7 +291,7 @@ Scope {
                     }
                 }
 
-                // ── the music ────────────────────────────────────────
+                // the music
                 Rectangle {
                     visible: Config.o.lock.media && Media.title !== ""
                     anchors { horizontalCenter: parent.horizontalCenter; bottom: parent.bottom; bottomMargin: 36 }
@@ -318,7 +318,7 @@ Scope {
                     }
                 }
 
-                // ── power ────────────────────────────────────────────
+                // power
                 Row {
                     visible: Config.o.lock.power
                     anchors { right: parent.right; bottom: parent.bottom; margins: 28 }

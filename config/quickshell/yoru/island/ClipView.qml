@@ -109,7 +109,7 @@ Item {
         stdout: StdioCollector { onStreamFinished: v.fullText = this.text }
     }
 
-    // ── the search field ────────────────────────────────────────────
+    // the search field
     Rectangle {
         id: field
         x: 12; y: 12
@@ -159,7 +159,7 @@ Item {
         Txt { text: v.query === "" ? "Nothing copied yet" : "No matches"; size: 12; color: Theme.outline }
     }
 
-    // ── the list ────────────────────────────────────────────────────
+    // the list
     ListView {
         id: list
         x: 12; y: field.y + field.height + 8
@@ -222,7 +222,7 @@ Item {
         }
     }
 
-    // ── the preview ─────────────────────────────────────────────────
+    // the preview
     Rectangle {
         id: pane
         visible: list.count > 0

@@ -29,7 +29,7 @@ Singleton {
     readonly property var list: server.trackedNotifications.values.slice().reverse()
     signal arrived(var n)
 
-    // ── the history: [{ key, app, icon, summary, body, time }], newest first
+    // the history: [{ key, app, icon, summary, body, time }], newest first
     property var history: []
     readonly property int count: history.length
     property int serial: 0

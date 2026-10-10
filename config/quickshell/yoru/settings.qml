@@ -60,7 +60,7 @@ ShellRoot {
         property string query: ""
         readonly property var found: pages.filter(p => query === "" || (p.name + " " + p.about + " " + p.words).toLowerCase().includes(query.toLowerCase()))
 
-        // ── the sidebar ─────────────────────────────────────────────
+        // the sidebar
         Item {
             id: side
             width: 236
@@ -150,7 +150,7 @@ ShellRoot {
             }
         }
 
-        // ── the page ────────────────────────────────────────────────
+        // the page
         Rectangle {
             anchors { left: side.right; right: parent.right; top: parent.top; bottom: parent.bottom; margins: 12; leftMargin: 0 }
             radius: 28

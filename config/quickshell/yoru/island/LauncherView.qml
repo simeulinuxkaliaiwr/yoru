@@ -37,7 +37,7 @@ Item {
         return false;
     }
 
-    // ── how often each app was opened ───────────────────────────────
+    // how often each app was opened
     FileView {
         id: store
         path: Theme.cacheDir + "/launches.json"
@@ -63,7 +63,7 @@ Item {
         isle.close();
     }
 
-    // ── the other kinds of search ───────────────────────────────────
+    // the other kinds of search
     readonly property string mode: {
         const c = query.replace(/^\s+/, "")[0];
         return c === ":" ? "emoji" : c === "?" ? "web" : c === ">" ? "run" : "apps";
@@ -142,7 +142,7 @@ Item {
         return found.length || answer !== "" ? found : [webRow(query.trim())];
     }
 
-    // ── maths, through qalc ─────────────────────────────────────────
+    // maths, through qalc
     Process {
         id: calc
         stdout: StdioCollector {
@@ -164,7 +164,7 @@ Item {
     }
     onQueryChanged: { calcSoon.restart(); list.currentIndex = 0; }
 
-    // ── the search field: shows what the island's keyboard sheet typed
+    // the search field: shows what the island's keyboard sheet typed
     Rectangle {
         id: field
         x: 12; y: 12
@@ -206,7 +206,7 @@ Item {
         }
     }
 
-    // ── the answer, when the query is a sum ─────────────────────────
+    // the answer, when the query is a sum
     Rectangle {
         id: answerRow
         visible: v.answer !== ""
@@ -225,7 +225,7 @@ Item {
         StateLayer { tint: Theme.inkTertiaryContainer; onClicked: { Quickshell.execDetached(["wl-copy", v.answer]); v.isle.close(); } }
     }
 
-    // ── results ─────────────────────────────────────────────────────
+    // results
     ListView {
         id: list
         x: 12

@@ -23,7 +23,7 @@ Item {
         anchors.centerIn: parent
         spacing: 16
 
-        // ── workspaces: the current one stretches into a pill ──────
+        // workspaces: the current one stretches into a pill
         Item {
             implicitWidth: pills.implicitWidth
             implicitHeight: 36
@@ -62,7 +62,7 @@ Item {
             }
         }
 
-        // ── now playing: a live activity that grows the island ─────
+        // now playing: a live activity that grows the island
         Item {
             id: mediaSeg
             readonly property bool on: Config.o.island.showMedia && !!Media.player && Media.title !== ""
@@ -108,7 +108,7 @@ Item {
             MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: v.isle.open("media", v.output) }
         }
 
-        // ── recording: a blinking dot and the time, click to stop ───
+        // recording: a blinking dot and the time, click to stop
         Item {
             visible: Recorder.active
             implicitWidth: recRow.implicitWidth
@@ -134,7 +134,7 @@ Item {
             MouseArea { anchors { fill: parent; margins: -6 } cursorShape: Qt.PointingHandCursor; onClicked: Recorder.stop() }
         }
 
-        // ── the focus timer: a ring filling up, and what's left ─────
+        // the focus timer: a ring filling up, and what's left
         Item {
             visible: Focus.active
             implicitWidth: focusRow.implicitWidth
@@ -168,7 +168,7 @@ Item {
             MouseArea { anchors { fill: parent; margins: -6 } cursorShape: Qt.PointingHandCursor; onClicked: v.isle.open("control", v.output) }
         }
 
-        // ── the time ────────────────────────────────────────────────
+        // the time
         Txt {
             anchors.verticalCenter: parent.verticalCenter
             text: Qt.formatTime(clock.date, Config.o.island.clock24 ? "HH:mm" : "h:mm AP")
@@ -182,7 +182,7 @@ Item {
             }
         }
 
-        // ── status ──────────────────────────────────────────────────
+        // status
         Item {
           implicitWidth: status.implicitWidth
           implicitHeight: 36

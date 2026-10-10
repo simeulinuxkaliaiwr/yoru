@@ -38,7 +38,7 @@ Scope {
         typed = text;
     }
 
-    // ── passing states ──────────────────────────────────────────────
+    // passing states
     function showOsd(kind) {
         if (opened && (mode === "control" || mode === "launcher" || mode === "clip" || mode === "walls")) return;
         osdKind = kind;

@@ -42,7 +42,7 @@ Rectangle {
         color: card.look === "neon" ? Theme.alpha(Theme.primary, 0.28) : Qt.rgba(0, 0, 0, card.look === "frosted" ? 0.25 : 0.35)
     }
 
-    // ── stack: a second sheet, a little lower and narrower ──────────
+    // stack: a second sheet, a little lower and narrower
     Rectangle {
         z: -1
         visible: card.look === "stack"
@@ -53,7 +53,7 @@ Rectangle {
         border.width: 1; border.color: Theme.alpha(Theme.outlineVariant, 0.6)
     }
 
-    // ── gradient: the accents, washed across ────────────────────────
+    // gradient: the accents, washed across
     Rectangle {
         z: -1
         visible: card.look === "gradient"
@@ -66,7 +66,7 @@ Rectangle {
         }
     }
 
-    // ── frosted: the wallpaper behind the card, blurred ──────────────
+    // frosted: the wallpaper behind the card, blurred
     // the desktop's widget window says where it sits on screen (frostX/Y);
     // elsewhere (the settings preview) this is plain glass
     readonly property var host: QsWindow.window
@@ -124,7 +124,7 @@ Rectangle {
         }
     }
 
-    // ── hud: brackets at the corners ────────────────────────────────
+    // hud: brackets at the corners
     Repeater {
         model: card.look === "hud" ? 4 : 0
         Item {

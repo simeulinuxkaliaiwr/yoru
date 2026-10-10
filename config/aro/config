@@ -26,12 +26,12 @@ exec = yoru-shell
 
 exec = fcitx5 -d
 
-# ── keyboard ─────────────────────────────────────────────────────────────
+# keyboard
 keyboard_layout = br
 keyboard_repeat_rate = 35
 keyboard_repeat_delay = 300
 
-# ── pointer ──────────────────────────────────────────────────────────────
+# pointer
 mouse_accel = flat
 mouse_speed = 1.0
 mouse_natural_scroll = false
@@ -40,7 +40,7 @@ drag_threshold = 12
 resize_zone = 8
 resize_step = 0.04
 
-# ── shape ────────────────────────────────────────────────────────────────
+# shape
 gaps = 10
 outer_gaps = 12
 border = 2
@@ -52,7 +52,7 @@ float_min_width = 240
 float_min_height = 120
 float_scale = 0.5
 
-# ── glass ────────────────────────────────────────────────────────────────
+# glass
 blur = true
 blur_passes = 3
 blur_radius = 8
@@ -60,7 +60,7 @@ blur_layers = launcher
 opacity_unfocused = 0.94
 window_background = 00000000
 
-# ── colour (yoru rewrites these from the wallpaper) ──────────────────────
+# colour (yoru rewrites these from the wallpaper)
 background = 0x0f1218ff
 frame = 0x1b2028ff
 frame_focus = 0x262a33ff
@@ -80,7 +80,7 @@ overview_tint = 0x0a0d1280
 font = Geist 10
 font_small = Geist 9
 
-# ── motion: slower and springier than kon ────────────────────────────────
+# motion: slower and springier than kon
 anim_ms = 420
 fullscreen_anim_ms = 260
 focus_anim_ms = 180
@@ -88,21 +88,21 @@ drop_anim_ms = 200
 open_scale = 0.9
 overview_ms = 380
 
-# ── startup ──────────────────────────────────────────────────────────────
+# startup
 exec = systemctl --user import-environment WAYLAND_DISPLAY DISPLAY XDG_CURRENT_DESKTOP
 exec = systemctl --user restart xdg-desktop-portal xdg-desktop-portal-gtk
 exec = wl-paste --watch cliphist store
 exec = yoru-idle                # swayidle with yoru's lock screen
 # notifications: the island is the daemon, so no mako here
 
-# ── rules ────────────────────────────────────────────────────────────────
+# rules
 exec = foot --app-id dropterm
 rule = app_id:dropterm  scratchpad  size 70% 55%  position 15% 6%
 rule = app_id:*pavucontrol*  float  size 800 500  center
 rule = app_id:mpv  no_border  no_radius  opacity 1
 rule = title:yoru*settings  float  size 1100 740  center
 
-# ── bindings ─────────────────────────────────────────────────────────────
+# bindings
 # The first bind line replaces the built-in bindings entirely.
 
 # the island
@@ -166,7 +166,7 @@ bind = mod+alt+j, move_workspace, down
 bind = mod+alt+k, move_workspace, up
 bind = mod+alt+l, move_workspace, right
 
-# ── laptop keys: the island shows the change ─────────────────────────────
+# laptop keys: the island shows the change
 bind = XF86AudioRaiseVolume, spawn, wpctl set-volume -l 1.0 @DEFAULT_AUDIO_SINK@ 5%+
 bind = XF86AudioLowerVolume, spawn, wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-
 bind = XF86AudioMute, spawn, wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle

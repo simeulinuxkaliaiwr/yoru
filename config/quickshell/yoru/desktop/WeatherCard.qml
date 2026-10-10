@@ -16,7 +16,7 @@ Card {
 
     function day(d) { return Qt.formatDate(new Date(d + "T12:00"), "ddd"); }
 
-    // ── card ────────────────────────────────────────────────────────
+    // card
     Item {
         anchors.fill: parent
         visible: c.layout === "card"
@@ -64,7 +64,7 @@ Card {
         }
     }
 
-    // ── hero: the number first, then the week as ranges ─────────────
+    // hero: the number first, then the week as ranges
     Item {
         anchors.fill: parent
         visible: c.layout === "hero"
@@ -128,7 +128,7 @@ Card {
         }
     }
 
-    // ── pill: a line ────────────────────────────────────────────────
+    // pill: a line
     Row {
         id: pill
         visible: c.layout === "pill"
@@ -143,7 +143,7 @@ Card {
         }
     }
 
-    // ── graph: the next 24 hours as a curve ─────────────────────────
+    // graph: the next 24 hours as a curve
     Item {
         id: graph
         anchors.fill: parent
@@ -218,7 +218,7 @@ Card {
         }
     }
 
-    // ── split: now on the left, the days on the right ───────────────
+    // split: now on the left, the days on the right
     Item {
         anchors.fill: parent
         visible: c.layout === "split"

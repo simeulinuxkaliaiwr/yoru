@@ -36,7 +36,7 @@
   box-shadow: none !important;
 }
 
-/* ── tabs: pills ─────────────────────────────────────────────────── */
+/* tabs: pills */
 #tabbrowser-tabs { padding-inline: 6px !important; border: 0 !important; }
 .tabbrowser-tab { padding-inline: 2px !important; }
 .tab-background {
@@ -61,7 +61,7 @@
 .tab-context-line, .tab-loading-burst { display: none !important; }
 #tabs-newtab-button, #new-tab-button { border-radius: 10px !important; }
 
-/* ── the address bar: a centred pill ─────────────────────────────── */
+/* the address bar: a centred pill */
 #nav-bar { padding-block: 2px 6px !important; }
 #urlbar-container {
   flex: 0 1 720px !important;
@@ -86,7 +86,7 @@
 #identity-box, #tracking-protection-icon-container { border-radius: 999px !important; }
 .urlbarView-row { border-radius: 12px !important; }
 
-/* ── the page: a card floating on the frame ──────────────────────── */
+/* the page: a card floating on the frame */
 #browser { background: var(--y-frame) !important; }
 #tabbrowser-tabbox {
   margin: 0 8px 8px !important;
@@ -97,7 +97,7 @@
 }
 #sidebar-main, #sidebar-box { background: var(--y-frame) !important; }
 
-/* ── menus and panels ────────────────────────────────────────────── */
+/* menus and panels */
 menupopup, panel {
   --panel-border-radius: 14px !important;
   --panel-padding: 6px !important;

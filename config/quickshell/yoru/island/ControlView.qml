@@ -56,7 +56,7 @@ Item {
         width: parent.width - 36
         spacing: 14
 
-        // ── hello ───────────────────────────────────────────────────
+        // hello
         Item {
             width: parent.width; height: 44
             Column {
@@ -75,7 +75,7 @@ Item {
             }
         }
 
-        // ── sliders ─────────────────────────────────────────────────
+        // sliders
         Slider {
             width: parent.width
             value: Audio.volume; muted: Audio.muted; icon: Audio.icon
@@ -88,7 +88,7 @@ Item {
             onMoved: x => Status.setBrightness(x)
         }
 
-        // ── toggles ─────────────────────────────────────────────────
+        // toggles
         Grid {
             width: parent.width
             columns: 2
@@ -138,7 +138,7 @@ Item {
             }
         }
 
-        // ── media, small ────────────────────────────────────────────
+        // media, small
         Rectangle {
             visible: !!Media.player
             width: parent.width; height: 64
@@ -168,7 +168,7 @@ Item {
             }
         }
 
-        // ── notifications ───────────────────────────────────────────
+        // notifications
         Item {
             width: parent.width; height: 24
             Txt { anchors.verticalCenter: parent.verticalCenter; text: "Notifications"; size: 13; weight: Font.DemiBold; color: Theme.inkDim }

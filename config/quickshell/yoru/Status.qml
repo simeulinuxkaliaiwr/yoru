@@ -10,7 +10,7 @@ import QtQuick
 Singleton {
     id: st
 
-    // ── battery ─────────────────────────────────────────────────────
+    // battery
     readonly property var battery: UPower.displayDevice
     readonly property bool hasBattery: battery?.isLaptopBattery ?? false
     readonly property real charge: battery?.percentage ?? 0     // 0..1
@@ -21,7 +21,7 @@ Singleton {
         return steps[Math.min(7, Math.floor(charge * 8))];
     }
 
-    // ── network, from nmcli ─────────────────────────────────────────
+    // network, from nmcli
     property string ssid: ""
     property int signal: -1
     property bool ethernet: false
@@ -55,13 +55,13 @@ Singleton {
         netSoon.restart();
     }
 
-    // ── bluetooth ───────────────────────────────────────────────────
+    // bluetooth
     readonly property var adapter: Bluetooth.defaultAdapter
     readonly property bool btOn: adapter?.enabled ?? false
     readonly property var btConnected: (Bluetooth.devices?.values ?? []).filter(d => d.connected)
     function toggleBt() { if (adapter) adapter.enabled = !adapter.enabled; }
 
-    // ── brightness ──────────────────────────────────────────────────
+    // brightness
     property real brightness: 0
     readonly property string brightIcon: brightness < 0.34 ? "brightness_5" : brightness < 0.67 ? "brightness_6" : "brightness_7"
     signal brightnessShown()
@@ -96,7 +96,7 @@ Singleton {
     }
     Process { id: brightSet; onExited: if (st.pendingBright >= 0) brightApply.restart() }
 
-    // ── night light: wlsunset at a fixed warm temperature ───────────
+    // night light: wlsunset at a fixed warm temperature
     property bool night: false
     Process {
         id: sunset
@@ -104,14 +104,14 @@ Singleton {
         command: ["wlsunset", "-T", "4001", "-t", "4000"]
     }
 
-    // ── caffeine: hold an idle inhibitor while it's on ──────────────
+    // caffeine: hold an idle inhibitor while it's on
     property bool caffeine: false
     Process {
         running: st.caffeine
         command: ["systemd-inhibit", "--what=idle", "--who=yoru", "--why=caffeine", "--mode=block", "sleep", "infinity"]
     }
 
-    // ── uptime, for the control centre ──────────────────────────────
+    // uptime, for the control centre
     property string uptime: ""
     FileView { id: up; path: "/proc/uptime"; blockLoading: true }
     function readUptime() {

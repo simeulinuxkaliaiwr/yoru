@@ -57,8 +57,7 @@ def current():
     return "yoru" if running("qs -c yoru") else "kon"
 
 
-# ── what the light kon theme and the dark yoru disagree on ──────────────
-
+# what the light kon theme and the dark yoru disagree on
 GTK_SETTINGS = (CONF / "gtk-3.0/settings.ini", CONF / "gtk-4.0/settings.ini")
 
 
@@ -87,8 +86,7 @@ def restore_desktop():
                                 f.read_text(), flags=re.M))
 
 
-# ── firefox: the rice that is on, on the next restart (colours at once) ─
-
+# firefox: the rice that is on, on the next restart (colours at once)
 def firefox_kon():
     """yoru set Firefox up (see `yoru`'s firefox()); point it back at kon's files"""
     for root in (CONF / "mozilla/firefox", HOME / ".mozilla/firefox"):
@@ -109,8 +107,7 @@ def firefox_kon():
             run("pywalfox", "update")
 
 
-# ── each rice's shell ───────────────────────────────────────────────────
-
+# each rice's shell
 def stop(name):
     if name == "kon":
         run("qs", "kill", "-c", "aroclip")

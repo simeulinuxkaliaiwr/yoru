@@ -62,19 +62,19 @@ Singleton {
     Behavior on inkTertiaryContainer { ColorAnimation { duration: theme.recolourMs } }
     Behavior on danger { ColorAnimation { duration: theme.recolourMs } }
 
-    // ── type ────────────────────────────────────────────────────────
+    // type
     readonly property string sans: "Geist"
     readonly property string mono: "Geist Mono"
     readonly property string icons: "Material Symbols Rounded"
 
-    // ── shape ───────────────────────────────────────────────────────
+    // shape
     readonly property int rXs: 8
     readonly property int rSm: 12
     readonly property int rMd: 18
     readonly property int rLg: 26
     readonly property int gap: 10
 
-    // ── motion: Material 3 Expressive curves ────────────────────────
+    // motion: Material 3 Expressive curves
     // spatial curves overshoot a little; effect curves (colour, opacity) never do
     readonly property var spatial: [0.38, 1.21, 0.22, 1.0, 1, 1]
     readonly property var spatialSlow: [0.39, 1.29, 0.35, 0.98, 1, 1]
@@ -97,7 +97,7 @@ Singleton {
         return Qt.rgba(a.r + (b.r - a.r) * t, a.g + (b.g - a.g) * t, a.b + (b.b - a.b) * t, a.a + (b.a - a.a) * t);
     }
 
-    // ── where the colours come from: the wallpaper, or the album art of what
+    // where the colours come from: the wallpaper, or the album art of what
     // is playing (settings: appearance.musicColours). Only the shell follows
     // the art; apps keep the wallpaper's palette.
     property var base: null             // palette.json

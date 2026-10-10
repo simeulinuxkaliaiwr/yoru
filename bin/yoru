@@ -131,8 +131,7 @@ def is_video(f):
     return Path(f).suffix.lower() in VIDEOS
 
 
-# ── wallpapers ──────────────────────────────────────────────────────────
-
+# wallpapers
 def key(f):
     p = Path(f)
     st = p.stat()
@@ -227,8 +226,7 @@ def walls_for(s, period):
     return ranked[int(lo * n):max(int(lo * n) + 1, round(hi * n))]
 
 
-# ── palette ─────────────────────────────────────────────────────────────
-
+# palette
 def hex_rgb(h):
     h = h.lstrip("#")
     return tuple(int(h[i:i + 2], 16) / 255 for i in (0, 2, 4))
@@ -264,8 +262,7 @@ def ansi(c):
     return out
 
 
-# ── video wallpapers: frames across the loop ────────────────────────────
-
+# video wallpapers: frames across the loop
 SHELL_ROLES = ("surface", "surface_container_lowest", "surface_container_low", "surface_container",
                "surface_container_high", "surface_container_highest", "on_surface", "on_surface_variant",
                "outline", "outline_variant", "primary", "on_primary", "primary_container", "on_primary_container",
@@ -395,8 +392,7 @@ def art_palette(url, scheme):
     return c
 
 
-# ── apps ────────────────────────────────────────────────────────────────
-
+# apps
 def shell(s, c):
     """the palette the quickshell config watches; a video's colour timeline goes
     with it once worked out (in the background the first time: `yoru timeline`)"""
@@ -745,8 +741,7 @@ def fastfetch(c):
     write(path, json.dumps(cfg, indent=2) + "\n")
 
 
-# ── firefox ─────────────────────────────────────────────────────────────
-
+# firefox
 HERE = Path(__file__).resolve().parent.parent
 STARTPAGES = HOME / "startpages"
 WAL = HOME / ".cache/wal/colors.json"
@@ -921,8 +916,7 @@ def apply(s, apps=True):
     return c
 
 
-# ── lyrics ──────────────────────────────────────────────────────────────
-
+# lyrics
 LYRICS = CACHE / "lyrics"
 # what videos and fan uploads add to a title that the song itself doesn't have
 NOISE = re.compile(r"\s*[\[(][^\])]*(official|video|audio|lyric|visuali[sz]er|mv|hd|4k|remaster|slowed|sped|nightcore|reverb|speed)[^\])]*[\])]", re.I)

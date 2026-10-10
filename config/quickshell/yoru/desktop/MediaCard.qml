@@ -15,7 +15,7 @@ Card {
     radius: layout === "pill" ? height / 2 : Config.o.desktop.widgetRadius
     readonly property real frac: Media.length > 0 ? Math.min(1, Media.position / Media.length) : 0
 
-    // ── card ────────────────────────────────────────────────────────
+    // card
     Item {
         anchors.fill: parent
         visible: c.layout === "card"
@@ -47,7 +47,7 @@ Card {
         }
     }
 
-    // ── cover: the art is the card ──────────────────────────────────
+    // cover: the art is the card
     ClippingRectangle {
         anchors.fill: parent
         visible: c.layout === "cover"
@@ -84,7 +84,7 @@ Card {
         }
     }
 
-    // ── pill ────────────────────────────────────────────────────────
+    // pill
     Item {
         anchors.fill: parent
         visible: c.layout === "pill"
@@ -104,7 +104,7 @@ Card {
         IconButton { id: play; anchors { right: parent.right; rightMargin: 10; verticalCenter: parent.verticalCenter } icon: Media.playing ? "pause" : "play_arrow"; size: 40; active: true; onClicked: Media.toggle() }
     }
 
-    // ── vinyl ───────────────────────────────────────────────────────
+    // vinyl
     Item {
         anchors.fill: parent
         visible: c.layout === "vinyl"

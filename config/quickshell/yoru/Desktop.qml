@@ -28,7 +28,7 @@ Scope {
             readonly property bool visOn: desk.c.visualizer && Media.playing && !Wm.fullscreen(modelData.name)
                 && (!busy || desk.c.visualizerBusy)
 
-            // ── the clock ───────────────────────────────────────────
+            // the clock
             // (once placed by hand, the clock is a Clock widget like the rest)
             LazyLoader {
                 active: desk.c.clock && !(Desk.custom && desk.c.clockPlaced)
@@ -74,7 +74,7 @@ Scope {
                 }
             }
 
-            // ── the widgets: a window per spot that has any ────────────
+            // the widgets: a window per spot that has any
             readonly property var order: ["day", "weather", "calendar", "system", "media"]
             readonly property var enabledWidgets: order.filter(n => !Desk.custom && desk.c.widgets && desk.c[n] && (n !== "media" || Media.title !== "")
                                                                && (n !== "weather" || Weather.ready))
@@ -207,7 +207,7 @@ Scope {
                 }
             }
 
-            // ── placed widgets (arrangement "custom"): one window for them all ──
+            // placed widgets (arrangement "custom"): one window for them all
             // a window per widget cost ~16 MB each (a GL context, a render thread,
             // glyph caches); one full-screen window takes clicks only where the
             // widgets are. Edit mode draws its own copies, so this steps aside
@@ -260,7 +260,7 @@ Scope {
                 }
             }
 
-            // ── the visualizer: fades in and out with the music ─────
+            // the visualizer: fades in and out with the music
             LazyLoader {
                 active: scr.visOn || linger.running
                 PanelWindow {

@@ -23,7 +23,7 @@ Item {
     readonly property string hm: Qt.formatTime(now, h24 ? "HH:mm" : "h:mm")
     readonly property string date: Qt.formatDate(now, "dddd, d MMMM")
 
-    // ── words: "twenty past five" ───────────────────────────────────
+    // words: "twenty past five"
     readonly property var nums: ["twelve", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve",
         "thirteen", "fourteen", "quarter", "sixteen", "seventeen", "eighteen", "nineteen", "twenty"]
     function words() {
@@ -38,7 +38,7 @@ Item {
         return exact + name + (m5 < 30 ? " past\n" + nums[h] : " to\n" + nums[next]);
     }
 
-    // ── kanji: 十七時四十二分 ───────────────────────────────────────
+    // kanji: 十七時四十二分
     readonly property var kd: ["〇", "一", "二", "三", "四", "五", "六", "七", "八", "九"]
     function kanji(n) {
         if (n < 10) return kd[n];

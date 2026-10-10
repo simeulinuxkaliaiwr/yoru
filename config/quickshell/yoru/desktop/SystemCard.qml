@@ -88,7 +88,7 @@ Card {
         }
     }
 
-    // ── graph: processor and memory over the last two minutes ───────
+    // graph: processor and memory over the last two minutes
     Item {
         id: g
         anchors.fill: parent

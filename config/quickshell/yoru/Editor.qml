@@ -94,7 +94,7 @@ Scope {
         stdout: StdioCollector { onStreamFinished: { const p = text.trim(); if (p && ed.whenPicked) ed.whenPicked(p); } }
         onExited: ed.picking = false
     }
-    // ── what's picked ───────────────────────────────────────────────
+    // what's picked
     function isPicked(id) { return id !== "" && (id === selected || extra.includes(id)); }
     function pickOnly(id) { selected = id; extra = []; }
     // make one the main pick, keeping the rest
@@ -175,7 +175,7 @@ Scope {
         return false;
     }
 
-    // ── small pieces ────────────────────────────────────────────────
+    // small pieces
     component Tool: IconButton {
         property bool usable: true
         size: 36
@@ -184,7 +184,7 @@ Scope {
     }
     component Divider: Rectangle { width: 1; height: 22; color: Theme.outlineVariant; anchors.verticalCenter: parent?.verticalCenter }
 
-    // ── one overlay per screen ──────────────────────────────────────
+    // one overlay per screen
     Variants {
         model: Desk.editing ? Quickshell.screens : []
 
@@ -358,7 +358,7 @@ Scope {
                     }
                 }
 
-                // ── the widgets ─────────────────────────────────────
+                // the widgets
                 // by count, so a change updates the boxes in place; only adding or
                 // removing one rebuilds them
                 Repeater {
@@ -572,7 +572,7 @@ Scope {
                     Rectangle { required property real modelData; y: Math.round(modelData); height: 1; width: root.width; color: Theme.primary }
                 }
 
-                // ── the toolbar: under the island, can be dragged aside ──
+                // the toolbar: under the island, can be dragged aside
                 Rectangle {
                     id: bar
                     property real px: (root.width - width) / 2
@@ -627,7 +627,7 @@ Scope {
                     }
                 }
 
-                // ── the palette: the kinds down the left, the chosen one's layouts beside ──
+                // the palette: the kinds down the left, the chosen one's layouts beside
                 Rectangle {
                     id: shelf
                     visible: ed.adding
@@ -739,7 +739,7 @@ Scope {
                     }
                 }
 
-                // ── the selected widget's layout, look and size ───
+                // the selected widget's layout, look and size
                 Rectangle {
                     id: inspector
                     visible: ov.selHere && !ed.adding

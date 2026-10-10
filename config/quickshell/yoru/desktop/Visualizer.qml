@@ -58,7 +58,7 @@ Item {
     Loader { anchors.fill: parent; active: vis.style === "mirror"; sourceComponent: mirrorC }
     Loader { anchors.fill: parent; active: vis.style === "wave"; sourceComponent: waveC }
 
-    // ── bars, rising off the bottom ─────────────────────────────────
+    // bars, rising off the bottom
     Component { id: barsC; Item {
     Row {
         anchors { bottom: parent.bottom; horizontalCenter: parent.horizontalCenter }
@@ -102,7 +102,7 @@ Item {
 
     } }
 
-    // ── mirror: bars growing both ways from a line ──────────────────
+    // mirror: bars growing both ways from a line
     Component { id: mirrorC; Item {
     Row {
         anchors { verticalCenter: parent.verticalCenter; horizontalCenter: parent.horizontalCenter }
@@ -122,7 +122,7 @@ Item {
 
     } }
 
-    // ── wave: one smooth filled line ────────────────────────────────
+    // wave: one smooth filled line
     Component { id: waveC; Item {
     Shape {
         anchors.fill: parent

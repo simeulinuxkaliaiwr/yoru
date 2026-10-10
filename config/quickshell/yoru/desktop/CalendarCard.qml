@@ -23,7 +23,7 @@ Card {
         return out;
     }
 
-    // ── month ───────────────────────────────────────────────────────
+    // month
     Item {
         anchors.fill: parent
         visible: c.layout === "month"
@@ -60,7 +60,7 @@ Card {
         }
     }
 
-    // ── week: seven days, today standing up ─────────────────────────
+    // week: seven days, today standing up
     Item {
         anchors.fill: parent
         visible: c.layout === "week"
@@ -90,7 +90,7 @@ Card {
         }
     }
 
-    // ── date: a page torn off a calendar ────────────────────────────
+    // date: a page torn off a calendar
     Item {
         anchors.fill: parent
         visible: c.layout === "date"
@@ -120,7 +120,7 @@ Card {
         }
     }
 
-    // ── dots: how far through the month ─────────────────────────────
+    // dots: how far through the month
     Item {
         anchors.fill: parent
         visible: c.layout === "dots"

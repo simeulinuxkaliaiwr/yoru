@@ -88,7 +88,7 @@ Column {
     }
     component Small: IconButton { size: 32 }
 
-    // ── world clock: cities ─────────────────────────────────────────
+    // world clock: cities
     Column {
         visible: o.type === "world"
         spacing: 6
@@ -110,7 +110,7 @@ Column {
         }
     }
 
-    // ── photo: a picture or a folder ────────────────────────────────
+    // photo: a picture or a folder
     Column {
         visible: o.type === "photo"
         spacing: 8
@@ -132,7 +132,7 @@ Column {
         }
     }
 
-    // ── notes ───────────────────────────────────────────────────────
+    // notes
     Column {
         visible: o.type === "notes"
         spacing: 8
@@ -140,7 +140,7 @@ Column {
         Line { label: "Note"; Area { text: o.s.text ?? ""; placeholder: "Write something"; onEdited: t => o.set("text", t, "text") } }
     }
 
-    // ── to-do ───────────────────────────────────────────────────────
+    // to-do
     Column {
         visible: o.type === "todo"
         spacing: 6
@@ -159,7 +159,7 @@ Column {
         Adder { x: 76; width: 400; placeholder: "Add a thing to do, then Enter"; onAdded: t => o.push("items", { text: t, done: false }) }
     }
 
-    // ── quote ───────────────────────────────────────────────────────
+    // quote
     Column {
         visible: o.type === "quote"
         spacing: 8
@@ -169,7 +169,7 @@ Column {
         Line { visible: !(o.s.daily ?? true); label: "Who"; Field { width: 300; text: o.s.author ?? ""; placeholder: "Who said it (or nothing)"; onEdited: t => o.set("author", t) } }
     }
 
-    // ── apps ────────────────────────────────────────────────────────
+    // apps
     Column {
         visible: o.type === "apps"
         spacing: 8
@@ -207,7 +207,7 @@ Column {
         }
     }
 
-    // ── countdown ───────────────────────────────────────────────────
+    // countdown
     Column {
         visible: o.type === "countdown"
         spacing: 8

@@ -77,7 +77,7 @@ Singleton {
         return type + "-" + n;
     }
 
-    // ── from the automatic arrangements to placed widgets ───────────
+    // from the automatic arrangements to placed widgets
     // the desktop's cards report themselves here (plain JS, no bindings), so
     // the first edit starts from exactly where they are on screen
     property var cards: ({})
