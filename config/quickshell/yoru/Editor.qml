@@ -1,4 +1,5 @@
 import Quickshell
+import Quickshell.Io
 import Quickshell.Wayland
 import QtQuick
 import qs
@@ -56,13 +57,36 @@ Scope {
     function undo() { [undos, redos] = step(undos, redos); }
     function redo() { [redos, undos] = step(redos, undos); }
     function change(id, fields, run) { commit(draft.map(i => i.id === id ? Object.assign({}, i, fields) : i), run); }
+    // a widget's own setting (EditorOptions)
+    function set(id, key, value, run) {
+        const it = item(id);
+        if (it) change(id, { settings: Object.assign({}, it.settings ?? {}, { [key]: value }) }, run ? run + " " + id : undefined);
+    }
+    // a file or folder from zenity. The overlay steps aside while it's open:
+    // it sits above windows, the dialog would be under it
+    property bool picking: false
+    property var picked: null
+    function pick(folder, done) {
+        picked = done;
+        picker.command = ["zenity", "--file-selection", "--title=" + (folder ? "A folder of pictures" : "A picture")]
+            .concat(folder ? ["--directory"] : ["--file-filter=Pictures | *.jpg *.jpeg *.png *.webp *.gif *.avif *.bmp"]);
+        picking = true;
+        picker.running = true;
+    }
+    Process {
+        id: picker
+        stdout: StdioCollector { onStreamFinished: { const p = text.trim(); if (p && ed.picked) ed.picked(p); } }
+        onExited: ed.picking = false
+    }
     function remove(id) { if (item(id)) { commit(draft.filter(i => i.id !== id)); selected = ""; } }
 
     // a new widget lands at `spot` (the free place nearest the middle)
     function add(type, layout, output, spot) {
         const x = spot.x, y = spot.y;
         const id = Desk.nextId(draft, type);
-        commit(draft.concat([{ id: id, type: type, output: output, x: x, y: y, scale: 1, layout: layout, look: "" }]));
+        const kind = Desk.kind(type);
+        commit(draft.concat([{ id: id, type: type, output: output, x: x, y: y, scale: 1, layout: layout, look: "",
+                               settings: copy(kind.defaults ?? {}) }]));
         selected = id;
         adding = false;
     }
@@ -108,33 +132,6 @@ Scope {
     }
 
     // ── small pieces ────────────────────────────────────────────────
-    // a pill with an icon and a label; `on` fills it
-    component Pill: Rectangle {
-        id: pill
-        property string icon: ""
-        property string label: ""
-        property bool on: false
-        property bool primary: false
-        signal clicked()
-        height: 36
-        width: row.implicitWidth + (label !== "" ? 28 : 18)
-        radius: on ? 12 : height / 2
-        color: primary ? Theme.primary : on ? Theme.secondaryContainer : "transparent"
-        border.width: primary || on ? 0 : 1
-        border.color: Theme.outlineVariant
-        opacity: enabled ? 1 : 0.35
-        readonly property color ink: primary ? Theme.inkPrimary : on ? Theme.inkSecondaryContainer : Theme.ink
-        Behavior on radius { NumberAnimation { duration: Theme.normal; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.spatial } }
-        Behavior on color { ColorAnimation { duration: Theme.fast } }
-        Row {
-            id: row
-            anchors.centerIn: parent
-            spacing: 6
-            Icon { visible: pill.icon !== ""; name: pill.icon; size: 18; color: pill.ink; anchors.verticalCenter: parent.verticalCenter }
-            Txt { visible: pill.label !== ""; text: pill.label; size: 13; weight: Font.Medium; color: pill.ink; anchors.verticalCenter: parent.verticalCenter }
-        }
-        StateLayer { enabled: pill.enabled; tint: pill.ink; onClicked: pill.clicked() }
-    }
     component Tool: IconButton {
         property bool usable: true
         size: 36
@@ -154,6 +151,7 @@ Scope {
             // the keyboard goes to the screen you're on
             readonly property bool main: Aro.focusedOutput === out || !Quickshell.screens.some(s => s.name === Aro.focusedOutput)
             screen: modelData
+            visible: !ed.picking
             anchors { top: true; bottom: true; left: true; right: true }
             color: "transparent"
             exclusionMode: ExclusionMode.Ignore
@@ -225,7 +223,14 @@ Scope {
                 id: root
                 anchors.fill: parent
                 focus: true
-                Keys.onPressed: e => { if (ed.key(e, ov.out)) e.accepted = true; }
+                // keys a text field (the inspector's) didn't take: Escape leaves the field
+                Keys.onPressed: e => {
+                    if (!root.activeFocus) {
+                        if (e.key === Qt.Key_Escape) { root.forceActiveFocus(); e.accepted = true; }
+                        return;
+                    }
+                    if (ed.key(e, ov.out)) e.accepted = true;
+                }
                 Component.onCompleted: forceActiveFocus()
 
                 // the wallpaper, dimmed, so windows don't get in the way
@@ -272,7 +277,7 @@ Scope {
                 // clicking the desktop itself lets go of the selection
                 MouseArea {
                     anchors.fill: parent
-                    onClicked: { ed.selected = ""; ed.adding = false; }
+                    onClicked: { ed.selected = ""; ed.adding = false; root.forceActiveFocus(); }
                 }
 
                 // ── the widgets ─────────────────────────────────────
@@ -325,6 +330,7 @@ Scope {
                             property bool dragged: false
                             onPressed: m => {
                                 ed.selected = box.wid; ed.adding = false;
+                                root.forceActiveFocus();
                                 grab = Qt.point(m.x * 1, m.y * 1);
                                 box.liveX = box.modelData.x; box.liveY = box.modelData.y; box.liveScale = box.modelData.scale ?? 1;
                                 dragged = false;
@@ -478,74 +484,111 @@ Scope {
                     }
                 }
 
-                // ── the palette: every widget in every layout ──────
+                // ── the palette: the kinds down the left, the chosen one's layouts beside ──
                 Rectangle {
-                    id: palette
+                    id: shelf
                     visible: ed.adding
                     z: 11
                     anchors.horizontalCenter: parent.horizontalCenter
                     y: bar.y + bar.height + 10
                     width: Math.min(root.width - 80, 1180)
-                    height: Math.min(root.height - y - 40, list.contentHeight + 32)
+                    height: Math.min(root.height - y - 40, 860)
                     radius: 30
                     color: Theme.surface
                     border.width: 1
                     border.color: Theme.alpha(Theme.outlineVariant, 0.6)
+                    property string kind: "clock"
+                    readonly property var chosen: Desk.kind(kind)
                     // clicks inside don't reach the desktop
                     MouseArea { anchors.fill: parent }
 
                     Flickable {
-                        id: list
-                        anchors { fill: parent; margins: 16 }
-                        contentHeight: kinds.implicitHeight
+                        id: kindList
+                        x: 12; y: 12
+                        width: 220; height: parent.height - 24
+                        contentHeight: kindCol.implicitHeight
                         clip: true
                         boundsBehavior: Flickable.StopAtBounds
                         Column {
-                            id: kinds
-                            width: list.width
-                            spacing: 18
+                            id: kindCol
+                            width: parent.width
+                            spacing: 2
                             Repeater {
-                                model: ed.adding ? Desk.types : []
-                                Row {
-                                    id: kindRow
-                                    required property var modelData
-                                    spacing: 14
-                                    Column {
-                                        width: 130
-                                        anchors.verticalCenter: parent.verticalCenter
-                                        spacing: 4
-                                        Icon { name: kindRow.modelData.icon; size: 26; color: Theme.primary }
-                                        Txt { text: kindRow.modelData.name; size: 15; weight: Font.DemiBold }
-                                    }
+                                model: ed.adding ? Desk.groups : []
+                                Column {
+                                    id: groupCol
+                                    required property string modelData
+                                    width: kindCol.width
+                                    spacing: 2
+                                    Txt { leftPadding: 14; topPadding: 10; bottomPadding: 4; text: groupCol.modelData.toUpperCase(); size: 10; weight: Font.Bold
+                                          color: Theme.inkDim; font.letterSpacing: 1.2 }
                                     Repeater {
-                                        model: kindRow.modelData.layouts
-                                        // a small live copy; click to place it
+                                        model: Desk.types.filter(t => t.group === groupCol.modelData)
                                         Rectangle {
-                                            id: tile
+                                            id: kindRow
                                             required property var modelData
-                                            readonly property real k: 0.42
-                                            width: Math.max(prev.width, 110) + 20
-                                            height: prev.height + 44
-                                            radius: 20
-                                            color: pick.containsMouse ? Theme.surfaceHigh : Theme.surfaceLow
-                                            Behavior on color { ColorAnimation { duration: Theme.fast } }
-                                            Placed {
-                                                id: prev
-                                                anchors { horizontalCenter: parent.horizontalCenter; top: parent.top; topMargin: 10 }
-                                                item: ({ id: "preview", type: kindRow.modelData.type, layout: tile.modelData[0], look: "", scale: tile.k })
-                                                force: true
+                                            readonly property bool on: shelf.kind === modelData.type
+                                            width: groupCol.width; height: 36
+                                            radius: on ? 14 : 20
+                                            color: on ? Theme.secondaryContainer : "transparent"
+                                            Behavior on radius { NumberAnimation { duration: Theme.normal; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.spatial } }
+                                            Row {
+                                                x: 14; anchors.verticalCenter: parent.verticalCenter
+                                                spacing: 12
+                                                Icon { name: kindRow.modelData.icon; size: 20; fill: kindRow.on ? 1 : 0
+                                                       color: kindRow.on ? Theme.inkSecondaryContainer : Theme.inkDim; anchors.verticalCenter: parent.verticalCenter }
+                                                Txt { text: kindRow.modelData.name; size: 14; weight: kindRow.on ? Font.DemiBold : Font.Normal
+                                                      color: kindRow.on ? Theme.inkSecondaryContainer : Theme.ink; anchors.verticalCenter: parent.verticalCenter }
                                             }
-                                            Txt { anchors { horizontalCenter: parent.horizontalCenter; bottom: parent.bottom; bottomMargin: 9 }
-                                                  text: tile.modelData[1]; size: 12; color: Theme.inkDim }
-                                            MouseArea {
-                                                id: pick
-                                                anchors.fill: parent
-                                                hoverEnabled: true
-                                                cursorShape: Qt.PointingHandCursor
-                                                onClicked: ed.add(kindRow.modelData.type, tile.modelData[0], ov.out,
-                                                                  ov.room(prev.baseWidth, prev.baseHeight))
-                                            }
+                                            StateLayer { onClicked: shelf.kind = kindRow.modelData.type }
                                         }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    Rectangle { x: kindList.x + kindList.width + 8; y: 20; width: 1; height: parent.height - 40; color: Theme.outlineVariant }
+
+                    Flickable {
+                        id: list
+                        x: kindList.x + kindList.width + 26; y: 16
+                        width: parent.width - x - 18; height: parent.height - 32
+                        contentHeight: tiles.implicitHeight + 50
+                        clip: true
+                        boundsBehavior: Flickable.StopAtBounds
+                        Txt { y: 6; text: shelf.chosen.name; size: 18; weight: Font.DemiBold }
+                        Txt { y: 32; text: "Pick a layout to place it; its look and size come after"; size: 12; color: Theme.inkDim }
+                        Flow {
+                            id: tiles
+                            y: 62; width: list.width
+                            spacing: 12
+                            Repeater {
+                                model: ed.adding ? shelf.chosen.layouts : []
+                                // a live copy; click to place it
+                                Rectangle {
+                                    id: tile
+                                    required property var modelData
+                                    readonly property real k: Math.min(0.6, 230 / Math.max(1, prev.baseWidth), 200 / Math.max(1, prev.baseHeight))
+                                    width: Math.max(prev.width, 150) + 24
+                                    height: prev.height + 48
+                                    radius: 22
+                                    color: pick.containsMouse ? Theme.surfaceHigh : Theme.surfaceLow
+                                    Behavior on color { ColorAnimation { duration: Theme.fast } }
+                                    Placed {
+                                        id: prev
+                                        anchors { horizontalCenter: parent.horizontalCenter; top: parent.top; topMargin: 12 }
+                                        item: ({ id: "", type: shelf.kind, layout: tile.modelData[0], look: "" })
+                                        k: tile.k
+                                        force: true
+                                    }
+                                    Txt { anchors { horizontalCenter: parent.horizontalCenter; bottom: parent.bottom; bottomMargin: 11 }
+                                          text: tile.modelData[1]; size: 12; color: Theme.inkDim }
+                                    MouseArea {
+                                        id: pick
+                                        anchors.fill: parent
+                                        hoverEnabled: true
+                                        cursorShape: Qt.PointingHandCursor
+                                        onClicked: ed.add(shelf.kind, tile.modelData[0], ov.out, ov.room(prev.baseWidth, prev.baseHeight))
                                     }
                                 }
                             }
@@ -593,13 +636,14 @@ Scope {
                                     Pill {
                                         required property var modelData
                                         label: modelData[1]
-                                        on: (inspector.it?.layout || Config.o.desktop[inspector.kind.key]) === modelData[0]
+                                        on: (inspector.it?.layout || (inspector.kind.key ? Config.o.desktop[inspector.kind.key] : inspector.kind.layouts[0][0])) === modelData[0]
                                         onClicked: ed.change(ed.selected, { layout: modelData[0] })
                                     }
                                 }
                             }
                         }
                         Row {
+                            visible: !inspector.kind.bare
                             spacing: 12
                             Txt { width: 64; text: "Look"; size: 13; color: Theme.inkDim; anchors.verticalCenter: parent.verticalCenter }
                             Flow {
@@ -630,6 +674,7 @@ Scope {
                             Txt { text: Math.round((inspector.it?.scale ?? 1) * 100) + "%"; size: 13; weight: Font.Medium; anchors.verticalCenter: parent.verticalCenter; width: 48 }
                             Pill { label: "100%"; visible: (inspector.it?.scale ?? 1) !== 1; onClicked: ed.change(ed.selected, { scale: 1 }) }
                         }
+                        EditorOptions { editor: ed; it: inspector.it; width: fields.width }
                     }
                 }
 

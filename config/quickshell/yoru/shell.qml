@@ -27,6 +27,10 @@ ShellRoot {
     Lock { id: lockScreen }
 
     // the binds in ~/.config/aro/config call these
+    Connections {
+        target: Desk
+        function onIsland(mode) { island.open(mode, ""); }
+    }
     IpcHandler {
         target: "desktop"
         function edit(): void { Desk.edit(); }

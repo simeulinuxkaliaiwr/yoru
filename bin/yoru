@@ -7,6 +7,7 @@
     yoru walls              every wallpaper as JSON, with thumbnails (the picker reads this)
     yoru timeline FILE      a video's colours across its loop (yoru starts it itself)
     yoru art URL            a palette from album art, as JSON (the shell uses it while music plays)
+    yoru lyrics TITLE ARTIST [SECONDS]   synced lyrics from lrclib.net, as JSON [[seconds, line], …]
     yoru restore            put aro's wallpaper back (for aro's exec)
     yoru status             the current wallpaper
 
@@ -748,6 +749,78 @@ def apply(s, apps=True):
     return c
 
 
+# ── lyrics ──────────────────────────────────────────────────────────────
+
+LYRICS = CACHE / "lyrics"
+# what videos and fan uploads add to a title that the song itself doesn't have
+NOISE = re.compile(r"\s*[\[(][^\])]*(official|video|audio|lyric|visuali[sz]er|mv|hd|4k|remaster|slowed|sped|nightcore|reverb|speed)[^\])]*[\])]", re.I)
+SPEED = re.compile(r"slowed|sped ?up|speed ?up|nightcore", re.I)
+
+
+def lrc(text):
+    """[mm:ss.xx] lines → [[seconds, line], …], blank lines kept as breathing room"""
+    out = []
+    for raw in text.splitlines():
+        stamps = re.findall(r"\[(\d+):(\d+(?:\.\d+)?)\]", raw)
+        line = re.sub(r"\[[^\]]*\]", "", raw).strip()
+        for m, sec in stamps:
+            out.append([round(int(m) * 60 + float(sec), 2), line])
+    return sorted(out, key=lambda x: x[0])
+
+
+def lyrics(title, artist, length):
+    """synced lyrics for what's playing. mpv names YouTube uploads "Artist - Title
+    [Official Video]" with itself as the artist, so that gets untangled first.
+    Nightcore and slowed uploads change the tempo: the original's timings are
+    stretched to this version's length. Misses are remembered for a day."""
+    import time
+    import urllib.parse
+    import urllib.request
+    LYRICS.mkdir(parents=True, exist_ok=True)
+    f = LYRICS / (hashlib.sha1(f"{title}\n{artist}".encode()).hexdigest()[:16] + ".json")
+    try:
+        cached = json.loads(f.read_text())
+        if cached["lines"] or time.time() - cached["at"] < 86400:
+            return cached["lines"]
+    except (OSError, ValueError, KeyError):
+        pass
+
+    fast = bool(SPEED.search(title))
+    # downloads keep their file name: an extension, and yt-dlp's [video id]
+    title = re.sub(r"\.(webm|mkv|mp4|m4a|opus|ogg|mp3|flac|wav)$", "", title, flags=re.I)
+    title = re.sub(r"\s*\[[A-Za-z0-9_-]{11}\]", "", title)
+    t, a = NOISE.sub("", title).strip(), artist.strip()
+    if a.lower() in ("", "mpv", "unknown", "unknown artist") or " - " in t:
+        if " - " in t:
+            a, t = (x.strip() for x in t.split(" - ", 1))
+            t = NOISE.sub("", t).strip()
+    a = re.sub(r"\s*-\s*topic$", "", a, flags=re.I)
+    q = urllib.parse.quote
+    urls = [] if fast or not length else [f"https://lrclib.net/api/get?track_name={q(t)}&artist_name={q(a)}&duration={int(length)}"]
+    urls += [f"https://lrclib.net/api/search?track_name={q(t)}&artist_name={q(a)}",
+             f"https://lrclib.net/api/search?q={q(t + ' ' + a)}"]
+    found = None
+    for url in urls:
+        try:
+            req = urllib.request.Request(url, headers={"User-Agent": "yoru (a quickshell rice)"})
+            with urllib.request.urlopen(req, timeout=8) as r:
+                d = json.loads(r.read())
+        except Exception:
+            continue
+        for hit in (d if isinstance(d, list) else [d]):
+            if hit and hit.get("syncedLyrics"):
+                found = hit
+                break
+        if found:
+            break
+    lines = lrc(found["syncedLyrics"]) if found else []
+    if lines and fast and length and found.get("duration"):
+        k = float(length) / float(found["duration"])
+        lines = [[round(sec * k, 2), line] for sec, line in lines]
+    write(f, json.dumps({"at": time.time(), "lines": lines}))
+    return lines
+
+
 def main():
     args = sys.argv[1:] or ["apply"]
     s = state()
@@ -787,6 +860,8 @@ def main():
         if not c:
             return 1
         print(json.dumps(c))
+    elif cmd == "lyrics" and len(args) > 2:
+        print(json.dumps(lyrics(args[1], args[2], float(args[3]) if len(args) > 3 and args[3] else 0)))
     elif cmd == "restore":
         apply(s, apps=False)
         wallpaper(s)

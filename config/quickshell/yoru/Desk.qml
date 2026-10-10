@@ -14,20 +14,51 @@ Singleton {
     property bool editing: false
 
     readonly property var types: [
-        { type: "weather", name: "Weather", icon: "partly_cloudy_day", key: "weatherStyle",
+        { type: "weather", group: "Today", name: "Weather", icon: "partly_cloudy_day", key: "weatherStyle",
           layouts: [["card", "Card"], ["hero", "Hero"], ["pill", "Pill"], ["graph", "Graph"], ["split", "Split"]] },
-        { type: "calendar", name: "Calendar", icon: "calendar_month", key: "calendarStyle",
+        { type: "calendar", group: "Today", name: "Calendar", icon: "calendar_month", key: "calendarStyle",
           layouts: [["month", "Month"], ["week", "Week"], ["date", "Date"], ["dots", "Dots"]] },
-        { type: "system", name: "System", icon: "monitoring", key: "systemStyle",
+        { type: "system", group: "System", name: "System", icon: "monitoring", key: "systemStyle",
           layouts: [["rings", "Rings"], ["bars", "Bars"], ["chips", "Chips"], ["graph", "Graph"]] },
-        { type: "media", name: "Now playing", icon: "album", key: "mediaStyle",
+        { type: "media", group: "Music", name: "Now playing", icon: "album", key: "mediaStyle",
           layouts: [["card", "Card"], ["cover", "Cover"], ["pill", "Pill"], ["vinyl", "Vinyl"]] },
-        { type: "day", name: "Today", icon: "hourglass_bottom", key: "dayStyle",
+        { type: "day", group: "Today", name: "Today", icon: "hourglass_bottom", key: "dayStyle",
           layouts: [["bars", "Bars"], ["rings", "Rings"], ["sun", "Sun"]] },
+        // only in placed mode, and only once added: each keeps its own settings
+        { type: "clock", group: "Time", name: "Clock", icon: "schedule", bare: true,
+          layouts: [["thin", "Thin"], ["bold", "Bold"], ["stacked", "Stacked"], ["outline", "Outline"], ["mono", "Mono"], ["split", "Split"],
+                    ["words", "Words"], ["kanji", "漢字"], ["serif", "Serif"], ["analog", "Analog"], ["cookie", "Cookie"]] },
+        { type: "world", group: "Time", name: "World clock", icon: "public", layouts: [["list", "List"], ["grid", "Grid"]],
+          defaults: { cities: [{ name: "Tokyo", tz: "Asia/Tokyo" }, { name: "London", tz: "Europe/London" }, { name: "New York", tz: "America/New_York" }] } },
+        { type: "lyrics", group: "Music", name: "Lyrics", icon: "lyrics", layouts: [["scroll", "Scroll"], ["line", "Line"], ["card", "Card"]] },
+        { type: "photo", group: "Yours", name: "Photo", icon: "photo", bare: true,
+          layouts: [["rounded", "Rounded"], ["circle", "Circle"], ["cookie", "Cookie"], ["polaroid", "Polaroid"]],
+          defaults: { path: "", minutes: 10, caption: "" } },
+        { type: "notes", group: "Yours", name: "Notes", icon: "sticky_note_2", layouts: [["sticky", "Sticky"], ["paper", "Paper"], ["plain", "Plain"]],
+          defaults: { title: "Notes", text: "Edit me in edit mode (Super+E)." } },
+        { type: "todo", group: "Yours", name: "To-do", icon: "checklist", layouts: [["list", "List"], ["checks", "Checklist"], ["progress", "Progress"]],
+          defaults: { title: "To-do", items: [{ text: "Add things in edit mode", done: false }, { text: "Tick them off here", done: false }] } },
+        { type: "timers", group: "Time", name: "Timers", icon: "timer", layouts: [["trio", "Trio"], ["focus", "Focus"]] },
+        { type: "quote", group: "Yours", name: "Quote", icon: "format_quote", layouts: [["bubble", "Bubble"], ["serif", "Serif"], ["plain", "Plain"]],
+          defaults: { text: "", author: "", daily: true } },
+        { type: "user", group: "System", name: "User", icon: "account_circle", layouts: [["card", "Card"], ["compact", "Compact"]] },
+        { type: "apps", group: "System", name: "Apps", icon: "apps", layouts: [["dock", "Dock"], ["grid", "Grid"]],
+          defaults: { apps: ["firefox", "foot", "org.gnome.Nautilus", "steam"] } },
+        { type: "countdown", group: "Time", name: "Countdown", icon: "event", layouts: [["number", "Number"], ["page", "Page"], ["pill", "Pill"]],
+          defaults: { title: "New year", date: (new Date().getFullYear() + 1) + "-01-01" } },
     ]
     readonly property var looks: [["glass", "Glass"], ["frosted", "Frosted"], ["solid", "Solid"], ["tonal", "Tonal"],
         ["gradient", "Gradient"], ["stack", "Stack"], ["outline", "Outline"], ["neon", "Neon"], ["hud", "HUD"], ["minimal", "Minimal"]]
+    readonly property var groups: ["Today", "Time", "Music", "Yours", "System"]
     function kind(type) { return types.find(t => t.type === type) ?? types[0]; }
+    // an item's settings over its type's defaults
+    function settingsOf(item) { return Object.assign({}, kind(item?.type).defaults ?? {}, item?.settings ?? {}); }
+    // a widget saving its own state from the desktop (a to-do ticked off)
+    function setting(id, key, value) {
+        save(items.map(i => i.id === id ? Object.assign({}, i, { settings: Object.assign({}, i.settings ?? {}, { [key]: value }) }) : i));
+    }
+    // widgets asking for the island (the user card's power button); shell.qml opens it
+    signal island(string mode)
 
     readonly property bool custom: Config.o.desktop.arrangement === "custom"
     readonly property var items: Config.o.desktop.items ?? []
