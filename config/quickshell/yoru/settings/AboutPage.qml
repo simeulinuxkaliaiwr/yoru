@@ -12,7 +12,7 @@ Column {
         Column {
             x: 10
             spacing: 4
-            Txt { text: "夜"; size: 64; weight: Font.Light; color: Theme.primary; font.family: "Noto Sans CJK JP" }
+            Txt { text: "夜"; size: 64; weight: Font.Light; color: Theme.primary; font.family: "Noto Sans JP" }
             Txt { text: "a night rice for aro, Hyprland and niri"; size: 14; color: Theme.inkDim }
             Item { width: 1; height: 10 }
         }

@@ -50,7 +50,7 @@ Singleton {
                     property string evening: ""
                     property string night: ""
                 }
-                property list<string> dirs: ["~/Pictures/nightcore", "~/Pictures/Wallpapers"]
+                property list<string> dirs: ["~/Pictures/yoru", "~/Pictures/Wallpapers"]
                 // weather drawn over the wallpaper: weather (whatever it's doing outside, and an aurora
                 // on clear nights), snow, rain, aurora, fog, storm, or off
                 property string sky: "weather"
