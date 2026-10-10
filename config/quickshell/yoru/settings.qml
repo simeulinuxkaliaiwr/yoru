@@ -28,6 +28,7 @@ ShellRoot {
             { id: "widgets", icon: "widgets", name: "Widgets", about: "Which widgets, what they sit on, and where", group: "Look", words: "weather calendar system media today arrangement column grid row free glass neon frosted blur gradient hud stack" },
             { id: "layouts", icon: "dashboard_customize", name: "Widget layouts", about: "How each widget lays itself out", group: "Look", words: "hero pill week date cover chips bars rings graph split dots vinyl record sun sunrise sunset" },
             { id: "visualizer", icon: "graphic_eq", name: "Visualizer", about: "The music, rising off the bottom of the screen", group: "Look", words: "cava bars wave mirror dots audio" },
+            { id: "start", icon: "tab", name: "Start page", about: "Firefox's new tab page", group: "Look", words: "firefox new tab browser search engine links greeting address bar focus cursor keyboard" },
             { id: "island", icon: "toolbar", name: "Island", about: "The bar that becomes everything", group: "Shell", words: "clock 24 hour battery workspaces notifications" },
             { id: "focus", icon: "timer", name: "Focus & quiet", about: "The focus timer and do not disturb", group: "Shell", words: "pomodoro break dnd quiet hours night" },
             { id: "lock", icon: "lock", name: "Lock screen", about: "What you see when you come back", group: "Shell", words: "blur dim idle password power" },
@@ -35,7 +36,7 @@ ShellRoot {
             { id: "about", icon: "info", name: "About", about: "yoru, its keys, and the way back to kon", group: "More", words: "keys rice kon config" },
         ]
         readonly property var comps: ({
-            quick: quickC, wallpaper: wallC, clock: clockC, widgets: widgetsC, layouts: layoutsC, visualizer: visC,
+            quick: quickC, wallpaper: wallC, clock: clockC, widgets: widgetsC, layouts: layoutsC, visualizer: visC, start: startC,
             island: islandC, focus: focusC, lock: lockC, weather: weatherC, about: aboutC
         })
         Component { id: quickC; QuickPage {} }
@@ -44,6 +45,7 @@ ShellRoot {
         Component { id: widgetsC; WidgetsPage {} }
         Component { id: layoutsC; LayoutsPage {} }
         Component { id: visC; VisualizerPage {} }
+        Component { id: startC; StartPage {} }
         Component { id: islandC; IslandPage {} }
         Component { id: focusC; FocusPage {} }
         Component { id: lockC; LockPage {} }

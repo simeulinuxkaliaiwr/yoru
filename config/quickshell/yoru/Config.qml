@@ -110,6 +110,27 @@ Singleton {
                 property int lockAfterMinutes: 10
             }
 
+            // Firefox's new tab page; the shell writes these to ~/startpages/yoru-start.js
+            property JsonObject start: JsonObject {
+                property string layout: "centre"              // centre, left, minimal
+                property bool greeting: true
+                property string name: ""                      // who it greets; empty: your user name
+                property bool clock: true
+                property bool seconds: false
+                property bool date: true
+                property string engine: "google"              // google, duckduckgo, youtube, github, wikipedia
+                property var links: [                         // [{ name, url }], up to 9, keys 1-9
+                    { name: "GitHub", url: "https://github.com" },
+                    { name: "YouTube", url: "https://youtube.com" },
+                    { name: "Reddit", url: "https://reddit.com" },
+                    { name: "Claude", url: "https://claude.ai" }
+                ]
+                property int blur: 22                         // the wallpaper behind it, px
+                property real dim: 0.45                       // how much darker the wallpaper gets, 0..1
+                property bool keys: true                      // the shortcut hints along the bottom
+                property string focus: "search"               // where new tabs type: search (the page) or address (Firefox's bar)
+            }
+
             property JsonObject weather: JsonObject {
                 property string city: "São Paulo"             // empty: from your IP
                 property bool fahrenheit: false

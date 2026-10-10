@@ -666,6 +666,8 @@ def firefox(s, c):
     if img:
         sh("magick", img + "[0]", "-resize", "1920x1080^", "-quality", "85", str(STARTPAGES / "yoru-wall.jpg"))
     write(STARTPAGES / "yoru-start.html", render((tpl / "yoru-start.html").read_text(), p))
+    # Firefox's side of it (mozilla.cfg loads this): empty address bar, typing into the page
+    write(STARTPAGES / "chrome.js", (tpl / "chrome.js").read_text())
     cur = STARTPAGES / "current.html"
     if cur.is_symlink() or not cur.exists():
         cur.unlink(missing_ok=True)

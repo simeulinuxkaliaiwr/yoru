@@ -11,13 +11,14 @@
   --outline: #{{outline_variant}}; --primary: #{{primary}}; --on-primary: #{{on_primary}};
   --tertiary: #{{tertiary}}; --pc: #{{primary_container}}; --on-pc: #{{on_primary_container}};
   --ease: cubic-bezier(.38, 1.21, .22, 1);
+  --blur: 22px; --bright: .55;
 }
 * { box-sizing: border-box; margin: 0; }
 html, body { height: 100%; background: var(--low); color: var(--ink); font-family: "Geist", sans-serif; overflow: hidden; }
 .wall {
   position: fixed; inset: -40px;
   background: url("yoru-wall.jpg") center / cover no-repeat;
-  filter: blur(22px) saturate(1.1) brightness(.55);
+  filter: blur(var(--blur)) saturate(1.1) brightness(var(--bright));
   transform: scale(1.06);
   animation: settle 1.6s cubic-bezier(.05, .7, .1, 1) both;
 }
@@ -71,6 +72,28 @@ input::placeholder { color: color-mix(in srgb, var(--dim) 70%, transparent); }
 .links kbd {
   position: absolute; top: 8px; right: 10px; font: 600 10px "Geist Mono", monospace; color: var(--dim);
 }
+[hidden] { display: none !important; }
+
+/* left: a poster — everything down the left, links as a list of pills */
+.left main { align-items: flex-start; padding-left: 9vw; gap: 18px; }
+.left .clock { font-size: 168px; letter-spacing: -8px; }
+.left form { width: min(560px, 80vw); }
+.left .links { display: grid; grid-template-columns: repeat(2, 260px); gap: 10px; }
+.left .links a { width: auto; height: 58px; flex-direction: row; justify-content: flex-start; gap: 14px; padding: 0 16px; border-radius: 29px; }
+.left .links a:hover, .left .links a:focus-visible { transform: translateX(6px); border-radius: 18px; }
+.left .links img { width: 30px; height: 30px; border-radius: 15px; }
+.left .links kbd { top: auto; right: 18px; }
+.left .keys { text-align: left; padding-left: 9vw; }
+
+/* minimal: the search and a row of icons, nothing else asks for attention */
+.minimal main { gap: 26px; }
+.minimal .clock { font-size: 56px; letter-spacing: -2px; font-weight: 300; }
+.minimal .links { gap: 12px; margin-top: 0; }
+.minimal .links a { width: 56px; height: 56px; border-radius: 28px; gap: 0; }
+.minimal .links a:hover, .minimal .links a:focus-visible { border-radius: 18px; transform: translateY(-4px); }
+.minimal .links span, .minimal .links kbd { display: none; }
+.minimal .links img { width: 30px; height: 30px; background: transparent; padding: 0; }
+
 .keys { position: fixed; bottom: 18px; width: 100%; text-align: center; font-size: 12px; color: var(--dim); opacity: .7; }
 .keys kbd { font: 11px "Geist Mono", monospace; padding: 2px 6px; border-radius: 6px; background: color-mix(in srgb, var(--high) 70%, transparent); }
 </style>
@@ -83,38 +106,70 @@ input::placeholder { color: color-mix(in srgb, var(--dim) 70%, transparent); }
   <div class="date rise" id="date"></div>
   <form class="rise" id="search">
     <button type="button" id="engine" title="Switch where you search (Tab)"></button>
-    <input id="q" autocomplete="off" autofocus placeholder="Search, or type an address">
+    <input id="q" autocomplete="off" placeholder="Search, or type an address">
   </form>
-  <nav class="links">
-    <a class="rise" href="https://github.com"><kbd>1</kbd><img src="https://icons.duckduckgo.com/ip3/github.com.ico" alt=""><span>GitHub</span></a>
-    <a class="rise" href="https://youtube.com"><kbd>2</kbd><img src="https://icons.duckduckgo.com/ip3/youtube.com.ico" alt=""><span>YouTube</span></a>
-    <a class="rise" href="https://reddit.com"><kbd>3</kbd><img src="https://icons.duckduckgo.com/ip3/reddit.com.ico" alt=""><span>Reddit</span></a>
-    <a class="rise" href="https://claude.ai"><kbd>4</kbd><img src="https://icons.duckduckgo.com/ip3/claude.ai.ico" alt=""><span>Claude</span></a>
-  </nav>
+  <nav class="links" id="links"></nav>
 </main>
-<div class="keys"><kbd>1</kbd>–<kbd>4</kbd> links · <kbd>/</kbd> search · <kbd>Tab</kbd> engine</div>
+<div class="keys" id="keys"></div>
+<!-- the settings window's choices (Start page), written by the shell -->
+<script src="yoru-start.js"></script>
 <script>
 const $ = id => document.getElementById(id);
-const user = "{{user}}";
+const S = Object.assign({
+  layout: "centre", greeting: true, name: "", clock: true, seconds: false, date: true,
+  engine: "google", blur: 22, dim: 0.45, keys: true, focus: "search",
+  links: [
+    { name: "GitHub", url: "https://github.com" }, { name: "YouTube", url: "https://youtube.com" },
+    { name: "Reddit", url: "https://reddit.com" }, { name: "Claude", url: "https://claude.ai" },
+  ],
+}, window.YORU_START || {});
+const user = S.name || "{{user}}";
+
+document.body.className = S.layout;
+document.documentElement.style.setProperty("--blur", S.blur + "px");
+document.documentElement.style.setProperty("--bright", (1 - S.dim).toFixed(2));
+$("hello").hidden = !S.greeting || S.layout === "minimal";
+$("clock").hidden = !S.clock;
+$("date").hidden = !S.date || S.layout === "minimal";
+
 function tick() {
   const d = new Date(), h = d.getHours();
-  $("clock").textContent = d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false });
+  $("clock").textContent = d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: S.seconds ? "2-digit" : undefined, hour12: false });
   $("date").textContent = d.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" });
   $("hello").textContent = (h < 5 ? "Good night" : h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening") + ", " + user;
 }
 tick(); setInterval(tick, 1000);
 
+// the links, numbered for the keyboard (up to 9)
+const links = S.links.filter(l => l && l.url).slice(0, 9);
+links.forEach((l, i) => {
+  const a = document.createElement("a");
+  let host = "";
+  try { host = new URL(l.url).hostname; } catch (e) {}
+  a.className = "rise";
+  a.href = l.url;
+  a.title = l.name || host;
+  a.style.animationDelay = (0.26 + i * 0.04) + "s";
+  a.innerHTML = `<kbd>${i + 1}</kbd><img alt=""><span></span>`;
+  a.querySelector("img").src = "https://icons.duckduckgo.com/ip3/" + host + ".ico";
+  a.querySelector("span").textContent = l.name || host;
+  $("links").appendChild(a);
+});
+$("links").hidden = links.length === 0;
+$("keys").hidden = !S.keys;
+$("keys").innerHTML = (links.length ? `<kbd>Esc</kbd> then <kbd>1</kbd>${links.length > 1 ? `–<kbd>${links.length}</kbd>` : ""} links · ` : "")
+  + `<kbd>/</kbd> search · <kbd>Tab</kbd> engine`;
+
 const ENGINES = [
-  { n: "Google", u: "https://www.google.com/search?q=" },
-  { n: "DuckDuckGo", u: "https://duckduckgo.com/?q=" },
-  { n: "YouTube", u: "https://www.youtube.com/results?search_query=" },
-  { n: "GitHub", u: "https://github.com/search?q=" },
-  { n: "Wikipedia", u: "https://en.wikipedia.org/w/index.php?search=" },
+  { id: "google", n: "Google", u: "https://www.google.com/search?q=" },
+  { id: "duckduckgo", n: "DuckDuckGo", u: "https://duckduckgo.com/?q=" },
+  { id: "youtube", n: "YouTube", u: "https://www.youtube.com/results?search_query=" },
+  { id: "github", n: "GitHub", u: "https://github.com/search?q=" },
+  { id: "wikipedia", n: "Wikipedia", u: "https://en.wikipedia.org/w/index.php?search=" },
 ];
-let ei = 0;
-try { ei = Math.min(+localStorage.getItem("yoru.engine") || 0, ENGINES.length - 1); } catch (e) {}
+let ei = Math.max(0, ENGINES.findIndex(e => e.id === S.engine));
 function showEngine() { $("engine").textContent = ENGINES[ei].n; }
-function nextEngine() { ei = (ei + 1) % ENGINES.length; try { localStorage.setItem("yoru.engine", ei); } catch (e) {} showEngine(); }
+function nextEngine() { ei = (ei + 1) % ENGINES.length; showEngine(); }
 showEngine();
 $("engine").onclick = () => { nextEngine(); $("q").focus(); };
 $("search").onsubmit = e => {
@@ -128,9 +183,15 @@ document.addEventListener("keydown", e => {
   const typing = document.activeElement === $("q");
   if (e.key === "Tab") { e.preventDefault(); nextEngine(); $("q").focus(); return; }
   if (e.key === "/" && !typing) { e.preventDefault(); $("q").focus(); return; }
-  if (!typing && /^[1-4]$/.test(e.key)) { location.href = document.querySelectorAll(".links a")[+e.key - 1].href; }
+  if (!typing && /^[1-9]$/.test(e.key) && links[+e.key - 1]) { location.href = links[+e.key - 1].url; }
   if (e.key === "Escape") $("q").blur();
 });
+
+// typing goes to the search: yoru's Firefox script hands new tabs to the page,
+// and the box takes the focus whenever the page gets it with nothing chosen
+function claim() { if (S.focus === "search" && document.activeElement === document.body) $("q").focus(); }
+if (S.focus === "search") $("q").focus();
+window.addEventListener("focus", claim);
 </script>
 </body>
 </html>

@@ -21,6 +21,7 @@ ShellRoot {
         onTriggered: Quickshell.execDetached(["yoru", "wall", Config.o.wallpaper.shuffle ? "random" : "next"])
     }
     Desktop {}
+    FirefoxStart {}
     Island { id: island }
     Lock { id: lockScreen }
 
