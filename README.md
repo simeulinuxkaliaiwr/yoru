@@ -10,8 +10,8 @@ Dark, with colours taken from the wallpaper and motion everywhere.
 
 | | |
 |---|---|
-| ![The launcher looking up snow emoji](docs/aurora.png) | ![The island as a calendar](docs/storm.png) |
-| ![The settings window](docs/snow.png) | |
+| ![Aurora mode](docs/aurora.png) | ![storm mode](docs/storm.png) |
+| ![Snow mode](docs/snow.png) | ![The island](docs/island.png) |
 
 ### The island
 
