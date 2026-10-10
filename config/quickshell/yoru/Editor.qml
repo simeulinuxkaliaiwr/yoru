@@ -193,7 +193,7 @@ Scope {
             required property var modelData
             readonly property string out: modelData.name
             // the keyboard goes to the screen you're on
-            readonly property bool main: Aro.focusedOutput === out || !Quickshell.screens.some(s => s.name === Aro.focusedOutput)
+            readonly property bool main: Wm.focusedOutput === out || !Quickshell.screens.some(s => s.name === Wm.focusedOutput)
             screen: modelData
             visible: !ed.picking
             anchors { top: true; bottom: true; left: true; right: true }

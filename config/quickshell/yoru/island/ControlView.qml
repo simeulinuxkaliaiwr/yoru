@@ -70,7 +70,7 @@ Item {
             Row {
                 anchors { right: parent.right; verticalCenter: parent.verticalCenter }
                 spacing: 6
-                IconButton { icon: "lock"; filled: true; onClicked: { v.isle.close(); Quickshell.execDetached(["aro-lock", "-f"]); } }
+                IconButton { icon: "lock"; filled: true; onClicked: { v.isle.close(); Quickshell.execDetached(["yoru-lock"]); } }
                 IconButton { icon: "power_settings_new"; filled: true; onClicked: v.isle.open("power", v.isle.output) }
             }
         }

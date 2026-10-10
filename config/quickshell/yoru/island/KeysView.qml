@@ -3,8 +3,10 @@ import Quickshell.Io
 import QtQuick
 import qs
 import qs.parts
+import "binds.js" as Binds
 
-// every bind in ~/.config/aro/config, in words (mod+/). Type to search.
+// every bind in the compositor's config, in words (mod+/). Type to search.
+// Hyprland's and niri's binds are put into aro's form first (binds.js), so one reader does all three.
 Item {
     id: v
     required property var isle
@@ -15,13 +17,25 @@ Item {
     implicitWidth: 1020
     implicitHeight: Math.min(560, 70 + flick.contentHeight + 16)
 
-    onShownChanged: if (shown) { query = ""; file.reload(); }
+    onShownChanged: if (shown) { query = ""; file.running = true; }
 
-    FileView {
+    // the main config and the files it pulls in (Hyprland's require/source =, niri's include);
+    // the first line out names the file that was read
+    property string where: ""
+    Process {
         id: file
-        path: Quickshell.env("HOME") + "/.config/aro/config"
-        printErrors: false
-        onLoaded: v.binds = v.parse(text())
+        command: ["sh", Quickshell.shellDir + "/island/binds.sh", Wm.name]
+        stderr: StdioCollector {}
+        stdout: StdioCollector {
+            onStreamFinished: {
+                const nl = this.text.indexOf("\n");
+                v.where = (nl < 0 ? this.text : this.text.slice(0, nl)).replace(Quickshell.env("HOME"), "~");
+                const body = nl < 0 ? "" : this.text.slice(nl + 1);
+                v.binds = v.parse(Wm.name === "niri" ? Binds.fromNiri(body)
+                    : Wm.name === "hyprland" ? (v.where.endsWith(".lua") ? Binds.fromHyprLua(body) : Binds.fromHyprConf(body))
+                    : body);
+            }
+        }
     }
 
     function nice(combo) {
@@ -66,7 +80,7 @@ Item {
         const say = { focus: "Focus", move: "Move", resize: "Resize", move_workspace: "Move workspace to the monitor",
                       group: "Group with the window", tab: "Tab", split: "Split", layout: "Layout", width: "Width",
                       switch: "Switch window", workspace: "Workspace", sendto: "Send to workspace",
-                      scratchpad_show: "Show the scratchpad", wallpapers: "aro's wallpaper picker" };
+                      scratchpad_show: "Show the scratchpad", wallpapers: "aro's wallpaper picker", show_hotkey_overlay: "niri's hotkey overlay" };
         return [groups[action] ?? "Other", ((say[action] ?? action) + " " + (arg ?? "")).trim()];
     }
 
@@ -119,7 +133,7 @@ Item {
         spacing: 10
         Icon { name: "keyboard"; size: 22; color: Theme.primary; anchors.verticalCenter: parent.verticalCenter }
         Txt { text: v.query === "" ? "Keys" : v.query; size: 17; weight: Font.DemiBold; anchors.verticalCenter: parent.verticalCenter }
-        Txt { text: "from ~/.config/aro/config  ·  type to search"; size: 12; color: Theme.inkDim; anchors.verticalCenter: parent.verticalCenter }
+        Txt { text: "from " + v.where + "  ·  type to search"; size: 12; color: Theme.inkDim; anchors.verticalCenter: parent.verticalCenter }
     }
 
     Flickable {

@@ -21,7 +21,7 @@ Singleton {
         if (active) return;
         const dir = Quickshell.env("HOME") + "/Videos/Recordings";
         file = dir + "/" + Qt.formatDateTime(new Date(), "yyyy-MM-dd_hh-mm-ss") + ".mp4";
-        const where = area !== "" ? ["-g", area] : ["-o", Aro.focusedOutput];
+        const where = area !== "" ? ["-g", area] : ["-o", Wm.focusedOutput];
         proc.command = ["sh", "-c", 'mkdir -p "$1" && shift && exec wl-screenrec --no-hw "$@"', "sh", dir].concat(where, ["-f", file]);
         started = Date.now();
         seconds = 0;

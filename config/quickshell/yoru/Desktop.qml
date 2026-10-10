@@ -21,11 +21,11 @@ Scope {
         Scope {
             id: scr
             required property var modelData
-            readonly property bool covered: Aro.busy(modelData.name) || Aro.fullscreen(modelData.name)
-            readonly property bool busy: Aro.busy(modelData.name)
+            readonly property bool covered: Wm.busy(modelData.name) || Wm.fullscreen(modelData.name)
+            readonly property bool busy: Wm.busy(modelData.name)
             // always under the windows: on a busy workspace it shows through the
             // gaps and the see-through windows. Never behind a fullscreen one
-            readonly property bool visOn: desk.c.visualizer && Media.playing && !Aro.fullscreen(modelData.name)
+            readonly property bool visOn: desk.c.visualizer && Media.playing && !Wm.fullscreen(modelData.name)
                 && (!busy || desk.c.visualizerBusy)
 
             // ── the clock ───────────────────────────────────────────

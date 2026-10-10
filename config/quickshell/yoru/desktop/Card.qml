@@ -97,8 +97,8 @@ Rectangle {
             readonly property string out: card.host?.screen?.name ?? ""
             readonly property real screenH: card.host?.screen?.height ?? 1080
             readonly property int extra: Config.o.wallpaper.parallax ? Math.round(screenH * 0.07) : 0
-            readonly property int count: Math.max(2, ...Aro.wsFor(out).map(w => w.index))
-            property real shift: -extra * (Aro.current(out) - 1) / (count - 1)
+            readonly property int count: Math.max(2, ...Wm.wsFor(out).map(w => w.index))
+            property real shift: -extra * (Wm.current(out) - 1) / (count - 1)
             Behavior on shift { NumberAnimation { duration: 900; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.emphasized } }
             // in the card's own units, so a scaled card shows the wallpaper at 1:1
             x: -card.at.x / card.k; y: (-card.at.y + shift) / card.k

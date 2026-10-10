@@ -1,5 +1,5 @@
 //@ pragma IconTheme Papirus-Dark
-// yoru: the night rice for aro. One island at the top that becomes whatever
+// yoru: a night rice for aro, Hyprland and niri. One island at the top that becomes whatever
 // you need, a living wallpaper, and colours taken from it.
 //   qs -c yoru ipc show
 
@@ -57,7 +57,7 @@ ShellRoot {
     Island { id: island }
     Lock { id: lockScreen }
 
-    // the binds in ~/.config/aro/config call these
+    // the compositor's binds call these
     Connections {
         target: Desk
         function onIsland(mode) { island.open(mode, ""); }

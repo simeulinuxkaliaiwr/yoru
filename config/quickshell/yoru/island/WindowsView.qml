@@ -22,10 +22,10 @@ Item {
     onShownChanged: if (shown) { query = ""; grid.currentIndex = items.length > 1 ? 1 : 0; }
     onQueryChanged: grid.currentIndex = 0
 
-    // aro's windows, by when they were last focused; the scratchpad stays out
+    // the windows, by when they were last focused; the scratchpad stays out
     readonly property var items: {
-        const ws = Aro.windows.filter(w => w.state !== "scratchpad");
-        const rank = id => { const i = Aro.mru.indexOf(id); return i < 0 ? 1e6 + id : i; };
+        const ws = Wm.windows.filter(w => w.state !== "scratchpad");
+        const rank = id => { const i = Wm.mru.indexOf(id); return i < 0 ? 1e6 + id : i; };
         const q = query.trim().toLowerCase();
         return ws.filter(w => q === "" || (w.title + " " + w.app_id).toLowerCase().includes(q))
                  .sort((a, b) => rank(a.id) - rank(b.id));
@@ -34,14 +34,14 @@ Item {
     function entry(appId) { return DesktopEntries.byId(appId) ?? DesktopEntries.heuristicLookup(appId); }
     function icon(appId) { return Quickshell.iconPath(entry(appId)?.icon ?? appId, "application-x-executable"); }
 
-    // aro has no "focus window N"; the foreign-toplevel handle does it
+    // one way for every compositor: the foreign-toplevel handle focuses it
     function go(w) {
-        const same = Aro.toplevels.filter(t => t.appId === w.app_id);
+        const same = Wm.toplevels.filter(t => t.appId === w.app_id);
         const t = same.find(t => t.title === w.title)
-            ?? same[Aro.windows.filter(x => x.app_id === w.app_id).indexOf(w)] ?? same[0];
+            ?? same[Wm.windows.filter(x => x.app_id === w.app_id).indexOf(w)] ?? same[0];
         isle.close();
         if (t) t.activate();
-        else Aro.dispatch("workspace", String(w.workspace));
+        else Wm.focusWorkspace(w.workspace);
     }
 
     function key(e) {
@@ -54,7 +54,7 @@ Item {
         if (e.key === Qt.Key_Return || e.key === Qt.Key_Enter) { go(items[grid.currentIndex]); return true; }
         if (e.key === Qt.Key_Delete && grid.currentItem) {
             const w = items[grid.currentIndex];
-            Aro.toplevels.find(t => t.appId === w.app_id && t.title === w.title)?.close();
+            Wm.toplevels.find(t => t.appId === w.app_id && t.title === w.title)?.close();
             return true;
         }
         return false;

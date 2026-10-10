@@ -13,14 +13,18 @@ Item {
     implicitHeight: 176
 
     readonly property var actions: [
-        { icon: "lock", label: "Lock", cmd: ["aro-lock", "-f"] },
+        { icon: "lock", label: "Lock", cmd: ["yoru-lock"] },
         { icon: "bedtime", label: "Sleep", cmd: ["systemctl", "suspend"] },
-        { icon: "logout", label: "Log out", cmd: ["aroctl", "dispatch", "quit"] },
+        { icon: "logout", label: "Log out", cmd: [] },     // the compositor's own quit
         { icon: "restart_alt", label: "Restart", cmd: ["systemctl", "reboot"] },
         { icon: "power_settings_new", label: "Shut down", cmd: ["systemctl", "poweroff"] },
     ]
     onShownChanged: if (shown) sel = 0
-    function run(i) { isle.close(); Quickshell.execDetached(actions[i].cmd); }
+    function run(i) {
+        isle.close();
+        if (actions[i].cmd.length) Quickshell.execDetached(actions[i].cmd);
+        else Wm.quit();
+    }
 
     Txt { anchors.horizontalCenter: parent.horizontalCenter; y: 22; text: "Leaving so soon?"; size: 16; weight: Font.DemiBold }
 

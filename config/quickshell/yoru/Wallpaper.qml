@@ -113,10 +113,10 @@ Scope {
 
             // parallax: one screen-height's worth of travel split across the workspaces
             readonly property int extra: Config.o.wallpaper.parallax ? Math.round(height * 0.07) : 0
-            readonly property var ws: Aro.wsFor(modelData.name)
+            readonly property var ws: Wm.wsFor(modelData.name)
             readonly property int count: Math.max(2, ...ws.map(w => w.index))
-            readonly property int cur: Aro.current(modelData.name)
-            readonly property bool covered: Config.o.wallpaper.pauseCovered && (Aro.busy(modelData.name) || Aro.fullscreen(modelData.name))
+            readonly property int cur: Wm.current(modelData.name)
+            readonly property bool covered: Config.o.wallpaper.pauseCovered && (Wm.busy(modelData.name) || Wm.fullscreen(modelData.name))
 
             onWantedChanged: show(wanted)
             Component.onCompleted: show(wanted)
@@ -255,7 +255,7 @@ Scope {
                 layer.enabled: visible
                 layer.textureSize: Qt.size(Math.ceil(width / 2), Math.ceil(height / 2))
                 layer.smooth: true
-                readonly property bool hidden: Aro.busy(win.modelData.name) || Aro.fullscreen(win.modelData.name)
+                readonly property bool hidden: Wm.busy(win.modelData.name) || Wm.fullscreen(win.modelData.name)
                 // seconds since it started, from the clock, so a late tick doesn't slow it
                 property real t0: Date.now()
                 function deep(c: color): color { return Qt.hsla(c.hslHue, Math.max(c.hslSaturation, 0.75), 0.55, 1); }

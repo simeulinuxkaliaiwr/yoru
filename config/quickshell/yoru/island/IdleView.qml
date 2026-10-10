@@ -13,8 +13,8 @@ Item {
     implicitWidth: row.implicitWidth + 28
     implicitHeight: 36
 
-    readonly property var ws: Aro.wsFor(output)
-    readonly property int cur: Aro.current(output)
+    readonly property var ws: Wm.wsFor(output)
+    readonly property int cur: Wm.current(output)
 
     SystemClock { id: clock; precision: SystemClock.Minutes }
 
@@ -55,7 +55,7 @@ Item {
                         MouseArea {
                             anchors { fill: parent; margins: -6 }
                             cursorShape: Qt.PointingHandCursor
-                            onClicked: Aro.dispatch("workspace", String(parent.modelData.index))
+                            onClicked: Wm.focusWorkspace(parent.modelData.index)
                         }
                     }
                 }
@@ -234,7 +234,7 @@ Item {
             if (Math.abs(acc) < 100) return;
             const n = Math.max(1, Math.min(32, v.cur + (acc > 0 ? -1 : 1)));
             acc = 0;
-            if (n !== v.cur) Aro.dispatch("workspace", String(n));
+            if (n !== v.cur) Wm.focusWorkspace(n);
         }
     }
 }

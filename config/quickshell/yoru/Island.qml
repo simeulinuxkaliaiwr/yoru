@@ -25,7 +25,7 @@ Scope {
     readonly property bool opened: modal.includes(mode)
 
     function open(m, out) {
-        out = out || Aro.focusedOutput || Quickshell.screens[0]?.name;
+        out = out || Wm.focusedOutput || Quickshell.screens[0]?.name;
         if (mode === m && output === out) { close(); return; }
         output = out;
         mode = m;
@@ -94,7 +94,7 @@ Scope {
             readonly property string name: modelData.name
             readonly property bool here: island.output === name || (island.output === "" && Quickshell.screens[0] === modelData)
             readonly property bool openHere: island.opened && here
-            readonly property bool hideIdle: Aro.fullscreen(name)
+            readonly property bool hideIdle: Wm.fullscreen(name)
             // what this screen's island shows right now
             readonly property string shown: openHere ? island.mode
                 : island.flash !== "" && here ? island.flash

@@ -1,4 +1,5 @@
 import Quickshell
+import Quickshell.Io
 import QtQuick
 import qs
 import qs.parts
@@ -12,10 +13,13 @@ Column {
             x: 10
             spacing: 4
             Txt { text: "夜"; size: 64; weight: Font.Light; color: Theme.primary; font.family: "Noto Sans CJK JP" }
-            Txt { text: "the night rice for aro"; size: 14; color: Theme.inkDim }
+            Txt { text: "a night rice for aro, Hyprland and niri"; size: 14; color: Theme.inkDim }
             Item { width: 1; height: 10 }
         }
+        // kon waits as aro's config.kon while yoru is on (bin/rice); without it there's nothing to go back to
+        FileView { id: kon; path: Quickshell.env("HOME") + "/.config/aro/config.kon"; printErrors: false }
         SetRow {
+            visible: kon.loaded
             icon: "swap_horiz"; label: "Back to kon"; hint: "mod+ctrl+r switches either way"
             Btn { label: "Switch"; tonal: true; onClicked: Quickshell.execDetached(["rice", "kon"]) }
         }
