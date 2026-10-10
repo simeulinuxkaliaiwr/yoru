@@ -23,6 +23,9 @@ Dark, with colours taken from the wallpaper and motion everywhere.
 - **Wallpaper transitions.** Ripple, fade, wipe, disc, stripes, zoom,
   honeycomb and pixelate (or a random one each time), with adjustable length
   and edge softness. aropaper doesn't run under yoru: the shell draws it all.
+- **Wallpapers by time of day.** Optional: dark ones at night, bright ones by
+  day, softer ones at dawn and dusk, by your city's sunrise and sunset. yoru
+  sorts the folders by brightness itself, or each period takes its own folder.
 - **Weather on the wallpaper.** Snow, rain, fog or a storm falls over the
   picture when it does outside (Open-Meteo), slanted by the real wind, and an
   aurora drifts across the top on clear nights. Or pick one to keep. It stands

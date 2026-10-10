@@ -4,6 +4,9 @@
     yoru                    apply the current wallpaper's palette everywhere
     yoru wall FILE          a new wallpaper (image or video): palette, apps, shell
     yoru wall next|prev|random   another one from the wallpaper folders
+    yoru wall time PERIOD [--keep]   one that suits dawn, day, evening or night: from that
+                                 period's folder if the settings give one, else by brightness;
+                                 --keep leaves the current one if it already suits
     yoru walls              every wallpaper as JSON, with thumbnails (the picker reads this)
     yoru timeline FILE      a video's colours across its loop (yoru starts it itself)
     yoru art URL            a palette from album art, as JSON (the shell uses it while music plays)
@@ -78,6 +81,7 @@ def state():
         cfg = json.loads(SETTINGS.read_text())
         s["scheme"] = cfg.get("appearance", {}).get("scheme") or s["scheme"]
         s["dirs"] = cfg.get("wallpaper", {}).get("dirs") or s["dirs"]
+        s["timeDirs"] = cfg.get("wallpaper", {}).get("timeDirs") or {}
     except (OSError, ValueError):
         pass
     return s
@@ -140,6 +144,47 @@ def walls(s):
             if f.is_file() and f.suffix.lower() in IMAGES | VIDEOS:
                 found.append(str(f))
     return found
+
+
+# how bright a wallpaper is, 0..1, measured once on a small copy
+def brightness(f, cache):
+    k = key(f)
+    if k not in cache:
+        src = still(f)
+        out = subprocess.run(["magick", src + "[0]", "-resize", "64x64!", "-colorspace", "gray", "-format", "%[fx:mean]", "info:"],
+                             capture_output=True, text=True).stdout if src else ""
+        try:
+            cache[k] = round(float(out), 4)
+        except (TypeError, ValueError):
+            cache[k] = 0.5
+    return cache[k]
+
+
+# the wallpapers that suit a time of day: that period's own folder, or else
+# the darkest ones at night, the brightest by day, the middle ones at dawn
+# and in the evening (the bands overlap, so each has a choice)
+BANDS = {"night": (0, 0.45), "dawn": (0.3, 0.75), "evening": (0.25, 0.7), "day": (0.55, 1.0)}
+
+
+def walls_for(s, period):
+    own = s.get("timeDirs", {}).get(period, "")
+    if own:
+        found = walls(dict(s, dirs=[own]))
+        if found:
+            return found
+    ws = walls(s)
+    if len(ws) < 3:
+        return ws
+    path = CACHE / "brightness.json"
+    try:
+        cache = json.loads(path.read_text())
+    except (OSError, ValueError):
+        cache = {}
+    ranked = sorted(ws, key=lambda f: brightness(f, cache))
+    write(path, json.dumps(cache))
+    lo, hi = BANDS.get(period, (0, 1))
+    n = len(ranked)
+    return ranked[int(lo * n):max(int(lo * n) + 1, round(hi * n))]
 
 
 # ── palette ─────────────────────────────────────────────────────────────
@@ -829,7 +874,15 @@ def main():
         apply(s)
     elif cmd == "wall" and len(args) > 1:
         target = args[1]
-        if target in ("next", "prev", "random"):
+        if target == "time" and len(args) > 2:
+            fits = walls_for(s, args[2])
+            if not fits:
+                return 1
+            if "--keep" in args and s["wallpaper"] in fits:
+                return 0
+            import random
+            target = random.choice([w for w in fits if w != s["wallpaper"]] or fits)
+        elif target in ("next", "prev", "random"):
             ws = walls(s)
             if not ws:
                 return 1

@@ -41,6 +41,15 @@ Singleton {
                 property bool liveColours: true               // the shell follows a video wallpaper's colours as it plays
                 property int rotateMinutes: 0                 // 0: never change on its own
                 property bool shuffle: true
+                // a wallpaper for the time of day (dawn, day, evening, night, by the real sun):
+                // from that period's folder in timeDirs, or by brightness from the folders
+                property bool byTime: false
+                property JsonObject timeDirs: JsonObject {
+                    property string dawn: ""
+                    property string day: ""
+                    property string evening: ""
+                    property string night: ""
+                }
                 property list<string> dirs: ["~/Pictures/nightcore", "~/Pictures/Wallpapers"]
                 // weather drawn over the wallpaper: weather (whatever it's doing outside, and an aurora
                 // on clear nights), snow, rain, aurora, fog, storm, or off

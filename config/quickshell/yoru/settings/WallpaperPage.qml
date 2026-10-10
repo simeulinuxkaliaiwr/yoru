@@ -75,6 +75,19 @@ Column {
             Toggle { checked: c.shuffle; onToggled: on => c.shuffle = on }
         }
         SetRow {
+            icon: "routine"; label: "By time of day"; hint: "Dark wallpapers at night, bright ones by day, softer ones at dawn and dusk, by your city's sunrise and sunset"
+            Toggle { checked: c.byTime; onToggled: on => c.byTime = on }
+        }
+        Repeater {
+            model: [["dawn", "wb_twilight", "Dawn"], ["day", "light_mode", "Day"], ["evening", "wb_twilight", "Evening"], ["night", "dark_mode", "Night"]]
+            SetRow {
+                required property var modelData
+                visible: c.byTime
+                icon: modelData[1]; label: modelData[2] + " folder"; hint: "Empty: picked by brightness from the folders below"
+                Field { width: 260; text: c.timeDirs[modelData[0]]; placeholder: "~/Pictures/" + modelData[0]; onEdited: t => c.timeDirs[modelData[0]] = t.trim() }
+            }
+        }
+        SetRow {
             icon: "folder"; label: "Folders"; hint: "Separated by commas"
             Field { width: 320; text: c.dirs.join(", "); onEdited: t => c.dirs = t.split(",").map(s => s.trim()).filter(s => s !== "") }
         }

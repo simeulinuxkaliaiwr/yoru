@@ -8,6 +8,7 @@ import Quickshell.Io
 import QtQuick
 
 ShellRoot {
+    id: root
     // hot reload crashes quickshell 0.3.1 in QWindow::setScreen; restart instead
     settings.watchFiles: false
 
@@ -18,7 +19,37 @@ ShellRoot {
         interval: Math.max(1, Config.o.wallpaper.rotateMinutes) * 60000
         running: Config.o.wallpaper.rotateMinutes > 0
         repeat: true
-        onTriggered: Quickshell.execDetached(["yoru", "wall", Config.o.wallpaper.shuffle ? "random" : "next"])
+        onTriggered: Quickshell.execDetached(Config.o.wallpaper.byTime
+            ? ["yoru", "wall", "time", root.period]
+            : ["yoru", "wall", Config.o.wallpaper.shuffle ? "random" : "next"])
+    }
+
+    // the time of day, by the real sun once the weather knows it: dawn and the
+    // evening are the hour or so either side of sunrise and sunset
+    property string period: ""
+    function periodNow() {
+        const now = new Date(), mins = d => d.getHours() * 60 + d.getMinutes();
+        const t = mins(now);
+        const rise = Weather.sunrise !== "" ? mins(new Date(Weather.sunrise)) : 6 * 60;
+        const set = Weather.sunset !== "" ? mins(new Date(Weather.sunset)) : 18 * 60;
+        if (t >= rise - 45 && t < rise + 60) return "dawn";
+        if (t >= rise + 60 && t < set - 60) return "day";
+        if (t >= set - 60 && t < set + 45) return "evening";
+        return "night";
+    }
+    readonly property bool byTime: Config.o.wallpaper.byTime
+    // switched on: only change if the wallpaper doesn't already suit the hour
+    onByTimeChanged: if (byTime) Quickshell.execDetached(["yoru", "wall", "time", periodNow(), "--keep"])
+    Timer {
+        interval: 60000; repeat: true; running: true; triggeredOnStart: true
+        onTriggered: {
+            const p = root.periodNow();
+            if (p === root.period) return;
+            // at startup only if it doesn't suit; at the turn of the hour, always
+            const first = root.period === "";
+            root.period = p;
+            if (root.byTime) Quickshell.execDetached(["yoru", "wall", "time", p].concat(first ? ["--keep"] : []));
+        }
     }
     Desktop {}
     Editor {}
