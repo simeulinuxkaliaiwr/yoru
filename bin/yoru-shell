@@ -9,6 +9,6 @@ if [ ! -e /dev/nvidia0 ] && [ -f "$mesa" ] && [ -z "$__EGL_VENDOR_LIBRARY_FILENA
 	export __EGL_VENDOR_LIBRARY_FILENAMES="$mesa"
 fi
 # one render thread for all of the shell's windows instead of one each: ~55 MB
-# less, and it felt no different on tux (2026-10-10). Set it yourself to override
+# less, and no different to the eye. Set it yourself to override
 export QSG_RENDER_LOOP="${QSG_RENDER_LOOP:-basic}"
 exec qs -n -c yoru -d "$@"
