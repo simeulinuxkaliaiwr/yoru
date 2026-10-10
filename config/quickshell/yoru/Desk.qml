@@ -91,12 +91,13 @@ Singleton {
             const p = e.item.mapToItem(e.win.contentItem, 0, 0);
             list.push({ id: nextId(list, e.type), type: e.type, output: e.output,
                         x: Math.round(e.win.frostX + p.x), y: Math.round(e.win.frostY + p.y),
-                        scale: 1, layout: "", look: "" });
+                        scale: 1, layout: e.type === "clock" ? d.clockStyle : "", look: "" });
         }
         // switched on but not showing (nothing playing, no forecast yet): near the middle
         const first = Quickshell.screens[0];
         for (const t of types) {
-            if (!d.widgets || !d[t.type] || list.some(i => i.type === t.type)) continue;
+            // the five that have switches; the rest only exist once placed
+            if (!t.key || !d.widgets || !d[t.type] || list.some(i => i.type === t.type)) continue;
             list.push({ id: nextId(list, t.type), type: t.type, output: first?.name ?? "",
                         x: Math.round((first?.width ?? 1920) / 2 - 160), y: Math.round((first?.height ?? 1080) / 2 - 80 + list.length * 24),
                         scale: 1, layout: "", look: "" });
@@ -105,9 +106,18 @@ Singleton {
     }
 
     function edit() {
+        const d = Config.o.desktop;
         if (!custom) {
             save(snapshot());
-            Config.o.desktop.arrangement = "custom";
+            d.arrangement = "custom";
+            d.clockPlaced = true;
+        } else if (!d.clockPlaced) {
+            // placed before the clock could be: it joins the rest where it stands
+            const add = [];
+            for (const c of snapshot().filter(i => i.type === "clock"))
+                add.push(Object.assign(c, { id: nextId(items.concat(add), "clock") }));
+            save(items.concat(add));
+            d.clockPlaced = true;
         }
         editing = true;
     }

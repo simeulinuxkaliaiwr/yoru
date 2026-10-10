@@ -1,3 +1,4 @@
+import Quickshell
 import QtQuick
 import qs
 import qs.parts
@@ -6,8 +7,21 @@ import qs.desktop
 Column {
     spacing: 14
     readonly property var c: Config.o.desktop
+    readonly property bool placed: Desk.custom && c.clockPlaced
+
+    // placed by hand: the clock is a widget in edit mode now
+    Section {
+        visible: placed
+        icon: "schedule"; title: "Clock"
+        Txt { x: 10; width: parent.width - 20; wrapMode: Text.Wrap; size: 13; color: Theme.inkDim
+              text: "Your clock is a placed widget now: move it, size it and pick its style in edit mode. Add more from the palette (Clock), or remove it there." }
+        Item { width: 1; height: 8 }
+        Btn { x: 10; icon: "edit"; label: "Edit on the desktop"; onClicked: Quickshell.execDetached(["qs", "-c", "yoru", "ipc", "call", "desktop", "edit"]) }
+        Item { width: 1; height: 8 }
+    }
 
     Section {
+        visible: !placed
         icon: "preview"; title: "Preview"
         ScreenPreview {
             x: 10
@@ -25,6 +39,7 @@ Column {
 
 
     Section {
+        visible: !placed
         icon: "schedule"; title: "Clock"
         SetRow { icon: "visibility"; label: "Show the clock"; Toggle { checked: c.clock; onToggled: on => c.clock = on } }
         SetRow { icon: "format_size"; label: "Style" }

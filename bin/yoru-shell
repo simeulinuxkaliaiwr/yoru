@@ -1,0 +1,11 @@
+#!/bin/sh
+# starts yoru's shell (aro's config and `rice` call this).
+# aro gives children 1024 open files; quickshell wants more.
+ulimit -n 65536
+# with NVIDIA's driver installed but no NVIDIA card, glvnd still loads and
+# initialises it beside Mesa (~90 MB for nothing): use Mesa alone
+mesa=/usr/share/glvnd/egl_vendor.d/50_mesa.json
+if [ ! -e /dev/nvidia0 ] && [ -f "$mesa" ] && [ -z "$__EGL_VENDOR_LIBRARY_FILENAMES" ]; then
+	export __EGL_VENDOR_LIBRARY_FILENAMES="$mesa"
+fi
+exec qs -n -c yoru -d "$@"

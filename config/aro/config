@@ -22,7 +22,7 @@ workspace_slide_ms = 320
 wallpaper = none
 exec = yoru restore
 # aro gives its children 1024 open files; quickshell outgrew that in a day
-exec = sh -c 'ulimit -n 65536; exec qs -c yoru -d'
+exec = yoru-shell
 
 exec = fcitx5 -d
 

@@ -138,7 +138,7 @@ def start(name):
         restore_desktop()
     else:
         run("yoru")                           # every app, aro's colours, the wallpaper
-        spawn("qs", "-n", "-c", "yoru", "-d")
+        spawn("yoru-shell")                   # the shell, with its file limit and GL driver
 
 
 def switch(target):

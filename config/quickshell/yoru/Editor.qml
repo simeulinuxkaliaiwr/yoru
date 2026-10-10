@@ -17,7 +17,22 @@ Scope {
     property var draft: []
     property var undos: []
     property var redos: []
-    property string selected: ""
+    property string selected: ""         // the main one: the inspector's
+    property var extra: []               // more, picked with Ctrl or a lasso
+    readonly property var picked: selected ? [selected].concat(extra.filter(i => i !== selected)) : extra
+    // a drag carried onto another screen: { output, x, y, w, h } there (its ghost),
+    // and what lands: { ids, x0, y0 } (the dragged one's place before)
+    property var crossing: null
+    signal dragEnded()
+    // land a crossing drag on its screen, the picked keeping their places around the dragged one
+    function drop() {
+        const c = crossing;
+        if (!c) return;
+        crossing = null;
+        // the drag ends before the move: moving rebuilds the screen it left
+        dragEnded();
+        changeMany(c.ids, i => ({ output: c.output, x: c.x + i.x - c.x0, y: c.y + i.y - c.y0 }));
+    }
     property bool adding: false
     readonly property bool grid: Config.o.desktop.snapGrid
     readonly property int cell: 16
@@ -29,7 +44,7 @@ Scope {
                 ed.draft = ed.copy(Desk.items);
                 ed.undos = []; ed.redos = [];
             }
-            ed.selected = ""; ed.adding = false;
+            ed.selected = ""; ed.extra = []; ed.adding = false; ed.crossing = null;
         }
     }
 
@@ -52,6 +67,7 @@ Scope {
         lastRun = "";
         Desk.save(draft);
         if (!item(selected)) selected = "";
+        extra = extra.filter(id => item(id));
         return [from.slice(0, -1), to];
     }
     function undo() { [undos, redos] = step(undos, redos); }
@@ -65,9 +81,9 @@ Scope {
     // a file or folder from zenity. The overlay steps aside while it's open:
     // it sits above windows, the dialog would be under it
     property bool picking: false
-    property var picked: null
+    property var whenPicked: null
     function pick(folder, done) {
-        picked = done;
+        whenPicked = done;
         picker.command = ["zenity", "--file-selection", "--title=" + (folder ? "A folder of pictures" : "A picture")]
             .concat(folder ? ["--directory"] : ["--file-filter=Pictures | *.jpg *.jpeg *.png *.webp *.gif *.avif *.bmp"]);
         picking = true;
@@ -75,10 +91,32 @@ Scope {
     }
     Process {
         id: picker
-        stdout: StdioCollector { onStreamFinished: { const p = text.trim(); if (p && ed.picked) ed.picked(p); } }
+        stdout: StdioCollector { onStreamFinished: { const p = text.trim(); if (p && ed.whenPicked) ed.whenPicked(p); } }
         onExited: ed.picking = false
     }
-    function remove(id) { if (item(id)) { commit(draft.filter(i => i.id !== id)); selected = ""; } }
+    // ── what's picked ───────────────────────────────────────────────
+    function isPicked(id) { return id !== "" && (id === selected || extra.includes(id)); }
+    function pickOnly(id) { selected = id; extra = []; }
+    // make one the main pick, keeping the rest
+    function promote(id) { extra = picked.filter(i => i !== id); selected = id; }
+    function pickToggle(id) {
+        if (!isPicked(id)) { if (selected) extra = extra.concat([id]); else selected = id; return; }
+        const rest = picked.filter(i => i !== id);
+        selected = rest[0] ?? ""; extra = rest.slice(1);
+    }
+    function pickAll(ids, add) {
+        const all = add ? picked.concat(ids.filter(i => !picked.includes(i))) : ids;
+        selected = all[0] ?? ""; extra = all.slice(1);
+    }
+    function changeMany(ids, fields, run) {
+        commit(draft.map(i => ids.includes(i.id) ? Object.assign({}, i, typeof fields === "function" ? fields(i) : fields) : i), run);
+    }
+
+    function remove(ids) {
+        if (!ids.length) return;
+        commit(draft.filter(i => !ids.includes(i.id)));
+        pickOnly("");
+    }
 
     // a new widget lands at `spot` (the free place nearest the middle)
     function add(type, layout, output, spot) {
@@ -90,16 +128,18 @@ Scope {
         selected = id;
         adding = false;
     }
-    function duplicate(id) {
-        const it = item(id);
-        if (!it) return;
-        const twin = Object.assign({}, it, { id: Desk.nextId(draft, it.type), x: it.x + 32, y: it.y + 32 });
-        commit(draft.concat([twin]));
-        selected = twin.id;
+    function duplicate(ids) {
+        const twins = [];
+        for (const id of ids) {
+            const it = item(id);
+            if (it) twins.push(Object.assign(copy(it), { id: Desk.nextId(draft.concat(twins), it.type), x: it.x + 32, y: it.y + 32 }));
+        }
+        if (!twins.length) return;
+        commit(draft.concat(twins));
+        pickAll(twins.map(t => t.id));
     }
-    function nudge(id, dx, dy) {
-        const it = item(id);
-        if (it) change(id, { x: it.x + dx, y: it.y + dy }, "nudge " + id);
+    function nudge(ids, dx, dy) {
+        if (ids.length) changeMany(ids, i => ({ x: i.x + dx, y: i.y + dy }), "nudge " + ids.join(" "));
     }
 
     function key(e, output) {
@@ -108,23 +148,27 @@ Scope {
         switch (e.key) {
         case Qt.Key_Escape:
             if (adding) adding = false;
-            else if (selected) selected = "";
+            else if (picked.length) pickOnly("");
             else Desk.done();
             return true;
-        case Qt.Key_Delete: case Qt.Key_Backspace: remove(selected); return true;
+        case Qt.Key_Delete: case Qt.Key_Backspace: remove(picked); return true;
         case Qt.Key_G: Config.o.desktop.snapGrid = !grid; return true;
-        case Qt.Key_A: if (!ctrl) { adding = !adding; return true; } return false;
-        case Qt.Key_D: if (ctrl) { duplicate(selected); return true; } return false;
+        case Qt.Key_A:
+            // Ctrl+A: everything on this screen
+            if (ctrl) pickAll(draft.filter(i => Desk.outputOf(i) === output).map(i => i.id));
+            else adding = !adding;
+            return true;
+        case Qt.Key_D: if (ctrl) { duplicate(picked); return true; } return false;
         case Qt.Key_Z: if (ctrl) { if (shift) redo(); else undo(); return true; } return false;
         case Qt.Key_Y: if (ctrl) { redo(); return true; } return false;
-        case Qt.Key_Left: nudge(selected, -n, 0); return true;
-        case Qt.Key_Right: nudge(selected, n, 0); return true;
-        case Qt.Key_Up: nudge(selected, 0, -n); return true;
-        case Qt.Key_Down: nudge(selected, 0, n); return true;
+        case Qt.Key_Left: nudge(picked, -n, 0); return true;
+        case Qt.Key_Right: nudge(picked, n, 0); return true;
+        case Qt.Key_Up: nudge(picked, 0, -n); return true;
+        case Qt.Key_Down: nudge(picked, 0, n); return true;
         case Qt.Key_Tab: {
             // through this screen's widgets, in order
             const ids = draft.filter(i => Desk.outputOf(i) === output).map(i => i.id);
-            if (ids.length) selected = ids[(ids.indexOf(selected) + 1) % ids.length];
+            if (ids.length) pickOnly(ids[(ids.indexOf(selected) + 1) % ids.length]);
             return true;
         }
         }
@@ -164,6 +208,17 @@ Scope {
             readonly property bool selHere: !!sel && Desk.outputOf(sel) === out
             // the boxes on screen by id, for snapping to each other
             property var boxes: ({})
+            // a group drag: how far the picked ones have moved, before it's saved
+            property bool groupMoving: false
+            property real groupDx: 0
+            property real groupDy: 0
+            // the lasso, while one is drawn
+            property rect lasso: Qt.rect(0, 0, 0, 0)
+            property bool lassoing: false
+            // the screen under a point in the layout (for drags that leave this one)
+            function screenAt(gx, gy) {
+                return Quickshell.screens.find(sc => gx >= sc.x && gx < sc.x + sc.width && gy >= sc.y && gy < sc.y + sc.height) ?? null;
+            }
             // the lines a drag is snapping to
             property var guidesX: []
             property var guidesY: []
@@ -189,14 +244,14 @@ Scope {
 
             // where a box at x,y (w×h) settles: the nearest edge or middle within
             // reach of a guide, else the grid. Shift (free) turns it all off
-            function snap(id, x, y, w, h, free) {
+            function snap(moving, x, y, w, h, free) {
                 const W = width, H = height, reach = 10;
                 if (free) return { x: Math.round(x), y: Math.round(y), gx: [], gy: [] };
                 const tx = [{ v: W / 2, at: [0.5] }, { v: 24, at: [0] }, { v: W - 24, at: [1] }];
                 const ty = [{ v: H / 2, at: [0.5] }, { v: 70, at: [0] }, { v: H - 24, at: [1] }];
                 for (const other in boxes) {
                     const b = boxes[other];
-                    if (other === id || !b) continue;
+                    if (moving.includes(other) || !b) continue;
                     tx.push({ v: b.x, at: [0, 1] }, { v: b.x + b.width, at: [0, 1] }, { v: b.x + b.width / 2, at: [0.5] },
                             { v: b.x + b.width + 12, at: [0] }, { v: b.x - 12, at: [1] });
                     ty.push({ v: b.y, at: [0, 1] }, { v: b.y + b.height, at: [0, 1] }, { v: b.y + b.height / 2, at: [0.5] },
@@ -274,10 +329,33 @@ Scope {
                 Rectangle { x: Math.round(parent.width / 2); width: 1; height: parent.height; color: Theme.alpha(Theme.primary, 0.35) }
                 Rectangle { y: Math.round(parent.height / 2); height: 1; width: parent.width; color: Theme.alpha(Theme.primary, 0.35) }
 
-                // clicking the desktop itself lets go of the selection
+                // the desktop itself: a click lets go of what's picked, a drag draws a
+                // lasso around widgets (Ctrl adds them to what's picked)
                 MouseArea {
                     anchors.fill: parent
-                    onClicked: { ed.selected = ""; ed.adding = false; root.forceActiveFocus(); }
+                    property point from
+                    onPressed: m => { from = Qt.point(m.x, m.y); ov.lassoing = false; root.forceActiveFocus(); }
+                    onPositionChanged: m => {
+                        if (!pressed) return;
+                        if (!ov.lassoing && Math.abs(m.x - from.x) + Math.abs(m.y - from.y) < 6) return;
+                        ov.lassoing = true;
+                        ov.lasso = Qt.rect(Math.min(from.x, m.x), Math.min(from.y, m.y), Math.abs(m.x - from.x), Math.abs(m.y - from.y));
+                    }
+                    onReleased: m => {
+                        if (ov.lassoing) {
+                            const r = ov.lasso, hit = [];
+                            for (const id in ov.boxes) {
+                                const b = ov.boxes[id];
+                                if (b && b.x < r.x + r.width && b.x + b.width > r.x && b.y < r.y + r.height && b.y + b.height > r.y) hit.push(id);
+                            }
+                            ed.pickAll(hit, m.modifiers & Qt.ControlModifier);
+                            ed.adding = false;
+                        } else {
+                            if (!(m.modifiers & Qt.ControlModifier)) ed.pickOnly("");
+                            ed.adding = false;
+                        }
+                        ov.lassoing = false;
+                    }
                 }
 
                 // ── the widgets ─────────────────────────────────────
@@ -290,14 +368,15 @@ Scope {
                         required property int index
                         readonly property var modelData: ov.mine[index] ?? ({ id: "", type: "", x: 0, y: 0, scale: 1 })
                         readonly property string wid: modelData.id
-                        readonly property bool sel: ed.selected === wid
+                        readonly property bool sel: ed.isPicked(wid)
+                        readonly property bool main: ed.selected === wid
                         // a drag in progress: where it is and how big, before it's saved
                         property bool moving: false
                         property real liveX: modelData.x
                         property real liveY: modelData.y
                         property real liveScale: modelData.scale ?? 1
-                        x: moving ? liveX : modelData.x
-                        y: moving ? liveY : modelData.y
+                        x: moving ? liveX : modelData.x + (ov.groupMoving && sel ? ov.groupDx : 0)
+                        y: moving ? liveY : modelData.y + (ov.groupMoving && sel ? ov.groupDy : 0)
                         width: view.width; height: view.height
                         z: sel ? 2 : 1
 
@@ -329,25 +408,61 @@ Scope {
                             property point grab
                             property bool dragged: false
                             onPressed: m => {
-                                ed.selected = box.wid; ed.adding = false;
+                                // Ctrl picks it too (or lets it go); a plain press picks it alone,
+                                // unless it's already among the picked: then they all go
+                                if (m.modifiers & Qt.ControlModifier) ed.pickToggle(box.wid);
+                                else if (box.sel) ed.promote(box.wid);
+                                else ed.pickOnly(box.wid);
+                                ed.adding = false;
                                 root.forceActiveFocus();
                                 grab = Qt.point(m.x * 1, m.y * 1);
                                 box.liveX = box.modelData.x; box.liveY = box.modelData.y; box.liveScale = box.modelData.scale ?? 1;
                                 dragged = false;
                             }
+                            readonly property bool group: ed.picked.length > 1 && box.sel
                             onPositionChanged: m => {
-                                if (!pressed) return;
+                                if (!pressed || !box.sel) return;
                                 const p = mapToItem(root, m.x, m.y);
-                                const s = ov.snap(box.wid, p.x - grab.x, p.y - grab.y, box.width, box.height, m.modifiers & Qt.ShiftModifier);
+                                // past the edge, over another screen: a ghost there shows where it lands
+                                const sc = p.x < 0 || p.y < 0 || p.x >= ov.width || p.y >= ov.height
+                                    ? ov.screenAt(ov.modelData.x + p.x, ov.modelData.y + p.y) : null;
+                                if (sc && sc.name !== ov.out) {
+                                    dragged = true;
+                                    ed.crossing = { output: sc.name, w: box.width, h: box.height,
+                                                    x: Math.round(ov.modelData.x + p.x - sc.x - grab.x), y: Math.round(ov.modelData.y + p.y - sc.y - grab.y),
+                                                    ids: group ? ed.picked : [box.wid], x0: box.modelData.x, y0: box.modelData.y };
+                                    return;
+                                }
+                                ed.crossing = null;
+                                const s = ov.snap(group ? ed.picked : [box.wid], p.x - grab.x, p.y - grab.y, box.width, box.height, m.modifiers & Qt.ShiftModifier);
                                 if (!dragged && Math.abs(s.x - box.modelData.x) + Math.abs(s.y - box.modelData.y) < 3) return;
-                                dragged = true; box.moving = true;
-                                box.liveX = s.x; box.liveY = s.y;
+                                dragged = true;
+                                if (group) {
+                                    ov.groupDx = s.x - box.modelData.x; ov.groupDy = s.y - box.modelData.y;
+                                    ov.groupMoving = true;
+                                } else {
+                                    box.moving = true;
+                                    box.liveX = s.x; box.liveY = s.y;
+                                }
                                 ov.guidesX = s.gx; ov.guidesY = s.gy;
                             }
-                            onReleased: {
+                            onReleased: finish()
+                            Connections { target: ed; function onDragEnded() { box.moving = false; body.dragged = false; ov.groupMoving = false; } }
+                            onCanceled: finish()
+                            function finish() {
                                 ov.guidesX = []; ov.guidesY = [];
-                                if (dragged) ed.change(box.wid, { x: box.liveX, y: box.liveY });
-                                box.moving = false;
+                                const ids = group ? ed.picked : [box.wid];
+                                if (ed.crossing) {
+                                    // this box is rebuilt by the move: nothing of it to touch after
+                                    ed.drop();
+                                    return;
+                                } else if (dragged && group) {
+                                    ed.changeMany(ids, i => ({ x: i.x + ov.groupDx, y: i.y + ov.groupDy }));
+                                } else if (dragged) {
+                                    ed.change(box.wid, { x: box.liveX, y: box.liveY });
+                                }
+                                box.moving = false; dragged = false;
+                                ov.groupMoving = false; ov.groupDx = 0; ov.groupDy = 0;
                             }
                         }
 
@@ -361,7 +476,8 @@ Scope {
                             border.color: Theme.primary
                         }
                         Repeater {
-                            model: box.sel ? 4 : 0
+                            // resizing is one at a time
+                            model: box.main && ed.picked.length === 1 ? 4 : 0
                             Rectangle {
                                 id: corner
                                 required property int index
@@ -405,7 +521,7 @@ Scope {
                         }
                         // what it is, above it
                         Rectangle {
-                            visible: box.sel
+                            visible: box.main
                             anchors { left: parent.left; bottom: parent.top; bottomMargin: 14 }
                             width: tag.implicitWidth + 20; height: 26; radius: 13
                             color: Theme.primary
@@ -417,6 +533,33 @@ Scope {
                             }
                         }
                     }
+                }
+
+                // an aro without the implicit-grab fix gives the release to the screen the
+                // drag ended on, not the one it started on: the pointer arriving here with a
+                // drop pending is the sign it was let go
+                HoverHandler {
+                    onHoveredChanged: if (hovered && ed.crossing && ed.crossing.output === ov.out) ed.drop()
+                }
+
+                // the lasso being drawn
+                Rectangle {
+                    visible: ov.lassoing
+                    x: ov.lasso.x; y: ov.lasso.y; width: ov.lasso.width; height: ov.lasso.height
+                    radius: 8
+                    color: Theme.alpha(Theme.primary, 0.12)
+                    border.width: 1.5; border.color: Theme.primary
+                }
+                // a widget dragged here from another screen: where it will land
+                Rectangle {
+                    readonly property var c: ed.crossing
+                    visible: !!c && c.output === ov.out
+                    x: c?.x ?? 0; y: c?.y ?? 0; width: c?.w ?? 0; height: c?.h ?? 0
+                    radius: 24
+                    color: Theme.alpha(Theme.primary, 0.16)
+                    border.width: 2; border.color: Theme.primary
+                    Txt { anchors.centerIn: parent; text: ed.picked.length > 1 ? "Move " + ed.picked.length + " here" : "Move here"
+                          size: 14; weight: Font.DemiBold; color: Theme.primary }
                 }
 
                 // the lines a drag is snapping to
@@ -473,8 +616,8 @@ Scope {
                         }
                         Divider {}
                         Pill { icon: "add"; label: "Add"; on: ed.adding; onClicked: ed.adding = !ed.adding }
-                        Tool { icon: "content_copy"; usable: ov.selHere; onClicked: ed.duplicate(ed.selected) }
-                        Tool { icon: "delete"; usable: ov.selHere; onClicked: ed.remove(ed.selected) }
+                        Tool { icon: "content_copy"; usable: ed.picked.length > 0; onClicked: ed.duplicate(ed.picked) }
+                        Tool { icon: "delete"; usable: ed.picked.length > 0; onClicked: ed.remove(ed.picked) }
                         Divider {}
                         Tool { icon: "undo"; usable: ed.undos.length > 0; onClicked: ed.undo() }
                         Tool { icon: "redo"; usable: ed.redos.length > 0; onClicked: ed.redo() }
@@ -603,6 +746,7 @@ Scope {
                     z: 10
                     readonly property var it: ov.sel
                     readonly property var kind: Desk.kind(it?.type ?? "")
+                    readonly property bool many: ed.picked.length > 1
                     anchors.horizontalCenter: parent.horizontalCenter
                     // out of the way of the widget it's about
                     readonly property bool low: !it || it.y < root.height / 2
@@ -623,9 +767,11 @@ Scope {
                         Row {
                             spacing: 10
                             Icon { name: inspector.kind.icon; size: 22; color: Theme.primary; anchors.verticalCenter: parent.verticalCenter }
-                            Txt { text: inspector.kind.name; size: 16; weight: Font.DemiBold; anchors.verticalCenter: parent.verticalCenter }
+                            Txt { text: inspector.many ? ed.picked.length + " widgets" : inspector.kind.name; size: 16; weight: Font.DemiBold; anchors.verticalCenter: parent.verticalCenter }
+                            Txt { visible: inspector.many; text: "their look and size change together"; size: 12; color: Theme.inkDim; anchors.verticalCenter: parent.verticalCenter }
                         }
                         Row {
+                            visible: !inspector.many
                             spacing: 12
                             Txt { width: 64; text: "Layout"; size: 13; color: Theme.inkDim; anchors.verticalCenter: parent.verticalCenter }
                             Flow {
@@ -643,20 +789,20 @@ Scope {
                             }
                         }
                         Row {
-                            visible: !inspector.kind.bare
+                            visible: !inspector.kind.bare || inspector.many
                             spacing: 12
                             Txt { width: 64; text: "Look"; size: 13; color: Theme.inkDim; anchors.verticalCenter: parent.verticalCenter }
                             Flow {
                                 width: fields.width - 76
                                 spacing: 6
-                                Pill { label: "Like the rest"; on: !inspector.it?.look; onClicked: ed.change(ed.selected, { look: "" }) }
+                                Pill { label: "Like the rest"; on: !inspector.it?.look; onClicked: ed.changeMany(ed.picked, { look: "" }) }
                                 Repeater {
                                     model: Desk.looks
                                     Pill {
                                         required property var modelData
                                         label: modelData[1]
                                         on: inspector.it?.look === modelData[0]
-                                        onClicked: ed.change(ed.selected, { look: modelData[0] })
+                                        onClicked: ed.changeMany(ed.picked, { look: modelData[0] })
                                     }
                                 }
                             }
@@ -669,12 +815,12 @@ Scope {
                                 width: 300; h: 30
                                 anchors.verticalCenter: parent.verticalCenter
                                 value: ((inspector.it?.scale ?? 1) - 0.5) / 2
-                                onMoved: v => ed.change(ed.selected, { scale: Math.round((0.5 + v * 2) * 20) / 20 }, "size " + ed.selected)
+                                onMoved: v => ed.changeMany(ed.picked, { scale: Math.round((0.5 + v * 2) * 20) / 20 }, "size " + ed.picked.join(" "))
                             }
                             Txt { text: Math.round((inspector.it?.scale ?? 1) * 100) + "%"; size: 13; weight: Font.Medium; anchors.verticalCenter: parent.verticalCenter; width: 48 }
-                            Pill { label: "100%"; visible: (inspector.it?.scale ?? 1) !== 1; onClicked: ed.change(ed.selected, { scale: 1 }) }
+                            Pill { label: "100%"; visible: (inspector.it?.scale ?? 1) !== 1; onClicked: ed.changeMany(ed.picked, { scale: 1 }) }
                         }
-                        EditorOptions { editor: ed; it: inspector.it; width: fields.width }
+                        EditorOptions { visible: !inspector.many; editor: ed; it: inspector.it; width: fields.width }
                     }
                 }
 
@@ -688,7 +834,7 @@ Scope {
                         id: hints
                         anchors.centerIn: parent
                         size: 12; color: Theme.inkDim
-                        text: "Drag to move  ·  pull a corner to resize  ·  Shift: no snapping  ·  G grid  ·  A add  ·  Tab next  ·  Del remove  ·  Ctrl+D duplicate  ·  Ctrl+Z undo  ·  Esc done"
+                        text: "Drag to move (onto another screen too)  ·  drag the desktop or Ctrl+click to pick several  ·  pull a corner to resize  ·  Shift: no snapping  ·  G grid  ·  A add  ·  Del remove  ·  Ctrl+D duplicate  ·  Ctrl+Z undo  ·  Esc done"
                     }
                 }
             }

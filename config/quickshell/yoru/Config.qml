@@ -68,6 +68,8 @@ Singleton {
                 // custom: [{ id, type, output, x, y, scale, layout, look }], see Desk.qml
                 property var items: []
                 property bool snapGrid: true                  // edit mode's grid (G)
+                // the big clock became a placed Clock widget (on the first edit in custom mode)
+                property bool clockPlaced: false
                 // each widget's look
                 property string weatherStyle: "card"          // card, hero, pill, graph, split
                 property string calendarStyle: "month"        // month, week, date, dots

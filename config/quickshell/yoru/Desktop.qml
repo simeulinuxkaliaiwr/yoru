@@ -29,12 +29,16 @@ Scope {
                 && (!busy || desk.c.visualizerBusy)
 
             // ── the clock ───────────────────────────────────────────
+            // (once placed by hand, the clock is a Clock widget like the rest)
             LazyLoader {
-                active: desk.c.clock
+                active: desk.c.clock && !(Desk.custom && desk.c.clockPlaced)
                 PanelWindow {
                     id: clockWin
                     screen: scr.modelData
                     readonly property string pos: desk.c.clockPosition
+                    // where the window sits, so the first edit can place the clock where it is
+                    readonly property real frostX: 0
+                    readonly property real frostY: anchors.top ? 0 : scr.modelData.height - height
                     // a strip across the screen; the clock sits in it where asked
                     anchors { left: true; right: true; top: pos !== "bottom-left"; bottom: pos !== "top-left" }
                     implicitHeight: 520
@@ -47,6 +51,9 @@ Scope {
 
                     ClockFace {
                         id: face
+                        // so the first edit (Desk.snapshot) starts from where it is
+                        Component.onCompleted: Desk.report(scr.modelData.name + ":clock", { item: face, win: clockWin, type: "clock", output: scr.modelData.name })
+                        Component.onDestruction: Desk.report(scr.modelData.name + ":clock", null)
                         style: desk.c.clockStyle
                         centred: clockWin.pos === "center"
                         x: centred ? (parent.width - width) / 2 : 64
@@ -200,36 +207,56 @@ Scope {
                 }
             }
 
-            // ── placed widgets (arrangement "custom"): a window each ──
-            // keyed by id, so moving one doesn't rebuild the others. Edit mode
-            // draws its own copies, so these step aside while it's open
-            Variants {
-                model: Desk.custom && desk.c.widgets && !Desk.editing ? Desk.itemsOn(scr.modelData.name).map(i => i.id) : []
+            // ── placed widgets (arrangement "custom"): one window for them all ──
+            // a window per widget cost ~16 MB each (a GL context, a render thread,
+            // glyph caches); one full-screen window takes clicks only where the
+            // widgets are. Edit mode draws its own copies, so this steps aside
+            LazyLoader {
+                active: Desk.custom && desk.c.widgets && !Desk.editing && Desk.itemsOn(scr.modelData.name).length > 0
                 PanelWindow {
                     id: placedWin
-                    required property string modelData
-                    readonly property var item: Desk.items.find(i => i.id === modelData) ?? null
-                    // room for glows and shadows, less where it nears the screen's edge
-                    readonly property int pad: 48
-                    readonly property int padL: Math.min(pad, Math.max(0, item?.x ?? 0))
-                    readonly property int padT: Math.min(pad, Math.max(0, item?.y ?? 0))
                     screen: scr.modelData
-                    visible: !!item && view.shown
-                    anchors { top: true; left: true }
-                    margins { left: Math.max(0, (item?.x ?? 0) - pad); top: Math.max(0, (item?.y ?? 0) - pad) }
-                    // where it sits on the screen, for the frosted look
-                    readonly property real frostX: margins.left
-                    readonly property real frostY: margins.top
-                    implicitWidth: Math.max(1, view.width + padL + pad)
-                    implicitHeight: Math.max(1, view.height + padT + pad)
+                    anchors { top: true; bottom: true; left: true; right: true }
                     color: "transparent"
                     exclusionMode: ExclusionMode.Ignore
                     WlrLayershell.layer: WlrLayer.Bottom
                     WlrLayershell.namespace: "yoru-widgets"
                     WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
-                    mask: Region { item: view }
+                    // the window covers the screen, for the frosted look
+                    readonly property real frostX: 0
+                    readonly property real frostY: 0
+                    // by id, so moving one widget doesn't rebuild the others
+                    readonly property var ids: Desk.itemsOn(scr.modelData.name).map(i => i.id)
 
-                    Placed { id: view; x: placedWin.padL; y: placedWin.padT; item: placedWin.item }
+                    Item {
+                        id: holder
+                        anchors.fill: parent
+                        Repeater {
+                            model: placedWin.ids
+                            Placed {
+                                required property string modelData
+                                readonly property string wid: modelData
+                                item: Desk.items.find(i => i.id === modelData) ?? null
+                                x: item?.x ?? 0
+                                y: item?.y ?? 0
+                                visible: shown
+                            }
+                        }
+                    }
+                    // clicks go through except where a widget is showing
+                    Variants {
+                        id: areas
+                        model: placedWin.ids
+                        Region {
+                            required property string modelData
+                            readonly property Item view: holder.children.find(c => c.wid === modelData) ?? null
+                            x: view?.x ?? 0
+                            y: view?.y ?? 0
+                            width: view && view.shown ? view.width : 0
+                            height: view && view.shown ? view.height : 0
+                        }
+                    }
+                    mask: Region { regions: areas.instances }
                 }
             }
 
