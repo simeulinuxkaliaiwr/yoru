@@ -191,7 +191,7 @@ Item {
             anchors.verticalCenter: parent.verticalCenter
             spacing: 7
             Rectangle {
-                visible: Notifs.count > 0 || Notifs.dnd
+                visible: Notifs.unseen > 0 || Notifs.dnd
                 width: 6; height: 6; radius: 3
                 anchors.verticalCenter: parent.verticalCenter
                 color: Notifs.dnd ? Theme.outline : Theme.tertiary

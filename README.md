@@ -52,6 +52,10 @@ Dark, with colours taken from the wallpaper and motion everywhere.
   (or dots) and that shakes at a wrong password, the music and power buttons. If the
   shell ever dies while locked, aro stays locked: from a TTY,
   `WAYLAND_DISPLAY=wayland-0 aro-lock` takes over and unlocks normally.
+- **Notification history.** Every notification is kept (the last 100, across
+  restarts) in the control centre, grouped by app with how long ago it came,
+  so nothing that arrived during do not disturb is lost. The island's dot
+  means new ones you haven't seen.
 - **Live activities.** A focus timer (with a break, and notifications held
   while you work), screen recording, a colour picker and quiet hours, all
   shown in the island. While a track with cover art plays, the shell takes

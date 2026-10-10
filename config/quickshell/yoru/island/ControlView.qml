@@ -12,7 +12,7 @@ Item {
     implicitWidth: 440
     implicitHeight: col.implicitHeight + 36
 
-    onShownChanged: if (shown) { Status.readBrightness(); Status.readUptime(); }
+    onShownChanged: if (shown) { Status.readBrightness(); Status.readUptime(); Notifs.unseen = 0; }
     SystemClock { id: clock; precision: SystemClock.Minutes }
 
     readonly property string greeting: {
@@ -188,46 +188,111 @@ Item {
                 Txt { text: "All quiet tonight"; size: 12; color: Theme.outline }
             }
         }
-        ListView {
+        // grouped by app: the newest two of each, the rest behind "more"
+        Flickable {
             id: notes
             visible: Notifs.count > 0
             width: parent.width
-            height: Math.min(contentHeight, 260)
-            spacing: 6
+            // whatever room the island's 720 px window has left; the rest scrolls
+            height: Math.min(contentHeight, Math.max(140, 670 - y))
+            contentHeight: groups.implicitHeight
             clip: true
-            model: Notifs.list
             boundsBehavior: Flickable.StopAtBounds
-            add: Transition { NumberAnimation { property: "opacity"; from: 0; to: 1; duration: Theme.normal } }
-            removeDisplaced: Transition { NumberAnimation { property: "y"; duration: Theme.normal; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.spatial } }
-            delegate: Rectangle {
-                id: card
-                required property var modelData
-                width: notes.width
-                height: Math.max(58, body.implicitHeight + 22)
-                radius: 18
-                color: Theme.surfaceMid
-                Image {
-                    id: nimg
-                    x: 12; y: 12
-                    width: 34; height: 34
-                    source: Notifs.image(card.modelData)
-                    sourceSize: Qt.size(68, 68)
-                    fillMode: Image.PreserveAspectCrop
-                    asynchronous: true
-                    visible: status === Image.Ready
-                }
-                Column {
-                    id: body
-                    anchors { left: nimg.visible ? nimg.right : parent.left; leftMargin: 12; right: x.left; rightMargin: 6; verticalCenter: parent.verticalCenter }
-                    spacing: 1
-                    Txt { width: parent.width; text: card.modelData.summary; size: 13; weight: Font.DemiBold }
-                    Txt {
-                        width: parent.width; visible: text !== ""
-                        text: card.modelData.body; textFormat: Text.StyledText
-                        wrapMode: Text.Wrap; maximumLineCount: 3; size: 12; color: Theme.inkDim
+            property var open: ({})             // app → shows all of its
+            function ago(t) {
+                const m = Math.floor((clock.date.getTime() - t) / 60000);
+                if (m < 1) return "now";
+                if (m < 60) return m + " min";
+                const h = Math.floor(m / 60);
+                return h < 24 ? h + " h" : Math.floor(h / 24) + " d";
+            }
+            Column {
+                id: groups
+                width: parent.width
+                spacing: 8
+                Repeater {
+                    model: Notifs.groups
+                    Rectangle {
+                        id: group
+                        required property var modelData
+                        readonly property bool all: notes.open[modelData.app] === true
+                        readonly property var shown: all ? modelData.items : modelData.items.slice(0, 2)
+                        width: groups.width
+                        height: inner.implicitHeight + 16
+                        radius: 20
+                        color: Theme.surfaceMid
+                        Column {
+                            id: inner
+                            x: 8; y: 8
+                            width: parent.width - 16
+                            spacing: 2
+                            // the app: its icon, name, how many, and clearing them all
+                            Item {
+                                width: parent.width; height: 30
+                                Image {
+                                    id: gimg
+                                    x: 4; anchors.verticalCenter: parent.verticalCenter
+                                    width: 20; height: 20
+                                    source: group.modelData.icon
+                                    sourceSize: Qt.size(40, 40)
+                                    fillMode: Image.PreserveAspectCrop
+                                    asynchronous: true
+                                    visible: status === Image.Ready
+                                }
+                                Icon { x: 4; anchors.verticalCenter: parent.verticalCenter; visible: !gimg.visible; name: "notifications"; size: 18; color: Theme.inkDim }
+                                Txt {
+                                    anchors { left: parent.left; leftMargin: 32; verticalCenter: parent.verticalCenter }
+                                    text: group.modelData.app + (group.modelData.items.length > 1 ? "  ·  " + group.modelData.items.length : "")
+                                    size: 12; weight: Font.DemiBold; color: Theme.inkDim
+                                }
+                                IconButton {
+                                    anchors { right: parent.right; verticalCenter: parent.verticalCenter }
+                                    icon: "clear_all"; size: 28
+                                    onClicked: Notifs.forgetApp(group.modelData.app)
+                                }
+                            }
+                            Repeater {
+                                model: group.shown
+                                Rectangle {
+                                    id: card
+                                    required property var modelData
+                                    width: inner.width
+                                    height: Math.max(48, body.implicitHeight + 16)
+                                    radius: 14
+                                    color: Theme.surfaceHigh
+                                    Column {
+                                        id: body
+                                        anchors { left: parent.left; leftMargin: 12; right: when.left; rightMargin: 8; verticalCenter: parent.verticalCenter }
+                                        spacing: 1
+                                        Txt { width: parent.width; text: card.modelData.summary; size: 13; weight: Font.DemiBold }
+                                        Txt {
+                                            width: parent.width; visible: text !== ""
+                                            text: card.modelData.body; textFormat: Text.StyledText
+                                            wrapMode: Text.Wrap; maximumLineCount: 3; size: 12; color: Theme.inkDim
+                                        }
+                                    }
+                                    Txt {
+                                        id: when
+                                        anchors { right: x.left; rightMargin: 2; top: parent.top; topMargin: 11 }
+                                        text: notes.ago(card.modelData.time); size: 11; color: Theme.outline
+                                    }
+                                    IconButton { id: x; anchors { right: parent.right; rightMargin: 4; top: parent.top; topMargin: 4 } icon: "close"; size: 26; onClicked: Notifs.forget(card.modelData.key) }
+                                }
+                            }
+                            Txt {
+                                visible: group.modelData.items.length > 2
+                                x: 12; height: 24; verticalAlignment: Text.AlignVCenter
+                                text: group.all ? "Show less" : (group.modelData.items.length - 2) + " more"
+                                size: 12; weight: Font.Medium; color: Theme.primary
+                                MouseArea {
+                                    anchors { fill: parent; margins: -6 }
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: { const o = Object.assign({}, notes.open); o[group.modelData.app] = !group.all; notes.open = o; }
+                                }
+                            }
+                        }
                     }
                 }
-                IconButton { id: x; anchors { right: parent.right; rightMargin: 6; top: parent.top; topMargin: 6 } icon: "close"; size: 28; onClicked: card.modelData.dismiss() }
             }
         }
     }

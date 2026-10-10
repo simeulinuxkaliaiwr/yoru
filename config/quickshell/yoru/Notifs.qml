@@ -1,11 +1,14 @@
 pragma Singleton
 
 import Quickshell
+import Quickshell.Io
 import Quickshell.Services.Notifications
 import QtQuick
 
 // the notification daemon (instead of mako while yoru runs): new ones drop
-// out of the island, the rest wait in the control centre
+// out of the island, the rest wait in the control centre. Each is also kept
+// in a history (~/.cache/yoru/notifications.json, the last 100), grouped by app
+// there, so one that came during do not disturb or a restart isn't lost
 Singleton {
     id: notifs
 
@@ -24,8 +27,62 @@ Singleton {
     Timer { interval: 30000; repeat: true; running: true; triggeredOnStart: true; onTriggered: notifs.quietHours = notifs.inQuiet() }
     Connections { target: Config.o.quiet; function onScheduleChanged() { notifs.quietHours = notifs.inQuiet(); } }
     readonly property var list: server.trackedNotifications.values.slice().reverse()
-    readonly property int count: list.length
     signal arrived(var n)
+
+    // ── the history: [{ key, app, icon, summary, body, time }], newest first
+    property var history: []
+    readonly property int count: history.length
+    property int serial: 0
+    FileView {
+        id: store
+        path: Theme.cacheDir + "/notifications.json"
+        printErrors: false
+        onLoaded: {
+            try { notifs.history = JSON.parse(text()); } catch (e) {}
+            notifs.serial = notifs.history.reduce((m, h) => Math.max(m, h.key), 0);
+        }
+    }
+    function save() { store.setText(JSON.stringify(history)); }
+    // the live notification behind a record, while it's still around (for its actions)
+    property var live: ({})
+    function remember(n) {
+        const key = ++serial;
+        const icon = image(n);
+        const rec = {
+            key: key,
+            app: n.appName || n.desktopEntry || "Unknown",
+            // images handed over in memory don't outlive the shell
+            icon: icon.startsWith("image://") ? "" : icon,
+            summary: n.summary, body: n.body, time: Date.now()
+        };
+        const l = Object.assign({}, live); l[key] = n; live = l;
+        n.closed.connect(() => { const m = Object.assign({}, notifs.live); delete m[key]; notifs.live = m; });
+        history = [rec].concat(history).slice(0, 100);
+        save();
+        unseen++;
+    }
+    // new since the control centre was last opened: the island's dot
+    property int unseen: 0
+    function forget(key) {
+        live[key]?.dismiss();
+        history = history.filter(h => h.key !== key);
+        save();
+    }
+    function forgetApp(app) {
+        for (const h of history) if (h.app === app) live[h.key]?.dismiss();
+        history = history.filter(h => h.app !== app);
+        save();
+    }
+    // [{ app, icon, items }], the app with the newest one first
+    readonly property var groups: {
+        const by = {}, order = [];
+        for (const h of history) {
+            if (!by[h.app]) { by[h.app] = { app: h.app, icon: "", items: [] }; order.push(h.app); }
+            by[h.app].items.push(h);
+            if (!by[h.app].icon && h.icon) by[h.app].icon = h.icon;
+        }
+        return order.map(a => by[a]);
+    }
 
     NotificationServer {
         id: server
@@ -37,11 +94,16 @@ Singleton {
         persistenceSupported: true
         onNotification: n => {
             n.tracked = true;
+            notifs.remember(n);
             if (!notifs.dnd || n.urgency === NotificationUrgency.Critical) notifs.arrived(n);
         }
     }
 
-    function clear() { for (const n of server.trackedNotifications.values.slice()) n.dismiss(); }
+    function clear() {
+        for (const n of server.trackedNotifications.values.slice()) n.dismiss();
+        history = [];
+        save();
+    }
 
     // an icon for a notification: its image, its app's icon, or nothing
     function image(n) {
