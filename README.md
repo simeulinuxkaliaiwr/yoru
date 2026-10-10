@@ -6,7 +6,7 @@ and one key swaps between them.
 
 Dark, with colours taken from the wallpaper and motion everywhere.
 
-![The desktop: an aurora over a starry night, the island at the top, weather and system widgets, a big clock](docs/desktop.webp)
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/ef23e842-9f62-47fb-a9f1-c01a59d6b3b9" />
 
 | | |
 |---|---|
