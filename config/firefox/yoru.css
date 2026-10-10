@@ -80,8 +80,9 @@
   outline: 2px solid var(--y-accent) !important;
   outline-offset: -1px !important;
 }
-#urlbar-input, .urlbar-input { font: 14px "Geist", sans-serif !important; text-align: center; }
-#urlbar[focused] #urlbar-input, #urlbar[focused] .urlbar-input { text-align: start; }
+/* Firefox's own rules win without !important: the text sat on the left */
+#urlbar-input, .urlbar-input { font: 14px "Geist", sans-serif !important; text-align: center !important; }
+#urlbar[focused] #urlbar-input, #urlbar[focused] .urlbar-input { text-align: start !important; }
 #identity-box, #tracking-protection-icon-container { border-radius: 999px !important; }
 .urlbarView-row { border-radius: 12px !important; }
 
