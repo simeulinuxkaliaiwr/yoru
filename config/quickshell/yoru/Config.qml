@@ -42,6 +42,10 @@ Singleton {
                 property int rotateMinutes: 0                 // 0: never change on its own
                 property bool shuffle: true
                 property list<string> dirs: ["~/Pictures/nightcore", "~/Pictures/Wallpapers"]
+                // weather drawn over the wallpaper: weather (whatever it's doing outside, and an aurora
+                // on clear nights), snow, rain, aurora, fog, storm, or off
+                property string sky: "weather"
+                property real skyAmount: 0.6                  // how much of it, 0..1
             }
 
             property JsonObject desktop: JsonObject {

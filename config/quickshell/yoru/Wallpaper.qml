@@ -43,6 +43,53 @@ Scope {
     onWallChanged: roll()
     readonly property string wall: preview !== "" ? preview : Theme.wallpaper
 
+    // the sky: weather drawn over the wallpaper (shaders/sky.frag). The kinds,
+    // in the shader's order; "" is none
+    readonly property var skies: ["", "snow", "rain", "aurora", "fog", "storm"]
+    property string trySky: ""          // from IPC, for trying one out
+    onTrySkyChanged: if (trySky !== "") tryEnd.restart()
+    Timer { id: tryEnd; interval: 120000; onTriggered: root.trySky = "" }
+    // what the weather outside looks like, from its WMO code
+    function outside() {
+        if (!Weather.ready) return "";
+        const c = Weather.code;
+        if (c <= 1) return Weather.day ? "" : "aurora";
+        if (c === 45 || c === 48) return "fog";
+        if ((c >= 51 && c <= 67) || (c >= 80 && c <= 82)) return "rain";
+        if ((c >= 71 && c <= 77) || c === 85 || c === 86) return "snow";
+        if (c >= 95) return "storm";
+        return "";
+    }
+    readonly property string skyWant: {
+        if (trySky !== "") return trySky;
+        const s = Config.o.wallpaper.sky;
+        return s === "weather" ? outside() : skies.includes(s) ? s : "";
+    }
+    // drizzle and showers are lighter, heavy rain and snow heavier
+    readonly property real skyAmount: {
+        let a = Config.o.wallpaper.skyAmount;
+        if (trySky === "" && Config.o.wallpaper.sky === "weather") {
+            const c = Weather.code;
+            if ([51, 53, 56, 61, 71, 80, 85].includes(c)) a *= 0.6;
+            else if ([55, 57, 65, 67, 75, 82, 86].includes(c)) a = Math.min(1, a * 1.35);
+        }
+        return a;
+    }
+    // the wind slants rain and snow; a breeze when it isn't the real weather
+    readonly property real skyWind: trySky === "" && Config.o.wallpaper.sky === "weather"
+        ? Math.min(0.8, Weather.wind * (Weather.fahrenheit ? 1.609 : 1) / 50) : 0.2
+    // one kind fades out before the next fades in
+    property int sky: 0
+    property real skyFade: 0
+    onSkyWantChanged: skySwap.restart()
+    Component.onCompleted: skySwap.restart()
+    SequentialAnimation {
+        id: skySwap
+        NumberAnimation { target: root; property: "skyFade"; to: 0; duration: root.sky > 0 ? 1500 : 0; easing.type: Easing.InOutSine }
+        ScriptAction { script: root.sky = Math.max(0, root.skies.indexOf(root.skyWant)) }
+        NumberAnimation { target: root; property: "skyFade"; to: 1; duration: 3000; easing.type: Easing.InOutSine }
+    }
+
     Variants {
         model: Quickshell.screens
 
@@ -193,6 +240,28 @@ Scope {
                     property variant from: ShaderEffectSource { sourceItem: win.slots[win.front]; hideSource: win.moving; live: true }
                     property variant to: ShaderEffectSource { sourceItem: win.slots[1 - win.front]; hideSource: win.moving; live: true }
                     fragmentShader: Qt.resolvedUrl("shaders/reveal.frag.qsb")
+                }
+            }
+
+            // the sky over the picture. It stands still under windows, like a video
+            ShaderEffect {
+                id: skyFx
+                anchors.fill: parent
+                visible: root.sky > 0 && root.skyFade > 0
+                opacity: root.skyFade
+                property real time: 0
+                property real aspect: width / height
+                property real kind: root.sky
+                property real amount: root.skyAmount
+                property real wind: root.skyWind
+                property color tint: Qt.tint("#ffffff", Theme.alpha(Theme.primary, 0.18))
+                property color glowA: Theme.primary
+                property color glowB: Theme.tertiary
+                fragmentShader: Qt.resolvedUrl("shaders/sky.frag.qsb")
+                FrameAnimation {
+                    running: skyFx.visible && !(win.covered && !win.moving)
+                    // wrapped well before a float loses the fractions of a second
+                    onTriggered: skyFx.time = (skyFx.time + frameTime) % 20000
                 }
             }
 

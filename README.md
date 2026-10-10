@@ -23,6 +23,10 @@ Dark, with colours taken from the wallpaper and motion everywhere.
 - **Wallpaper transitions.** Ripple, fade, wipe, disc, stripes, zoom,
   honeycomb and pixelate (or a random one each time), with adjustable length
   and edge softness. aropaper doesn't run under yoru: the shell draws it all.
+- **Weather on the wallpaper.** Snow, rain, fog or a storm falls over the
+  picture when it does outside (Open-Meteo), slanted by the real wind, and an
+  aurora drifts across the top on clear nights. Or pick one to keep. It stands
+  still under windows, like a video.
 - **The desktop.** A clock in ten styles (thin, bold, stacked, outline, mono,
   split, words, kanji, serif, analog), widgets (today, weather, calendar,
   system, now playing), each with its own layouts (weather: card, hero, pill,

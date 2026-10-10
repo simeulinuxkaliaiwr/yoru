@@ -29,6 +29,30 @@ Column {
     }
 
     Section {
+        icon: "weather_snowy"; title: "Sky"
+        SetRow { icon: "cloud"; label: "Over the wallpaper"; hint: "Weather follows the sky outside, with an aurora on clear nights" }
+        Choice {
+            x: 10; width: parent.width - 20
+            options: [
+                { value: "weather", label: "Weather", icon: "partly_cloudy_night" },
+                { value: "snow", label: "Snow", icon: "weather_snowy" },
+                { value: "rain", label: "Rain", icon: "rainy" },
+                { value: "aurora", label: "Aurora", icon: "auto_awesome" },
+                { value: "fog", label: "Fog", icon: "foggy" },
+                { value: "storm", label: "Storm", icon: "thunderstorm" },
+                { value: "off", label: "Off", icon: "block" }
+            ]
+            current: c.sky
+            onPicked: v => c.sky = v
+        }
+        SetRow {
+            icon: "grain"; label: "Amount"; hint: "A few flakes at 0, a blizzard at 1"
+            Range { value: c.skyAmount; from: 0; to: 1; step: 0.05; decimals: 2; onMoved: v => c.skyAmount = v }
+        }
+        Item { width: 1; height: 8 }
+    }
+
+    Section {
         icon: "wallpaper"; title: "Behaviour"
         SetRow {
             icon: "3d_rotation"; label: "Parallax"; hint: "The wallpaper drifts as you move between workspaces"

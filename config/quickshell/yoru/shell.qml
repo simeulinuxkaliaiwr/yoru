@@ -95,6 +95,9 @@ ShellRoot {
     IpcHandler {
         target: "wallpaper"
         function preview(file: string, transition: string): void { wallpaper.show(file, transition); }
+        // shows that weather over the wallpaper for a while, whatever it's really doing:
+        // snow, rain, aurora, fog, storm, or "" to go back
+        function sky(kind: string): void { wallpaper.trySky = kind; }
     }
     IpcHandler {
         target: "osd"
