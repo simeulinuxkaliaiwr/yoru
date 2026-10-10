@@ -53,8 +53,8 @@ Scope {
     function outside() {
         if (!Weather.ready) return "";
         const c = Weather.code;
-        // an aurora only shows up against a dark picture
-        if (c <= 1) return Weather.day || Theme.bright > 0.45 ? "" : "aurora";
+        // a clear night: an aurora (over a bright picture it brings its own dark sky)
+        if (c <= 1) return Weather.day ? "" : "aurora";
         if (c === 45 || c === 48) return "fog";
         if ((c >= 51 && c <= 67) || (c >= 80 && c <= 82)) return "rain";
         if ((c >= 71 && c <= 77) || c === 85 || c === 86) return "snow";
@@ -258,6 +258,7 @@ Scope {
                 readonly property bool hidden: Aro.busy(win.modelData.name) || Aro.fullscreen(win.modelData.name)
                 // seconds since it started, from the clock, so a late tick doesn't slow it
                 property real t0: Date.now()
+                function deep(c: color): color { return Qt.hsla(c.hslHue, Math.max(c.hslSaturation, 0.75), 0.55, 1); }
                 Timer {
                     interval: 33; repeat: true
                     running: skyBox.visible && (!skyBox.hidden || win.moving)
@@ -272,9 +273,13 @@ Scope {
                     property real kind: root.sky
                     property real amount: root.skyAmount
                     property real wind: root.skyWind
+                    // bright pictures get a night sky behind the aurora; dark ones already are one
+                    property real veil: Math.max(0, Math.min(1, (Theme.bright - 0.25) / 0.4))
                     property color tint: Qt.tint("#ffffff", Theme.alpha(Theme.primary, 0.18))
-                    property color glowA: Theme.primary
-                    property color glowB: Theme.tertiary
+                    // the palette's colours, deepened: its light accents alone glow almost white
+                    property color glowA: skyBox.deep(Theme.primary)
+                    property color glowB: skyBox.deep(Theme.tertiary)
+                    property color night: Theme.surfaceLowest
                     fragmentShader: Qt.resolvedUrl("shaders/sky.frag.qsb")
                 }
             }

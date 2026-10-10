@@ -2,7 +2,8 @@
 // the weather over the wallpaper, one shader, picked by `kind`:
 //   1 snow     flakes in layers, the near ones bigger, faster and drifting
 //   2 rain     thin streaks, slanted by the wind
-//   3 aurora   slow curtains of light across the top, in the palette's colours
+//   3 aurora   slow curtains of light across the top, in the palette's colours,
+//              over a night drawn across the sky first when the picture is bright
 //   4 fog      a haze rolling along the bottom
 //   5 storm    heavy rain with the odd flash of lightning
 // `amount` (0..1) is how much of it there is. Out comes premultiplied colour.
@@ -16,9 +17,11 @@ layout(std140, binding = 0) uniform buf {
     float kind;
     float amount;
     float wind;         // -1..1, which way and how hard things slant
+    float veil;         // 0..1, how much night the aurora brings over a bright picture
     vec4 tint;          // flakes, drops and haze
     vec4 glowA;         // the aurora, low and high
     vec4 glowB;
+    vec4 night;         // the colour of that night
 };
 
 float hash(vec2 p) {
@@ -91,19 +94,23 @@ vec4 aurora(vec2 uv, vec2 p) {
         float x = p.x * 0.8 + fi * 3.7;
         // the curtain folds: its lower edge sways in long waves that drift sideways
         float fold = fbm(vec2(x * 0.9 + time * 0.015, fi * 5.0));
-        float base = 0.2 + fi * 0.06 + 0.09 * sin(x * 2.3 + fold * 5.0 + time * 0.04) + 0.06 * (fold - 0.5);
+        float base = 0.26 + fi * 0.06 + 0.08 * sin(x * 2.3 + fold * 5.0 + time * 0.04) + 0.07 * (fold - 0.5);
         float above = base - uv.y;                          // > 0 above the edge
-        float body = smoothstep(-0.03, 0.025, above) * exp(-max(above, 0.0) / (0.1 + 0.05 * fi));
+        float body = smoothstep(-0.03, 0.025, above) * exp(-max(above, 0.0) / (0.15 + 0.06 * fi));
         // bright rays climbing out of the edge, and gaps where the curtain thins out
         float rays = 0.4 + 0.6 * noise(vec2(x * 45.0 + fold * 9.0, time * 0.12));
-        float thin = smoothstep(0.35, 0.7, fbm(vec2(x * 0.6 - time * 0.025, fi * 3.0 + 1.0)));
+        float thin = smoothstep(0.25, 0.6, fbm(vec2(x * 0.6 - time * 0.025, fi * 3.0 + 1.0)));
         float glow = body * rays * thin;
-        vec3 col = mix(glowA.rgb, glowB.rgb, clamp(above * 4.0, 0.0, 1.0)) * 1.25;
+        vec3 col = mix(glowA.rgb, glowB.rgb, clamp(above * 3.0, 0.0, 1.0)) * 1.3;
         float alpha = glow * mix(1.0, 0.6, fi / 2.0);
-        // half added light, so it glows over bright pictures too, not just tints them
+        // half added light, so it glows rather than just tints
         c += vec4(col * alpha, alpha * 0.5);
     }
-    return c * (0.35 + amount * 0.65);
+    c = min(c * (0.6 + amount * 0.6), vec4(1.0));
+    // the night behind it: a bright picture darkens from the top down first,
+    // or the light has nothing to show against
+    float v = veil * 0.82 * smoothstep(0.7, 0.0, uv.y);
+    return c + vec4(night.rgb * v, v) * (1.0 - c.a);
 }
 
 float fog(vec2 uv, vec2 p) {
