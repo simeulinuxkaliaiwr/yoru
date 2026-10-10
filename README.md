@@ -10,8 +10,8 @@ Dark, with colours taken from the wallpaper and motion everywhere.
 
 | | |
 |---|---|
-| ![Aurora mode](docs/aurora.png) | ![storm mode](docs/storm.png) |
-| ![Snow mode](docs/snow.png) | ![The island](docs/island.png) |
+| ![Aurora mode](docs/island.png) | ![storm mode](docs/storm.png) |
+| ![Snow mode](docs/snow.png) | ![The island](docs/aurora.png) |
 
 ### The island
 
