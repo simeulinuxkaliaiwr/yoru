@@ -1,9 +1,17 @@
 # yoru
 
-夜, night. A rice for [aro](https://github.com/simeulinuxkaliaiwr/aro), built to sit
-beside [kon](https://github.com/simeulinuxkaliaiwr/kon): one key swaps between them.
+夜, night. A Quickshell rice for [aro](https://github.com/simeulinuxkaliaiwr/aro),
+Hyprland and niri. On aro it sits beside [kon](https://github.com/simeulinuxkaliaiwr/kon),
+and one key swaps between them.
 
 Dark, with colours taken from the wallpaper and motion everywhere.
+
+![The desktop: an aurora over a starry night, the island at the top, weather and system widgets, a big clock](docs/desktop.webp)
+
+| | |
+|---|---|
+| ![The launcher looking up snow emoji](docs/launcher.webp) | ![The island as a calendar](docs/calendar.webp) |
+| ![The settings window](docs/settings.webp) | |
 
 - **The island.** One dark shape at the top of the screen is the whole shell. At
   rest it shows the workspaces, what's playing, the time and the status. It
@@ -18,11 +26,13 @@ Dark, with colours taken from the wallpaper and motion everywhere.
   scenes as it plays (worked out once, in the background, then cached).
   Videos can keep playing under windows, or pause to save battery.
 - **Colours from the wallpaper.** Material 3 roles from matugen, faded across
-  the shell and pushed into aro's borders, foot (and open terminals), GTK,
-  fuzzel, swaylock, btop, cava, starship and fastfetch.
+  the shell and pushed into the compositor's borders (aro, Hyprland, niri),
+  foot (and open terminals), GTK, fuzzel, swaylock, btop, cava, starship and
+  fastfetch. Configs yoru writes over whole are kept first as `NAME.pre-yoru`.
 - **Wallpaper transitions.** Ripple, fade, wipe, disc, stripes, zoom,
   honeycomb and pixelate (or a random one each time), with adjustable length
-  and edge softness. aropaper doesn't run under yoru: the shell draws it all.
+  and edge softness. The shell draws the wallpaper itself; with none yet, it
+  paints its own night sky.
 - **Wallpapers by time of day.** Optional: dark ones at night, bright ones by
   day, softer ones at dawn and dusk, by your city's sunrise and sunset. yoru
   sorts the folders by brightness itself, or each period takes its own folder.
@@ -53,8 +63,8 @@ Dark, with colours taken from the wallpaper and motion everywhere.
 - **A lock screen.** The wallpaper blurred, a big clock, your picture
   (`~/.face`), a password pill whose characters pop in as Material shapes
   (or dots) and that shakes at a wrong password, the music and power buttons. If the
-  shell ever dies while locked, aro stays locked: from a TTY,
-  `WAYLAND_DISPLAY=wayland-0 aro-lock` takes over and unlocks normally.
+  shell ever dies while locked, the session stays locked (ext-session-lock): on
+  aro, `WAYLAND_DISPLAY=wayland-0 aro-lock` from a TTY takes over and unlocks.
 - **Notification history.** Every notification is kept (the last 100, across
   restarts) in the control centre, grouped by app with how long ago it came,
   so nothing that arrived during do not disturb is lost. The island's dot
@@ -67,8 +77,9 @@ Dark, with colours taken from the wallpaper and motion everywhere.
 - **Firefox.** Pill tabs, a rounded address bar and the page as a floating
   card, coloured live from the wallpaper through Pywalfox, and a yoru start
   page with its own settings: three layouts, your links, the greeting, the
-  search engine, and new tabs that type straight into its search. kon's own Firefox CSS is kept as `chrome/kon.css` and comes back with
-  `rice kon` (shapes change on Firefox's next start, colours at once).
+  search engine, and new tabs that type straight into its search. Your own
+  Firefox CSS is kept as `chrome/kon.css` (on aro, `rice kon` brings it back;
+  shapes change on Firefox's next start, colours at once).
 - **Settings (mod+i).** A window in the style of end-4's, with search and live
   previews: Quick, Wallpaper, Clock, Widgets, Widget layouts, Visualizer,
   Start page, Island, Focus & quiet, Lock screen, Weather, About. It writes
@@ -76,25 +87,45 @@ Dark, with colours taken from the wallpaper and motion everywhere.
 
 ## Install
 
-    ./install.sh        # links things into place; nothing visible changes
-    rice yoru           # or mod+ctrl+r, in either rice
+    git clone https://github.com/simeulinuxkaliaiwr/yoru ~/yoru
+    ~/yoru/install.sh
 
-Needs: quickshell, aro, matugen, imagemagick, ffmpeg, cava, cliphist, grim,
-slurp, jq, brightnessctl, wireplumber, qalculate, networkmanager, wlsunset,
-swaylock, zenity (the photo widget's picker), inotify-tools (optional: restarts the
-shell when its files change). The installer fetches the Geist,
-Material Symbols, Noto Sans JP and Instrument Serif fonts and the Bibata cursor.
+The installer sets up whichever of aro, Hyprland and niri you're in (or every
+one installed; `./install.sh hyprland niri` picks). It checks what yoru can't
+run without (quickshell, matugen, imagemagick, jq, curl) and names what only
+some features need, links the shell and its scripts into `~/.config` and
+`~/.local/bin`, fetches the Geist, Material Symbols, Noto Sans JP and
+Instrument Serif fonts and the Bibata cursor, and adds one line to your
+compositor's config, asking first and keeping a backup:
 
-aro starts the shell with `yoru-shell`, which raises its open-file limit and,
-on a machine with NVIDIA's driver installed but no NVIDIA card, keeps that
-driver out.
+| | the line | what it brings |
+|---|---|---|
+| Hyprland 0.56+ | `require("yoru")` in `hyprland.lua` | [config/hypr/yoru.lua](config/hypr/yoru.lua) |
+| older Hyprland | `source = ~/.config/hypr/yoru.conf` | [config/hypr/yoru.conf](config/hypr/yoru.conf) |
+| niri | `include "yoru.kdl"` in `config.kdl` | [config/niri/yoru.kdl](config/niri/yoru.kdl) |
+| aro | yoru's whole aro config, or `rice yoru` beside kon | [config/aro/config](config/aro/config) |
+
+Each starts the shell, gives yoru its keys (below) and colours the borders
+from the wallpaper. On Hyprland 0.56 and niri, yoru's keys replace any of yours
+on the same keys; older Hyprland runs every bind on a key, so unbind your own
+first. Run the installer again any time: it only adds what's missing.
+
+Optional, for the features that use them: ffmpeg (video wallpapers), cava,
+cliphist, wl-clipboard, grim and slurp, wl-screenrec, hyprpicker,
+brightnessctl, wireplumber, playerctl, libqalculate, networkmanager, wlsunset,
+swayidle, swaylock, zenity, inotify-tools and a Noto Color Emoji font. With no
+weather city set, the weather finds yours from your IP (ipinfo.io).
+
+`yoru-shell` starts the shell: it raises the open-file limit, keeps NVIDIA's
+driver out on machines that have it installed but no NVIDIA card, and restarts
+the shell when its files change.
 
 Firefox's start page and its empty, ready-to-type new tabs need a small
 loader installed once, as root (the start page's settings show this too):
 
     sudo install -m644 config/firefox/mozilla.cfg /usr/lib/firefox/
 
-## Switching
+## Switching (aro, with kon)
 
 `rice` keeps one aro config per rice. The live `~/.config/aro/config` belongs
 to the rice that is on; the other waits as `config.kon` or `config.yoru`.
@@ -117,19 +148,21 @@ Edits to the live one follow it when you switch. The very first switch keeps
 | `mod+i` | settings |
 | `mod+e` | edit the desktop's widgets |
 | `mod+Tab` | window picker (type to filter) |
-| `mod+/` | every key, from your aro config |
+| `mod+/` | every key, read from your aro, Hyprland or niri config |
 | `mod+p` | focus timer |
 | `mod+shift+c` | pick a colour |
 | `mod+shift+Print`, `mod+ctrl+Print` | record the screen, an area |
 | `mod+escape` | lock |
-| `mod+o`, `mod+Tab` | aro's overview |
+| `mod+o` | aro's overview |
 | `Print`, `mod+Print` | screenshot, area |
-| `mod+ctrl+r` | back to kon |
+| `mod+ctrl+r` | back to kon (aro) |
 
-The rest are kon's: `mod+hjkl`, workspaces, scratchpad, groups.
+On aro the rest are kon's: `mod+hjkl`, workspaces, scratchpad, groups. On
+Hyprland and niri the rest are your own.
 
 ## Wallpapers
 
     yoru wall FILE      an image or a video
     yoru wall next
-    yoru walls          what the picker lists (~/.config/yoru/yoru.json: "dirs")
+    yoru walls          what the picker lists (the folders are in Settings → Wallpaper;
+                        ~/Pictures/yoru and ~/Pictures/Wallpapers to begin with)
