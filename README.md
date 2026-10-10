@@ -85,7 +85,7 @@ The install script installs dependencies, and sets up yoru for the compositor th
 
 Why do you need to do that? So your compositor gets the border colors, and keybinds.
 
-Dependencies: see [docs/dependencies.txt]
+Dependencies: see [docs/dependencies.txt](docs/dependencies.txt)
 
 You can start the shell by the command `yoru-shell`.
 
@@ -117,15 +117,4 @@ If you want to install firefox's theme and the startpage, run `sudo install -m64
 
 ## Yoru IPC commands
 
-<<<<<<< HEAD
 Run `yoru` to see available commands.
-=======
-## Wallpapers
-
-    yoru wall FILE      an image or a video
-    yoru wall next
-    yoru wall fetch [wallhaven|konachan] [SEARCH]   a random one from the internet, safe for
-                        work (also Settings → Wallpaper → From the internet)
-    yoru walls          what the picker lists (the folders are in Settings → Wallpaper;
-                        ~/Pictures/yoru and ~/Pictures/Wallpapers to begin with)
->>>>>>> 5871ebe (Wallpapers from the internet: yoru wall fetch (Wallhaven, Konachan) and a settings section)
