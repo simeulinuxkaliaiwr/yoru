@@ -111,6 +111,7 @@ Singleton {
                 property bool media: true
                 property bool power: true
                 property string clockStyle: "thin"
+                property string chars: "shapes"               // the password as: shapes (Material, in turn) or dots
                 property int lockAfterMinutes: 10
             }
 

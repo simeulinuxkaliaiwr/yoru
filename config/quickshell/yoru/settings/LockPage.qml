@@ -21,6 +21,10 @@ Column {
             onPicked: v => c.clockStyle = v
         }
         Item { width: 1; height: 6 }
+        SetRow {
+            icon: "password"; label: "Password characters"; hint: "Shapes take turns and settle from the accent colour"
+            Choice { width: 220; current: c.chars; options: [{ value: "shapes", label: "Shapes" }, { value: "dots", label: "Dots" }]; onPicked: v => c.chars = v }
+        }
         SetRow { icon: "album"; label: "Media controls"; Toggle { checked: c.media; onToggled: on => c.media = on } }
         SetRow { icon: "power_settings_new"; label: "Power buttons"; hint: "Sleep, restart and shut down from the lock screen"; Toggle { checked: c.power; onToggled: on => c.power = on } }
         SetRow {

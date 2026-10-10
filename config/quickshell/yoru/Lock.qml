@@ -179,19 +179,40 @@ Scope {
                                 function onPwChanged() { if (root.pw === "" && input.text !== "") input.text = ""; }
                             }
                         }
-                        // one dot per character, popping in
+                        // a mark per character, popping in: dots, or Material shapes in
+                        // turn (after end-4's lock) that arrive in the accent and settle to ink
                         Row {
                             anchors.centerIn: parent
                             anchors.horizontalCenterOffset: -14
-                            spacing: 8
+                            spacing: Config.o.lock.chars === "shapes" ? 4 : 8
+                            readonly property var kinds: ["clover", "arrow", "pill", "burst", "diamond", "scallop", "pentagon"]
                             Repeater {
-                                model: Math.min(root.pw.length, 18)
-                                Rectangle {
-                                    width: 10; height: 10; radius: 5
-                                    color: Theme.ink
-                                    scale: 0
-                                    Component.onCompleted: scale = 1
+                                model: Math.min(root.pw.length, Config.o.lock.chars === "shapes" ? 13 : 18)
+                                Item {
+                                    id: mark
+                                    required property int index
+                                    readonly property bool shaped: Config.o.lock.chars === "shapes"
+                                    width: shaped ? 18 : 10; height: 18
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    scale: 0.4; opacity: 0
+                                    property color tint: shaped ? Theme.primary : Theme.ink
+                                    Component.onCompleted: { scale = 1; opacity = 1; tint = Theme.ink; }
                                     Behavior on scale { NumberAnimation { duration: 260; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.spatial } }
+                                    Behavior on opacity { NumberAnimation { duration: 80 } }
+                                    Behavior on tint { ColorAnimation { duration: 1000; easing.type: Easing.OutCubic } }
+                                    Rectangle {
+                                        visible: !mark.shaped
+                                        anchors.centerIn: parent
+                                        width: 10; height: 10; radius: 5
+                                        color: mark.tint
+                                    }
+                                    Blob {
+                                        visible: mark.shaped
+                                        anchors.centerIn: parent
+                                        size: 18
+                                        kind: parent.parent.kinds[mark.index % 7]
+                                        color: mark.tint
+                                    }
                                 }
                             }
                         }
