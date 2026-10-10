@@ -1,4 +1,5 @@
 import Quickshell
+import Quickshell.Io
 import Quickshell.Wayland
 import Quickshell.Services.Pam
 import Quickshell.Widgets
@@ -25,6 +26,7 @@ Scope {
 
     function lockNow() {
         if (lock.locked) return;
+        findFace.running = true;
         pw = ""; failed = false; checking = false; leaving = false;
         lock.locked = true;
     }
@@ -56,6 +58,16 @@ Scope {
     Timer { id: away; interval: 520; onTriggered: { lock.locked = false; root.leaving = false; root.pw = ""; } }
 
     SystemClock { id: clock; precision: SystemClock.Seconds }
+
+    // your picture: ~/.face, else ~/.face.icon, else the one AccountsService keeps
+    // (what display managers and GNOME set). Looked for at each lock, so a new one shows
+    property string face: ""
+    Process {
+        id: findFace
+        command: ["sh", "-c", "for f in \"$HOME/.face\" \"$HOME/.face.icon\" \"/var/lib/AccountsService/icons/$USER\"; do [ -s \"$f\" ] && { echo \"$f\"; break; }; done"]
+        stdout: StdioCollector { onStreamFinished: root.face = text.trim() }
+    }
+    Component.onCompleted: findFace.running = true
 
     WlSessionLock {
         id: lock
@@ -140,7 +152,7 @@ Scope {
                         Image {
                             id: avatar
                             anchors.fill: parent
-                            source: "file://" + Theme.home + "/.face"
+                            source: root.face ? "file://" + root.face : ""
                             fillMode: Image.PreserveAspectCrop
                             sourceSize: Qt.size(176, 176)
                         }
