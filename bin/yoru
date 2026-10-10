@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""yoru - the night rice for aro: a palette from the wallpaper, in every app.
+"""yoru - a night rice for aro, Hyprland and niri: a palette from the wallpaper, in every app.
 
     yoru                    apply the current wallpaper's palette everywhere
     yoru wall FILE          a new wallpaper (image or video): palette, apps, shell
@@ -11,12 +11,13 @@
     yoru timeline FILE      a video's colours across its loop (yoru starts it itself)
     yoru art URL            a palette from album art, as JSON (the shell uses it while music plays)
     yoru lyrics TITLE ARTIST [SECONDS]   synced lyrics from lrclib.net, as JSON [[seconds, line], …]
-    yoru restore            put aro's wallpaper back (for aro's exec)
+    yoru restore            the palette back at login (the compositor's autostart runs it)
     yoru status             the current wallpaper
 
 State is ~/.config/yoru/yoru.json; the palette the shell reads is
-~/.cache/yoru/palette.json. Apps are only re-themed while yoru is the active
-rice (see `rice`), so picking a wallpaper never touches kon's look.
+~/.cache/yoru/palette.json. On aro, apps are only re-themed while yoru is the
+active rice (see `rice`), so picking a wallpaper never touches kon's look; on
+Hyprland and niri they always are, borders included (yoru-colors.lua/.conf/.kdl).
 """
 
 import colorsys
@@ -91,11 +92,24 @@ def save_state(s):
     write(STATE, json.dumps({"wallpaper": s["wallpaper"]}, indent=2) + "\n")
 
 
+def compositor():
+    """aro, hyprland or niri: whichever this runs under"""
+    if os.environ.get("HYPRLAND_INSTANCE_SIGNATURE"):
+        return "hyprland"
+    if os.environ.get("NIRI_SOCKET"):
+        return "niri"
+    return "aro"
+
+
 def active():
+    """whether apps take yoru's colours: on aro only while `rice` says yoru is
+    on (kon has its own); anywhere else, and on aro without rice, always"""
+    if compositor() != "aro":
+        return True
     try:
         return RICE.read_text().strip() == "yoru"
     except OSError:
-        return False
+        return True
 
 
 def is_video(f):
@@ -404,13 +418,72 @@ ARO = {
 
 def aro(c):
     path = CONF / "aro/config"
-    if not path.exists():
+    if compositor() != "aro" or not path.exists():
         return
     s = path.read_text()
     for k, val in ARO.items():
         s = re.sub(rf"^(\s*{k}\s*=\s*)(0x|#)?[0-9a-fA-F]{{6,8}}", lambda m: m.group(1) + "0x" + val(c), s, flags=re.M)
     write(path, s)
     sh("aroctl", "reload")
+
+
+
+def hyprland(c):
+    """the borders and shadow in the wallpaper's colours: yoru-colors.lua for
+    0.56's Lua config, yoru-colors.conf for older ones (yoru.lua / yoru.conf
+    pull them in)"""
+    d = CONF / "hypr"
+    if not d.is_dir():
+        return
+    active, second = c["primary"], c["tertiary"]
+    idle, shadow = c["outline_variant"], c["surface_container_lowest"]
+    write(d / "yoru-colors.lua", f"""-- written by yoru from the wallpaper; changes with it
+hl.config({{
+    general = {{
+        col = {{
+            active_border   = {{ colors = {{ "rgba({active}ee)", "rgba({second}ee)" }}, angle = 45 }},
+            inactive_border = "rgba({idle}88)",
+        }},
+    }},
+    decoration = {{ shadow = {{ color = 0xcc{shadow} }} }},
+}})
+""")
+    write(d / "yoru-colors.conf", f"""# written by yoru from the wallpaper; changes with it
+general {{
+    col.active_border = rgba({active}ee) rgba({second}ee) 45deg
+    col.inactive_border = rgba({idle}88)
+}}
+decoration {{
+    shadow {{
+        color = rgba({shadow}cc)
+    }}
+}}
+""")
+    if compositor() == "hyprland":
+        sh("hyprctl", "reload")
+
+
+def niri(c):
+    """the focus ring and borders in the wallpaper's colours (yoru.kdl
+    includes this; niri reloads it by itself)"""
+    d = CONF / "niri"
+    if not d.is_dir():
+        return
+    write(d / "yoru-colors.kdl", f"""// written by yoru from the wallpaper; changes with it
+layout {{
+    focus-ring {{
+        active-color "#{c["primary"]}"
+        inactive-color "#{c["outline_variant"]}"
+    }}
+    border {{
+        active-color "#{c["primary"]}"
+        inactive-color "#{c["outline_variant"]}"
+    }}
+    shadow {{
+        color "#{c["surface_container_lowest"]}aa"
+    }}
+}}
+""")
 
 
 def foot(c):
@@ -759,7 +832,7 @@ def cursor(s):
     if not name or not any((d / name / "cursors").is_dir() for d in dirs):
         return
     path = CONF / "aro/config"
-    if path.exists():
+    if compositor() == "aro" and path.exists():
         t = path.read_text()
         t2 = re.sub(r"^(\s*cursor_theme\s*=\s*).*$", lambda m: m.group(1) + name, t, count=1, flags=re.M)
         if t2 != t:
@@ -780,7 +853,8 @@ def dark():
 
 def wallpaper(s):
     # the shell draws the wallpaper; aropaper would only sit underneath it
-    sh("aroctl", "wallpaper", "none")
+    if compositor() == "aro":
+        sh("aroctl", "wallpaper", "none")
 
 
 def apply(s, apps=True):
@@ -791,6 +865,8 @@ def apply(s, apps=True):
     if apps and active():
         cursor(s)
         aro(c)
+        hyprland(c)
+        niri(c)
         wallpaper(s)
         foot(c)
         gtk(c)

@@ -5,11 +5,18 @@ set -u
 dir=$HOME/Pictures/Screenshots
 mkdir -p "$dir"
 file=$dir/$(date +%Y-%m-%d_%H-%M-%S).png
-out=$(aroctl -j monitors | jq -r '.[] | select(.focused) | .name')
+# the focused output, asked of whichever compositor this is
+if [ -n "${HYPRLAND_INSTANCE_SIGNATURE:-}" ]; then
+	out=$(hyprctl -j monitors | jq -r '.[] | select(.focused) | .name')
+elif [ -n "${NIRI_SOCKET:-}" ]; then
+	out=$(niri msg -j focused-output | jq -r '.name')
+else
+	out=$(aroctl -j monitors 2>/dev/null | jq -r '.[] | select(.focused) | .name')
+fi
 
 case ${1:-full} in
 full)
-	grim -o "$out" "$file" ;;
+	if [ -n "$out" ]; then grim -o "$out" "$file"; else grim "$file"; fi ;;
 area)
 	accent=$(jq -r '.primary // "a9c7ff"' "$HOME/.cache/yoru/palette.json" 2>/dev/null)
 	geo=$(slurp -d -b 00000077 -c "${accent}ff" -s "${accent}22" -w 2) || exit 0

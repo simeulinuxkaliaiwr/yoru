@@ -1,0 +1,60 @@
+// yoru on niri. install.sh links this beside your config; add one line at the
+// end of ~/.config/niri/config.kdl:   include "yoru.kdl"
+// Coming last, yoru's keys replace any of yours on the same keys; everything
+// else in your config stays yours.
+
+// the wallpaper's colours, rewritten by `yoru` on every wallpaper change
+include optional=true "yoru-colors.kdl"
+
+spawn-sh-at-startup "systemctl --user import-environment WAYLAND_DISPLAY DISPLAY XDG_CURRENT_DESKTOP NIRI_SOCKET"
+spawn-at-startup "yoru" "restore"
+spawn-at-startup "yoru-shell"
+spawn-sh-at-startup "wl-paste --watch cliphist store"
+spawn-at-startup "yoru-idle"
+
+// the shell has its own keys sheet (mod+/)
+hotkey-overlay {
+    skip-at-startup
+}
+
+window-rule {
+    match title="^yoru.*settings$"
+    open-floating true
+    default-column-width { fixed 1100; }
+    default-window-height { fixed 740; }
+}
+
+binds {
+    // the island and the rest of the shell
+    Mod+A hotkey-overlay-title="Launcher" { spawn-sh "qs -c yoru ipc call island toggle launcher"; }
+    Mod+V hotkey-overlay-title="Clipboard" { spawn-sh "qs -c yoru ipc call island toggle clip"; }
+    Mod+X hotkey-overlay-title="Control centre" { spawn-sh "qs -c yoru ipc call island toggle control"; }
+    Mod+M hotkey-overlay-title="Player" { spawn-sh "qs -c yoru ipc call island toggle media"; }
+    Mod+W hotkey-overlay-title="Wallpapers" { spawn-sh "qs -c yoru ipc call island toggle walls"; }
+    Mod+Tab hotkey-overlay-title="Window picker" { spawn-sh "qs -c yoru ipc call island toggle windows"; }
+    Mod+Slash hotkey-overlay-title="yoru's keys" { spawn-sh "qs -c yoru ipc call island toggle keys"; }
+    Mod+Shift+E hotkey-overlay-title="Power menu" { spawn-sh "qs -c yoru ipc call island toggle power"; }
+    Mod+Shift+W hotkey-overlay-title="Next wallpaper" { spawn "yoru" "wall" "next"; }
+    Mod+I hotkey-overlay-title="yoru settings" { spawn-sh "qs -n -p ~/.config/quickshell/yoru/settings.qml"; }
+    Mod+E hotkey-overlay-title="Edit the desktop" { spawn-sh "qs -c yoru ipc call desktop toggle"; }
+    Mod+P hotkey-overlay-title="Focus timer" { spawn-sh "qs -c yoru ipc call focus toggle"; }
+    Mod+Escape hotkey-overlay-title="Lock the screen" { spawn "yoru-lock"; }
+
+    // capture
+    Print hotkey-overlay-title="Screenshot" { spawn "yoru-shot" "full"; }
+    Mod+Print hotkey-overlay-title="Screenshot an area" { spawn "yoru-shot" "area"; }
+    Mod+Shift+Print hotkey-overlay-title="Record the screen" { spawn-sh "qs -c yoru ipc call record toggle"; }
+    Mod+Ctrl+Print hotkey-overlay-title="Record an area" { spawn-sh "qs -c yoru ipc call record area"; }
+    Mod+Shift+C hotkey-overlay-title="Pick a colour" { spawn-sh "qs -c yoru ipc call picker pick"; }
+
+    // media keys, with the island's OSD
+    XF86AudioRaiseVolume allow-when-locked=true { spawn-sh "wpctl set-volume -l 1.0 @DEFAULT_AUDIO_SINK@ 5%+"; }
+    XF86AudioLowerVolume allow-when-locked=true { spawn-sh "wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-"; }
+    XF86AudioMute allow-when-locked=true { spawn-sh "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"; }
+    XF86AudioMicMute allow-when-locked=true { spawn-sh "wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle && qs -c yoru ipc call osd mic"; }
+    XF86MonBrightnessUp allow-when-locked=true { spawn-sh "brightnessctl -q set 5%+ && qs -c yoru ipc call osd brightness"; }
+    XF86MonBrightnessDown allow-when-locked=true { spawn-sh "brightnessctl -q set 5%- && qs -c yoru ipc call osd brightness"; }
+    XF86AudioPlay allow-when-locked=true { spawn "playerctl" "play-pause"; }
+    XF86AudioNext allow-when-locked=true { spawn "playerctl" "next"; }
+    XF86AudioPrev allow-when-locked=true { spawn "playerctl" "previous"; }
+}

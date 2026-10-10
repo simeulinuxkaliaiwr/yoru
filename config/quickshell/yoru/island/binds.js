@@ -175,8 +175,9 @@ function fromHyprLua(text) {
                 continue;
             }
             const local = l.match(/^\s*local\s+(\w+)\s*=\s*(.+?)\s*$/);
-            if (local && !/hl\.bind\s*\(/.test(local[2])) { const v = value(local[2], env); if (v !== undefined) env[local[1]] = v; continue; }
-            const at = l.search(/hl\.bind\s*\(/);
+            if (local && !/\bbind\s*\(/.test(local[2])) { const v = value(local[2], env); if (v !== undefined) env[local[1]] = v; continue; }
+            // hl.bind(…), or a config's own wrapper called bind(…) (yoru.lua has one)
+            const at = l.search(/\b(?:hl\.)?bind\s*\(/);
             if (at < 0) continue;
             // a call can run over several lines: gather until its bracket closes
             let s = l.slice(at), k = i;
@@ -187,7 +188,10 @@ function fromHyprLua(text) {
         }
     }
     run(src.split("\n"), env);
-    return out.join("\n");
+    // a later bind on the same keys wins: yoru.lua unbinds before it binds
+    const last = new Map();
+    for (const l of out) last.set(l.split(",")[0], l);
+    return [...last.values()].join("\n");
 }
 
 // --- niri, config.kdl: Mod+Shift+Q { close-window; } ---
@@ -214,5 +218,8 @@ function fromNiri(text) {
         else a = act[a] ?? a.replace(/-/g, "_");
         out.push(line(combo, a, arg));
     }
-    return out.join("\n");
+    // a later bind on the same keys wins, as in niri (yoru.kdl is included last)
+    const last = new Map();
+    for (const l of out) last.set(l.split(",")[0], l);
+    return [...last.values()].join("\n");
 }

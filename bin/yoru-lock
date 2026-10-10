@@ -1,5 +1,6 @@
 #!/bin/sh
-# yoru-lock: yoru's lock screen, or swaylock (aro-lock) when the shell can't
+# yoru-lock: yoru's lock screen, or a plain locker when the shell can't
+# (aro-lock on aro, hyprlock on Hyprland if it's there, else swaylock)
 PATH=$HOME/.local/bin:$PATH
 if [ "$(qs -c yoru ipc call lock lock 2>/dev/null)" = true ]; then
 	# swayidle's before-sleep waits for this: return once the screen is locked
@@ -11,4 +12,6 @@ if [ "$(qs -c yoru ipc call lock lock 2>/dev/null)" = true ]; then
 	done
 	exit 0
 fi
-exec aro-lock -f
+command -v aro-lock >/dev/null && [ -z "${HYPRLAND_INSTANCE_SIGNATURE:-}${NIRI_SOCKET:-}" ] && exec aro-lock -f
+[ -n "${HYPRLAND_INSTANCE_SIGNATURE:-}" ] && command -v hyprlock >/dev/null && exec hyprlock
+exec swaylock -f
