@@ -126,7 +126,8 @@ Item {
             }
             Tile {
                 icon: Focus.phase === "break" ? "self_improvement" : "timer"; label: "Focus"
-                sub: !Focus.active ? Config.o.focus.minutes + " min" : (Focus.phase === "break" ? "Break · " : "") + Focus.clock(Focus.left)
+                sub: !Focus.active ? Config.o.focus.minutes + " min" + (Focus.today > 0 ? "  ·  " + Focus.today + " today" : "")
+                                   : (Focus.phase === "break" ? "Break · " : "") + Focus.clock(Focus.left)
                 on: Focus.active
                 onClicked: Focus.toggle()
             }

@@ -111,6 +111,8 @@ Singleton {
                 property int minutes: 25
                 property int breakMinutes: 5
                 property bool quiet: true                     // no notifications while focusing
+                property bool music: true                     // pause the music for breaks, play it again after
+                property bool rounds: false                   // after a break, focus again, until stopped
             }
 
             property JsonObject quiet: JsonObject {

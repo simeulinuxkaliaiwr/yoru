@@ -59,8 +59,9 @@ Dark, with colours taken from the wallpaper and motion everywhere.
   restarts) in the control centre, grouped by app with how long ago it came,
   so nothing that arrived during do not disturb is lost. The island's dot
   means new ones you haven't seen.
-- **Live activities.** A focus timer (with a break, and notifications held
-  while you work), screen recording, a colour picker and quiet hours, all
+- **Live activities.** A focus timer (with a break, notifications held while
+  you work, the music paused for the break and played again after, optional
+  rounds, a count of today's sessions, and its time on the lock screen), screen recording, a colour picker and quiet hours, all
   shown in the island. While a track with cover art plays, the shell takes
   its colours from the cover.
 - **Firefox.** Pill tabs, a rounded address bar and the page as a floating

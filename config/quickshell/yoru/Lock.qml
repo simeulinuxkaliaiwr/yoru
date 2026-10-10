@@ -268,6 +268,29 @@ Scope {
                     }
                 }
 
+                // ── the focus timer, while it runs ───────────────────
+                Rectangle {
+                    visible: Focus.active
+                    anchors { horizontalCenter: parent.horizontalCenter; bottom: parent.bottom; bottomMargin: Config.o.lock.media && Media.title !== "" ? 120 : 36 }
+                    width: focusRow.implicitWidth + 36; height: 40; radius: 20
+                    color: Theme.alpha(Theme.surfaceLowest, 0.55)
+                    Row {
+                        id: focusRow
+                        anchors.centerIn: parent
+                        spacing: 8
+                        Icon {
+                            anchors.verticalCenter: parent.verticalCenter
+                            name: Focus.phase === "break" ? "self_improvement" : "timer"; size: 18
+                            color: Focus.phase === "break" ? Theme.tertiary : Theme.primary
+                        }
+                        Txt {
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: (Focus.phase === "break" ? "Break  " : "Focus  ") + Focus.clock(Focus.left)
+                            size: 13; weight: Font.DemiBold
+                        }
+                    }
+                }
+
                 // ── the music ────────────────────────────────────────
                 Rectangle {
                     visible: Config.o.lock.media && Media.title !== ""

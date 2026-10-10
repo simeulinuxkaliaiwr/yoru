@@ -1,9 +1,11 @@
 pragma Singleton
 
 import Quickshell
+import Quickshell.Io
 import QtQuick
 
-// the focus timer: work, then a break, shown in the island as it runs
+// the focus timer: work, then a break, shown in the island as it runs; in
+// rounds if the settings say so, with the music paused for each break
 Singleton {
     id: f
 
@@ -18,9 +20,14 @@ Singleton {
     function start(minutes) {
         begin("focus", (minutes > 0 ? minutes : Config.o.focus.minutes) * 60);
     }
-    function stop() { phase = ""; tick.stop(); }
+    function stop() {
+        if (phase === "break") resume();
+        phase = ""; tick.stop();
+    }
     function toggle() { active ? stop() : start(0); }
     function begin(p, secs) {
+        if (p === "break" && Config.o.focus.music && Media.playing) { paused = Media.player; paused.pause(); }
+        if (p === "focus") resume();
         phase = p;
         total = secs;
         ends = Date.now() + secs * 1000;
@@ -36,10 +43,35 @@ Singleton {
             f.left = Math.max(0, Math.round((f.ends - Date.now()) / 1000));
             if (f.left > 0) return;
             const was = f.phase;
+            if (was === "focus") f.count();
             if (was === "focus" && Config.o.focus.breakMinutes > 0) f.begin("break", Config.o.focus.breakMinutes * 60);
+            else if (Config.o.focus.rounds) f.begin("focus", Config.o.focus.minutes * 60);
             else f.stop();
             f.finished(was);
         }
+    }
+
+    // the player a break paused, to play again after it (not one you paused yourself)
+    property var paused: null
+    function resume() {
+        if (paused && !paused.isPlaying) paused.play();
+        paused = null;
+    }
+
+    // finished focus sessions today, kept across restarts
+    property int today: 0
+    property string day: ""
+    FileView {
+        id: store
+        path: Theme.cacheDir + "/focus.json"
+        printErrors: false
+        onLoaded: { try { const d = JSON.parse(text()); f.day = d.day; f.today = d.day === f.date() ? d.today : 0; } catch (e) {} }
+    }
+    function date() { return new Date().toDateString(); }
+    function count() {
+        if (day !== date()) { day = date(); today = 0; }
+        today++;
+        store.setText(JSON.stringify({ day: day, today: today }));
     }
 
     function clock(s) {
