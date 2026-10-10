@@ -1,4 +1,5 @@
 import Quickshell
+import Quickshell.Io
 import QtQuick
 import qs
 import qs.parts
@@ -26,6 +27,54 @@ Column {
             onPicked: v => { c.pool = c.pool.includes(v) ? (c.pool.length > 1 ? c.pool.filter(x => x !== v) : c.pool) : c.pool.concat([v]); }
         }
         Item { width: 1; height: 8 }
+    }
+
+    Section {
+        icon: "travel_explore"; title: "From the internet"
+        SetRow { icon: "public"; label: "Source"; hint: "A random picture, safe for work, at least 1920x1080" }
+        Choice {
+            x: 10; width: parent.width - 20
+            options: [
+                { value: "wallhaven", label: "Wallhaven", icon: "landscape" },
+                { value: "konachan", label: "Konachan", icon: "draw" }
+            ]
+            current: c.online.source
+            onPicked: v => c.online.source = v
+        }
+        SetRow {
+            icon: "search"; label: "Search"; hint: c.online.source === "konachan" ? "Tags, like night sky (underscores join words)" : "Words, like night city; empty for anything"
+            Field { width: 260; text: c.online.search; placeholder: "anything"; onEdited: t => c.online.search = t.trim() }
+        }
+        SetRow {
+            icon: "download"; label: "Save to"; hint: "Keep it among the folders below to see it in the picker"
+            Field { width: 260; text: c.online.folder; placeholder: "~/Pictures/Wallpapers"; onEdited: t => c.online.folder = t.trim() }
+        }
+        SetRow {
+            icon: "wallpaper"; label: "Get one"
+            hint: fetch.running ? "Downloading…" : fetch.error !== "" ? fetch.error : fetch.got !== "" ? "Saved as " + fetch.got.split("/").pop() : "Downloads it and makes it the wallpaper"
+            Btn {
+                icon: fetch.running ? "hourglass_top" : "download"
+                label: fetch.running ? "Fetching" : "Get wallpaper"
+                onClicked: {
+                    if (fetch.running)
+                        return;
+                    forceActiveFocus();   // a field still being typed in saves first
+                    fetch.error = "";
+                    fetch.got = "";
+                    fetch.running = true;
+                }
+            }
+        }
+        Item { width: 1; height: 8 }
+
+        Process {
+            id: fetch
+            property string error: ""
+            property string got: ""
+            command: ["yoru", "wall", "fetch", c.online.source].concat(c.online.search.split(/\s+/).filter(w => w !== ""))
+            stdout: StdioCollector { onStreamFinished: fetch.got = text.trim().split("\n")[0] }
+            stderr: StdioCollector { onStreamFinished: if (text.trim() !== "") fetch.error = text.trim().replace(/^yoru: /, "Failed: ") }
+        }
     }
 
     Section {
