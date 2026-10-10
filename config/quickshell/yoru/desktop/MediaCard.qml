@@ -5,12 +5,13 @@ import qs.parts
 
 // what's playing, in one of three layouts
 //   card: the cover beside the title · cover: the art large, words over it · pill: one line
+//   vinyl: the cover on a record that turns while it plays
 Card {
     id: c
     readonly property string look: Config.o.desktop.mediaStyle
     visible: Media.title !== ""
     width: look === "pill" ? 300 : 320
-    height: look === "cover" ? 320 : look === "pill" ? 60 : 112
+    height: look === "cover" ? 320 : look === "pill" ? 60 : look === "vinyl" ? 150 : 112
     radius: look === "pill" ? height / 2 : Config.o.desktop.widgetRadius
     readonly property real frac: Media.length > 0 ? Math.min(1, Media.position / Media.length) : 0
 
@@ -101,5 +102,69 @@ Card {
             Txt { width: parent.width; text: Media.artist; size: 11; color: Theme.inkDim }
         }
         IconButton { id: play; anchors { right: parent.right; rightMargin: 10; verticalCenter: parent.verticalCenter } icon: Media.playing ? "pause" : "play_arrow"; size: 40; active: true; onClicked: Media.toggle() }
+    }
+
+    // ── vinyl ───────────────────────────────────────────────────────
+    Item {
+        anchors.fill: parent
+        visible: c.look === "vinyl"
+        Item {
+            id: disc
+            x: 14; anchors.verticalCenter: parent.verticalCenter
+            width: 122; height: 122
+            // grooves, then the label: the cover
+            Rectangle {
+                anchors.fill: parent; radius: width / 2
+                color: "#0d0d10"
+                Repeater {
+                    model: 5
+                    Rectangle {
+                        required property int index
+                        anchors.centerIn: parent
+                        width: 112 - index * 12; height: width; radius: width / 2
+                        color: "transparent"
+                        border.width: 1; border.color: Qt.rgba(1, 1, 1, 0.05 + (index % 2) * 0.03)
+                    }
+                }
+            }
+            ClippingRectangle {
+                anchors.centerIn: parent
+                width: 54; height: 54; radius: 27
+                color: Theme.primary
+                Image { anchors.fill: parent; source: Media.art; fillMode: Image.PreserveAspectCrop; sourceSize: Qt.size(108, 108); asynchronous: true }
+            }
+            Rectangle { anchors.centerIn: parent; width: 8; height: 8; radius: 4; color: Theme.surfaceLowest }
+            // one texture, turned in 30 fps steps at a calm 10 rpm: a 60 fps
+            // animation kept the whole widget window redrawing for a label
+            layer.enabled: c.look === "vinyl"
+            layer.smooth: true
+            Timer {
+                interval: 33; repeat: true
+                running: c.look === "vinyl" && Media.playing && c.visible
+                onTriggered: disc.rotation = (disc.rotation + 2) % 360
+            }
+        }
+        // a sheen that stays put while the record turns under it
+        Rectangle {
+            anchors.fill: disc; radius: width / 2
+            gradient: Gradient {
+                orientation: Gradient.Horizontal
+                GradientStop { position: 0.35; color: "transparent" }
+                GradientStop { position: 0.5; color: Qt.rgba(1, 1, 1, 0.07) }
+                GradientStop { position: 0.65; color: "transparent" }
+            }
+        }
+        Column {
+            anchors { left: disc.right; leftMargin: 14; right: parent.right; rightMargin: 16; top: disc.top; topMargin: 8 }
+            spacing: 1
+            Txt { width: parent.width; text: Media.title; size: 14; weight: Font.DemiBold }
+            Txt { width: parent.width; text: Media.artist; size: 12; color: Theme.inkDim }
+        }
+        Row {
+            anchors { left: disc.right; leftMargin: 6; bottom: disc.bottom; bottomMargin: 4 }
+            IconButton { icon: "skip_previous"; size: 34; onClicked: Media.prev() }
+            IconButton { icon: Media.playing ? "pause" : "play_arrow"; size: 38; active: true; onClicked: Media.toggle() }
+            IconButton { icon: "skip_next"; size: 34; onClicked: Media.next() }
+        }
     }
 }

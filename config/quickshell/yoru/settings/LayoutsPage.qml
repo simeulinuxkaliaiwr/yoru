@@ -11,11 +11,11 @@ Column {
         icon: "style"; title: "Widget layouts"
         Repeater {
             model: [
-                ["weatherStyle", "Weather", "partly_cloudy_day", [["card", "Card"], ["hero", "Hero"], ["pill", "Pill"]], weatherC],
-                ["calendarStyle", "Calendar", "calendar_month", [["month", "Month"], ["week", "Week"], ["date", "Date"]], calC],
-                ["systemStyle", "System", "monitoring", [["rings", "Rings"], ["bars", "Bars"], ["chips", "Chips"]], sysC],
-                ["mediaStyle", "Now playing", "album", [["card", "Card"], ["cover", "Cover"], ["pill", "Pill"]], mediaC],
-                ["dayStyle", "Today", "hourglass_bottom", [["bars", "Bars"], ["rings", "Rings"]], dayC],
+                ["weatherStyle", "Weather", "partly_cloudy_day", [["card", "Card"], ["hero", "Hero"], ["pill", "Pill"], ["graph", "Graph"], ["split", "Split"]], weatherC],
+                ["calendarStyle", "Calendar", "calendar_month", [["month", "Month"], ["week", "Week"], ["date", "Date"], ["dots", "Dots"]], calC],
+                ["systemStyle", "System", "monitoring", [["rings", "Rings"], ["bars", "Bars"], ["chips", "Chips"], ["graph", "Graph"]], sysC],
+                ["mediaStyle", "Now playing", "album", [["card", "Card"], ["cover", "Cover"], ["pill", "Pill"], ["vinyl", "Vinyl"]], mediaC],
+                ["dayStyle", "Today", "hourglass_bottom", [["bars", "Bars"], ["rings", "Rings"], ["sun", "Sun"]], dayC],
             ]
             Item {
                 id: entry

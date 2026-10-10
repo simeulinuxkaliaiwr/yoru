@@ -1,14 +1,16 @@
 import QtQuick
+import QtQuick.Shapes
 import qs
 import qs.parts
 
 // processor, memory, heat and battery, in one of three layouts
 //   rings: gauges · bars: a meter per line · chips: a compact row
+//   graph: the last two minutes, drawn
 Card {
     id: c
     readonly property string look: Config.o.desktop.systemStyle
     width: look === "chips" ? chips.implicitWidth + 24 : 320
-    height: look === "bars" ? 176 : look === "chips" ? 56 : 124
+    height: look === "bars" ? 176 : look === "chips" ? 56 : look === "graph" ? 190 : 124
     radius: look === "chips" ? height / 2 : Config.o.desktop.widgetRadius
     Component.onCompleted: SysStats.watchers++
     Component.onDestruction: SysStats.watchers--
@@ -84,5 +86,56 @@ Card {
                 }
             }
         }
+    }
+
+    // ── graph: processor and memory over the last two minutes ───────
+    Item {
+        id: g
+        anchors.fill: parent
+        visible: c.look === "graph"
+        readonly property real gx: 18
+        readonly property real gy: 54
+        readonly property real gw: width - 36
+        readonly property real gh: 96
+        function line(hist) {
+            const n = 60;
+            return hist.map((v, i) => Qt.point(gx + gw * (n - hist.length + i) / (n - 1), gy + gh * (1 - Math.min(1, v))));
+        }
+        Row {
+            x: 20; y: 16
+            spacing: 16
+            Repeater {
+                model: [["CPU", Math.round(SysStats.cpu * 100) + "%", Theme.primary], ["Memory", SysStats.memUsedGb.toFixed(1) + " GB", Theme.tertiary],
+                         ["Heat", Math.round(SysStats.temp) + "°", Theme.secondary]]
+                Row {
+                    required property var modelData
+                    spacing: 6
+                    Rectangle { width: 10; height: 10; radius: 5; color: parent.modelData[2]; anchors.verticalCenter: parent.verticalCenter }
+                    Txt { text: parent.modelData[0]; size: 11; color: Theme.inkDim; anchors.verticalCenter: parent.verticalCenter }
+                    Txt { text: parent.modelData[1]; size: 12; weight: Font.DemiBold; anchors.verticalCenter: parent.verticalCenter; font.features: { "tnum": 1 } }
+                }
+            }
+        }
+        // the frame and a line at half
+        Rectangle { x: g.gx; y: g.gy; width: g.gw; height: g.gh; radius: 10; color: Theme.alpha(Theme.surfaceHigh, 0.45) }
+        Rectangle { x: g.gx; y: g.gy + g.gh / 2; width: g.gw; height: 1; color: Theme.alpha(Theme.ink, 0.08) }
+        Shape {
+            anchors.fill: parent
+            preferredRendererType: Shape.CurveRenderer
+            ShapePath {
+                strokeColor: Theme.tertiary; strokeWidth: 2; fillColor: "transparent"; joinStyle: ShapePath.RoundJoin
+                startX: g.line(SysStats.memHistory)[0]?.x ?? g.gx; startY: g.line(SysStats.memHistory)[0]?.y ?? g.gy + g.gh
+                PathPolyline { path: g.line(SysStats.memHistory) }
+            }
+            ShapePath {
+                strokeColor: Theme.primary; strokeWidth: 2.5; fillColor: Theme.alpha(Theme.primary, 0.12); joinStyle: ShapePath.RoundJoin
+                startX: g.line(SysStats.cpuHistory)[0]?.x ?? g.gx; startY: g.gy + g.gh
+                PathLine { x: g.line(SysStats.cpuHistory)[0]?.x ?? g.gx; y: g.line(SysStats.cpuHistory)[0]?.y ?? g.gy + g.gh }
+                PathPolyline { path: g.line(SysStats.cpuHistory) }
+                PathLine { x: g.gx + g.gw; y: g.gy + g.gh }
+            }
+        }
+        Txt { x: g.gx; y: g.gy + g.gh + 6; text: "2 min ago"; size: 10; color: Theme.outline }
+        Txt { anchors.right: parent.right; anchors.rightMargin: 18; y: g.gy + g.gh + 6; text: "now"; size: 10; color: Theme.outline }
     }
 }

@@ -64,8 +64,10 @@ Column {
         SetRow { icon: "style"; label: "Style"; hint: "What the widgets sit on" }
         Choice {
             x: 10; current: c.widgetStyle
-            options: [{ value: "glass", label: "Glass" }, { value: "solid", label: "Solid" }, { value: "tonal", label: "Tonal" },
-                      { value: "outline", label: "Outline" }, { value: "neon", label: "Neon" }, { value: "minimal", label: "Minimal" }]
+            options: [{ value: "glass", label: "Glass" }, { value: "frosted", label: "Frosted" }, { value: "solid", label: "Solid" },
+                      { value: "tonal", label: "Tonal" }, { value: "gradient", label: "Gradient" }, { value: "stack", label: "Stack" },
+                      { value: "outline", label: "Outline" }, { value: "neon", label: "Neon" }, { value: "hud", label: "HUD" },
+                      { value: "minimal", label: "Minimal" }]
             onPicked: v => c.widgetStyle = v
         }
         Item { width: 1; height: 6 }

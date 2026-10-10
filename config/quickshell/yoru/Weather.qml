@@ -17,6 +17,9 @@ Singleton {
     property int humidity: 0
     property real wind: 0
     property var days: []               // [{ date, max, min, code }]
+    property var hours: []              // the next 24: [{ time, temp, code }]
+    property string sunrise: ""         // today, ISO local time
+    property string sunset: ""
     readonly property string unit: Config.o.weather.fahrenheit ? "°F" : "°C"
 
     readonly property string city: Config.o.weather.city
@@ -34,7 +37,7 @@ Singleton {
             ? `curl -sf -m 8 "https://geocoding-api.open-meteo.com/v1/search?name=${enc}&count=1" | jq -r '.results[0] | "\\(.latitude) \\(.longitude) \\(.name)"'`
             : `curl -sf -m 8 https://ipinfo.io/json | jq -r '"\\(.loc | split(",") | .[0]) \\(.loc | split(",") | .[1]) \\(.city)"'`;
         query.command = ["sh", "-c", `set -- $(${where}); [ -n "$1" ] || exit 1; lat=$1 lon=$2; shift 2; echo "$*";
-curl -sf -m 8 "https://api.open-meteo.com/v1/forecast?latitude=$lat&longitude=$lon&current=temperature_2m,apparent_temperature,weather_code,is_day,relative_humidity_2m,wind_speed_10m&daily=temperature_2m_max,temperature_2m_min,weather_code&timezone=auto&forecast_days=4${units}"`];
+curl -sf -m 8 "https://api.open-meteo.com/v1/forecast?latitude=$lat&longitude=$lon&current=temperature_2m,apparent_temperature,weather_code,is_day,relative_humidity_2m,wind_speed_10m&daily=temperature_2m_max,temperature_2m_min,weather_code,sunrise,sunset&hourly=temperature_2m,weather_code&timezone=auto&forecast_days=4${units}"`];
         query.running = true;
     }
 
@@ -57,6 +60,14 @@ curl -sf -m 8 "https://api.open-meteo.com/v1/forecast?latitude=$lat&longitude=$l
                 w.days = d.daily.time.map((t, i) => ({
                     date: t, max: d.daily.temperature_2m_max[i], min: d.daily.temperature_2m_min[i], code: d.daily.weather_code[i]
                 }));
+                // from this hour on, for a day
+                const nowIso = new Date(Date.now() + (d.utc_offset_seconds ?? 0) * 1000).toISOString().slice(0, 13);
+                const start = Math.max(0, d.hourly.time.findIndex(t => t.slice(0, 13) >= nowIso));
+                w.hours = d.hourly.time.slice(start, start + 24).map((t, i) => ({
+                    time: t, temp: d.hourly.temperature_2m[start + i], code: d.hourly.weather_code[start + i]
+                }));
+                w.sunrise = d.daily.sunrise[0] ?? "";
+                w.sunset = d.daily.sunset[0] ?? "";
                 w.ready = true;
             }
         }

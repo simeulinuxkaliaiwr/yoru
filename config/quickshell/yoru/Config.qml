@@ -55,7 +55,7 @@ Singleton {
                 property real visualizerOpacity: 0.85
                 property bool widgets: true
                 property string widgetSide: "right"
-                property string widgetStyle: "glass"          // glass, solid, tonal, outline, neon, minimal
+                property string widgetStyle: "glass"          // glass, frosted, solid, tonal, gradient, stack, outline, neon, hud, minimal
                 property int widgetRadius: 28
                 property bool weather: true
                 property bool system: true
@@ -65,11 +65,11 @@ Singleton {
                 // where: column (one side), grid (two columns on a side), row (under the island), free
                 property string arrangement: "column"
                 // each widget's look
-                property string weatherStyle: "card"          // card, hero, pill
-                property string calendarStyle: "month"        // month, week, date
-                property string systemStyle: "rings"          // rings, bars, chips
-                property string mediaStyle: "card"            // card, cover, pill
-                property string dayStyle: "bars"              // bars, rings
+                property string weatherStyle: "card"          // card, hero, pill, graph, split
+                property string calendarStyle: "month"        // month, week, date, dots
+                property string systemStyle: "rings"          // rings, bars, chips, graph
+                property string mediaStyle: "card"            // card, cover, pill, vinyl
+                property string dayStyle: "bars"              // bars, rings, sun
                 // with arrangement "free": top-left, top-right, middle-left, middle-right, bottom-right, top-center
                 property JsonObject spots: JsonObject {
                     property string day: "top-left"

@@ -109,6 +109,11 @@ Scope {
                         top: spot.startsWith("top") ? 70 - pad + clockRoom : 0
                         bottom: spot.startsWith("bottom") ? 56 - pad : 0
                     }
+                    // where this window sits on the screen, for the frosted look
+                    readonly property real frostX: right ? scr.modelData.width - implicitWidth : centred || !spot.endsWith("left") ? (scr.modelData.width - implicitWidth) / 2 : 0
+                    readonly property real frostY: spot.startsWith("top") ? margins.top
+                        : spot.startsWith("bottom") ? scr.modelData.height - implicitHeight - margins.bottom
+                        : (scr.modelData.height - implicitHeight) / 2
                     implicitWidth: holder.width + (centred ? pad * 2 : pad + edge)
                     implicitHeight: holder.height + pad * 2
                     color: "transparent"

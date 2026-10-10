@@ -1,14 +1,15 @@
 import Quickshell
 import QtQuick
+import QtQuick.Shapes
 import qs
 import qs.parts
 
 // today: how much of the day, the week and the year has gone
-// today in one of two layouts: bars, or three rings
+// today in one of three layouts: bars, three rings, or the sun's way across the sky
 Card {
     id: c
     readonly property string look: Config.o.desktop.dayStyle
-    height: look === "rings" ? 140 : 150
+    height: look === "rings" ? 140 : look === "sun" ? 168 : 150
     SystemClock { id: clock; precision: SystemClock.Minutes }
     readonly property date now: clock.date
     readonly property real day: (now.getHours() * 60 + now.getMinutes()) / 1440
@@ -50,7 +51,7 @@ Card {
     Txt { visible: c.look === "rings"; x: 20; y: 14; text: Qt.formatDate(c.now, "dddd, d MMMM"); size: 13; weight: Font.DemiBold }
 
     Column {
-        visible: c.look !== "rings"
+        visible: c.look === "bars"
         x: 20; y: 16
         width: parent.width - 40
         spacing: 2
@@ -63,5 +64,48 @@ Card {
         Bar { label: "Day"; value: c.day }
         Bar { label: "Week"; value: c.week }
         Bar { label: "Year"; value: c.year }
+    }
+
+    // ── sun: where it is between rising and setting ─────────────────
+    Item {
+        id: sun
+        anchors.fill: parent
+        visible: c.look === "sun"
+        function mins(iso) { return iso ? parseInt(iso.slice(11, 13)) * 60 + parseInt(iso.slice(14, 16)) : 0; }
+        readonly property real rise: mins(Weather.sunrise) || 360
+        readonly property real set: mins(Weather.sunset) || 1080
+        readonly property real nowM: c.now.getHours() * 60 + c.now.getMinutes()
+        readonly property real f: (nowM - rise) / (set - rise)          // 0 at sunrise, 1 at sunset
+        readonly property bool up: f >= 0 && f <= 1
+        readonly property real cx: width / 2
+        readonly property real cy: 132
+        readonly property real r: 110
+        readonly property real ang: Math.PI * (1 - Math.max(0, Math.min(1, f)))
+
+        Txt { x: 20; y: 14; text: up ? Math.floor((sun.set - sun.nowM) / 60) + "h " + Math.round((sun.set - sun.nowM) % 60) + "m of light left" : "The sun is down"; size: 13; weight: Font.DemiBold
+              readonly property bool up: sun.up }
+        Shape {
+            anchors.fill: parent
+            preferredRendererType: Shape.CurveRenderer
+            ShapePath {
+                strokeColor: Theme.alpha(Theme.ink, 0.18); strokeWidth: 2; fillColor: "transparent"; strokeStyle: ShapePath.DashLine; dashPattern: [3, 4]
+                PathAngleArc { centerX: sun.cx; centerY: sun.cy; radiusX: sun.r; radiusY: sun.r * 0.72; startAngle: 180; sweepAngle: 180 }
+            }
+            ShapePath {
+                strokeColor: Theme.tertiary; strokeWidth: 3; fillColor: "transparent"; capStyle: ShapePath.RoundCap
+                PathAngleArc { centerX: sun.cx; centerY: sun.cy; radiusX: sun.r; radiusY: sun.r * 0.72; startAngle: 180; sweepAngle: 180 * Math.max(0.001, Math.min(1, sun.f)) }
+            }
+        }
+        Rectangle { x: 16; y: sun.cy; width: parent.width - 32; height: 1; color: Theme.alpha(Theme.ink, 0.15) }
+        // the sun, or the moon after dark
+        Rectangle {
+            width: 20; height: 20; radius: 10
+            x: sun.cx + sun.r * Math.cos(sun.ang) - 10
+            y: sun.cy - sun.r * 0.72 * Math.sin(sun.ang) - 10
+            color: sun.up ? Theme.tertiary : Theme.inkDim
+            Icon { anchors.centerIn: parent; visible: !sun.up; name: "bedtime"; size: 14; fill: 1; color: Theme.surfaceLowest }
+        }
+        Txt { x: 16; y: sun.cy + 6; text: "↑ " + (Weather.sunrise.slice(11, 16) || "--:--"); size: 11; color: Theme.inkDim }
+        Txt { anchors.right: parent.right; anchors.rightMargin: 16; y: sun.cy + 6; text: (Weather.sunset.slice(11, 16) || "--:--") + " ↓"; size: 11; color: Theme.inkDim }
     }
 }

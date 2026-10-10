@@ -16,6 +16,8 @@ Singleton {
     property real memTotalGb: 0
     property real temp: 0               // °C
     property var last: null
+    property var cpuHistory: []         // the last two minutes, a sample every two seconds
+    property var memHistory: []
 
     Timer {
         interval: 2000; repeat: true; triggeredOnStart: true
@@ -47,5 +49,7 @@ Singleton {
         memTotalGb = m.MemTotal / 1048576;
         memUsedGb = (m.MemTotal - m.MemAvailable) / 1048576;
         mem = memUsedGb / memTotalGb;
+        cpuHistory = cpuHistory.concat([cpu]).slice(-60);
+        memHistory = memHistory.concat([mem]).slice(-60);
     }
 }

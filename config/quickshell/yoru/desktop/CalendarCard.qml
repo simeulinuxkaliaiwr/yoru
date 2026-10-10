@@ -5,11 +5,12 @@ import qs.parts
 
 // the calendar, in one of three layouts (settings: Desktop → Calendar)
 //   month: the whole month · week: this week as a strip · date: a tear-off page
+//   dots: the month as dots, the days gone filled in
 Card {
     id: c
     readonly property string look: Config.o.desktop.calendarStyle
     width: look === "date" ? 200 : 320
-    height: look === "date" ? 216 : look === "week" ? 128 : grid.y + grid.height + 16
+    height: look === "date" ? 216 : look === "week" ? 128 : look === "dots" ? 190 : grid.y + grid.height + 16
 
     SystemClock { id: clock; precision: SystemClock.Hours }
     readonly property date now: clock.date
@@ -116,6 +117,41 @@ Card {
             anchors { horizontalCenter: parent.horizontalCenter; bottom: parent.bottom; bottomMargin: 16 }
             text: Qt.formatDate(c.now, "dddd") + "  ·  " + c.now.getFullYear()
             size: 13; color: Theme.inkDim
+        }
+    }
+
+    // ── dots: how far through the month ─────────────────────────────
+    Item {
+        anchors.fill: parent
+        visible: c.look === "dots"
+        Txt { x: 20; y: 14; text: Qt.formatDate(c.now, "MMMM"); size: 22; weight: Font.Light }
+        Txt {
+            anchors { right: parent.right; rightMargin: 20; top: parent.top; topMargin: 22 }
+            text: (c.len - c.now.getDate()) + " days left"
+            size: 12; color: Theme.inkDim
+        }
+        Grid {
+            x: 20; y: 58
+            columns: 7
+            rowSpacing: 10; columnSpacing: 0
+            Repeater {
+                model: c.days
+                Item {
+                    required property int modelData
+                    readonly property bool real: modelData >= 1 && modelData <= c.len
+                    readonly property bool gone: modelData < c.now.getDate()
+                    readonly property bool today: modelData === c.now.getDate()
+                    width: 40; height: 16
+                    Rectangle {
+                        anchors.centerIn: parent
+                        visible: parent.real
+                        width: parent.today ? 16 : 10; height: width; radius: width / 2
+                        color: parent.today ? Theme.primary : parent.gone ? Theme.alpha(Theme.primary, 0.55) : "transparent"
+                        border.width: parent.gone || parent.today ? 0 : 1.5
+                        border.color: Theme.alpha(Theme.ink, 0.35)
+                    }
+                }
+            }
         }
     }
 }
