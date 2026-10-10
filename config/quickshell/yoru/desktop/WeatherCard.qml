@@ -8,18 +8,18 @@ import qs.parts
 //   pill: one line · graph: the next day as a curve · split: now beside the days
 Card {
     id: c
-    readonly property string look: Config.o.desktop.weatherStyle
+    property string layout: Config.o.desktop.weatherStyle
     visible: Weather.ready
-    width: look === "pill" ? pill.implicitWidth + 36 : look === "split" ? 360 : 320
-    height: look === "hero" ? 300 : look === "pill" ? 64 : look === "graph" ? 196 : look === "split" ? 176 : 168
-    radius: look === "pill" ? height / 2 : Config.o.desktop.widgetRadius
+    width: layout === "pill" ? pill.implicitWidth + 36 : layout === "split" ? 360 : 320
+    height: layout === "hero" ? 300 : layout === "pill" ? 64 : layout === "graph" ? 196 : layout === "split" ? 176 : 168
+    radius: layout === "pill" ? height / 2 : Config.o.desktop.widgetRadius
 
     function day(d) { return Qt.formatDate(new Date(d + "T12:00"), "ddd"); }
 
     // ── card ────────────────────────────────────────────────────────
     Item {
         anchors.fill: parent
-        visible: c.look === "card"
+        visible: c.layout === "card"
         Icon {
             id: big
             x: 20; y: 18
@@ -67,7 +67,7 @@ Card {
     // ── hero: the number first, then the week as ranges ─────────────
     Item {
         anchors.fill: parent
-        visible: c.look === "hero"
+        visible: c.layout === "hero"
         readonly property real lo: Math.min(...Weather.days.map(d => d.min), Weather.temp)
         readonly property real hi: Math.max(...Weather.days.map(d => d.max), Weather.temp)
 
@@ -131,7 +131,7 @@ Card {
     // ── pill: a line ────────────────────────────────────────────────
     Row {
         id: pill
-        visible: c.look === "pill"
+        visible: c.layout === "pill"
         anchors.centerIn: parent
         spacing: 10
         Icon { anchors.verticalCenter: parent.verticalCenter; name: Weather.icon(Weather.code, Weather.day); size: 28; fill: 1; color: Theme.tertiary }
@@ -147,7 +147,7 @@ Card {
     Item {
         id: graph
         anchors.fill: parent
-        visible: c.look === "graph"
+        visible: c.layout === "graph"
         readonly property var hs: Weather.hours
         readonly property real lo: hs.length ? Math.min(...hs.map(h => h.temp)) - 1 : 0
         readonly property real hi: hs.length ? Math.max(...hs.map(h => h.temp)) + 1 : 1
@@ -221,7 +221,7 @@ Card {
     // ── split: now on the left, the days on the right ───────────────
     Item {
         anchors.fill: parent
-        visible: c.look === "split"
+        visible: c.layout === "split"
         Rectangle {
             id: now
             x: 10; y: 10

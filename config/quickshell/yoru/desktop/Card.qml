@@ -10,7 +10,7 @@ import qs
 //   hud: corner brackets, nothing else · stack: a second sheet behind
 Rectangle {
     id: card
-    readonly property string look: Config.o.desktop.widgetStyle
+    property string look: Config.o.desktop.widgetStyle
     width: 320
     radius: Config.o.desktop.widgetRadius
     color: look === "glass" ? Theme.alpha(Theme.surfaceLowest, 0.62)
@@ -72,10 +72,12 @@ Rectangle {
     readonly property var host: QsWindow.window
     readonly property bool canFrost: look === "frosted" && host && host.frostX !== undefined && Theme.still !== ""
     property point at: Qt.point(0, 0)
+    property real k: 1          // how much the card is scaled on screen (placed widgets can be)
     function place() {
         if (!canFrost) return;
-        const p = card.mapToItem(host.contentItem, 0, 0);
+        const p = card.mapToItem(host.contentItem, 0, 0), q = card.mapToItem(host.contentItem, 100, 0);
         at = Qt.point(host.frostX + p.x, host.frostY + p.y);
+        k = Math.max(0.1, (q.x - p.x) / 100);
     }
     onCanFrostChanged: Qt.callLater(place)
     onWidthChanged: Qt.callLater(place)
@@ -98,9 +100,10 @@ Rectangle {
             readonly property int count: Math.max(2, ...Aro.wsFor(out).map(w => w.index))
             property real shift: -extra * (Aro.current(out) - 1) / (count - 1)
             Behavior on shift { NumberAnimation { duration: 900; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.emphasized } }
-            x: -card.at.x; y: -card.at.y + shift
-            width: card.host?.screen?.width ?? 1920
-            height: screenH + extra
+            // in the card's own units, so a scaled card shows the wallpaper at 1:1
+            x: -card.at.x / card.k; y: (-card.at.y + shift) / card.k
+            width: (card.host?.screen?.width ?? 1920) / card.k
+            height: (screenH + extra) / card.k
             Image {
                 id: wall
                 anchors.fill: parent

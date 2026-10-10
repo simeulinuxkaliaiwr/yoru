@@ -116,6 +116,7 @@ bind = mod+shift+e, spawn, qs -c yoru ipc call island toggle power
 bind = mod+shift+w, spawn, yoru wall next
 bind = mod+i, spawn, qs -n -p ~/.config/quickshell/yoru/settings.qml
 bind = mod+slash, spawn, qs -c yoru ipc call island toggle keys
+bind = mod+e, spawn, qs -c yoru ipc call desktop toggle   # edit the desktop's widgets
 
 # switch rices: yoru <-> kon
 bind = mod+ctrl+r, spawn, rice toggle

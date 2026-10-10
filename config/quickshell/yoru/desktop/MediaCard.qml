@@ -8,17 +8,17 @@ import qs.parts
 //   vinyl: the cover on a record that turns while it plays
 Card {
     id: c
-    readonly property string look: Config.o.desktop.mediaStyle
+    property string layout: Config.o.desktop.mediaStyle
     visible: Media.title !== ""
-    width: look === "pill" ? 300 : 320
-    height: look === "cover" ? 320 : look === "pill" ? 60 : look === "vinyl" ? 150 : 112
-    radius: look === "pill" ? height / 2 : Config.o.desktop.widgetRadius
+    width: layout === "pill" ? 300 : 320
+    height: layout === "cover" ? 320 : layout === "pill" ? 60 : layout === "vinyl" ? 150 : 112
+    radius: layout === "pill" ? height / 2 : Config.o.desktop.widgetRadius
     readonly property real frac: Media.length > 0 ? Math.min(1, Media.position / Media.length) : 0
 
     // ── card ────────────────────────────────────────────────────────
     Item {
         anchors.fill: parent
-        visible: c.look === "card"
+        visible: c.layout === "card"
         ClippingRectangle {
             id: art
             x: 14; y: 14
@@ -50,7 +50,7 @@ Card {
     // ── cover: the art is the card ──────────────────────────────────
     ClippingRectangle {
         anchors.fill: parent
-        visible: c.look === "cover"
+        visible: c.layout === "cover"
         radius: c.radius
         color: Theme.surfaceHigh
         Image { anchors.fill: parent; source: Media.art; fillMode: Image.PreserveAspectCrop; sourceSize: Qt.size(640, 640); asynchronous: true }
@@ -87,7 +87,7 @@ Card {
     // ── pill ────────────────────────────────────────────────────────
     Item {
         anchors.fill: parent
-        visible: c.look === "pill"
+        visible: c.layout === "pill"
         ClippingRectangle {
             id: dot
             x: 10; anchors.verticalCenter: parent.verticalCenter
@@ -107,7 +107,7 @@ Card {
     // ── vinyl ───────────────────────────────────────────────────────
     Item {
         anchors.fill: parent
-        visible: c.look === "vinyl"
+        visible: c.layout === "vinyl"
         Item {
             id: disc
             x: 14; anchors.verticalCenter: parent.verticalCenter
@@ -136,11 +136,11 @@ Card {
             Rectangle { anchors.centerIn: parent; width: 8; height: 8; radius: 4; color: Theme.surfaceLowest }
             // one texture, turned in 30 fps steps at a calm 10 rpm: a 60 fps
             // animation kept the whole widget window redrawing for a label
-            layer.enabled: c.look === "vinyl"
+            layer.enabled: c.layout === "vinyl"
             layer.smooth: true
             Timer {
                 interval: 33; repeat: true
-                running: c.look === "vinyl" && Media.playing && c.visible
+                running: c.layout === "vinyl" && Media.playing && c.visible
                 onTriggered: disc.rotation = (disc.rotation + 2) % 360
             }
         }

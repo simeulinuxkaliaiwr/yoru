@@ -8,9 +8,9 @@ import qs.parts
 //   dots: the month as dots, the days gone filled in
 Card {
     id: c
-    readonly property string look: Config.o.desktop.calendarStyle
-    width: look === "date" ? 200 : 320
-    height: look === "date" ? 216 : look === "week" ? 128 : look === "dots" ? 190 : grid.y + grid.height + 16
+    property string layout: Config.o.desktop.calendarStyle
+    width: layout === "date" ? 200 : 320
+    height: layout === "date" ? 216 : layout === "week" ? 128 : layout === "dots" ? 190 : grid.y + grid.height + 16
 
     SystemClock { id: clock; precision: SystemClock.Hours }
     readonly property date now: clock.date
@@ -26,7 +26,7 @@ Card {
     // ── month ───────────────────────────────────────────────────────
     Item {
         anchors.fill: parent
-        visible: c.look === "month"
+        visible: c.layout === "month"
         Txt { x: 20; y: 16; text: Qt.formatDate(c.first, "MMMM"); size: 15; weight: Font.DemiBold }
         Txt { anchors { right: parent.right; rightMargin: 20; top: parent.top; topMargin: 18 } text: Qt.formatDate(c.first, "yyyy"); size: 12; color: Theme.inkDim }
         Grid {
@@ -63,7 +63,7 @@ Card {
     // ── week: seven days, today standing up ─────────────────────────
     Item {
         anchors.fill: parent
-        visible: c.look === "week"
+        visible: c.layout === "week"
         Txt { x: 20; y: 16; text: Qt.formatDate(c.now, "MMMM yyyy"); size: 14; weight: Font.DemiBold }
         Txt { anchors { right: parent.right; rightMargin: 20; top: parent.top; topMargin: 18 } text: Qt.formatDate(c.now, "dddd"); size: 12; color: Theme.primary; weight: Font.Medium }
         Row {
@@ -93,7 +93,7 @@ Card {
     // ── date: a page torn off a calendar ────────────────────────────
     Item {
         anchors.fill: parent
-        visible: c.look === "date"
+        visible: c.layout === "date"
         Rectangle {
             id: band
             width: parent.width; height: 46
@@ -123,7 +123,7 @@ Card {
     // ── dots: how far through the month ─────────────────────────────
     Item {
         anchors.fill: parent
-        visible: c.look === "dots"
+        visible: c.layout === "dots"
         Txt { x: 20; y: 14; text: Qt.formatDate(c.now, "MMMM"); size: 22; weight: Font.Light }
         Txt {
             anchors { right: parent.right; rightMargin: 20; top: parent.top; topMargin: 22 }

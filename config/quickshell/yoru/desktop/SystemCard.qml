@@ -8,10 +8,10 @@ import qs.parts
 //   graph: the last two minutes, drawn
 Card {
     id: c
-    readonly property string look: Config.o.desktop.systemStyle
-    width: look === "chips" ? chips.implicitWidth + 24 : 320
-    height: look === "bars" ? 176 : look === "chips" ? 56 : look === "graph" ? 190 : 124
-    radius: look === "chips" ? height / 2 : Config.o.desktop.widgetRadius
+    property string layout: Config.o.desktop.systemStyle
+    width: layout === "chips" ? chips.implicitWidth + 24 : 320
+    height: layout === "bars" ? 176 : layout === "chips" ? 56 : layout === "graph" ? 190 : 124
+    radius: layout === "chips" ? height / 2 : Config.o.desktop.widgetRadius
     Component.onCompleted: SysStats.watchers++
     Component.onDestruction: SysStats.watchers--
 
@@ -23,7 +23,7 @@ Card {
         text: Math.round(Status.charge * 100) + "%", tone: Status.charge < 0.15 && !Status.charging ? Theme.danger : Theme.primary }] : [])
 
     Row {
-        visible: c.look === "rings"
+        visible: c.layout === "rings"
         anchors.centerIn: parent
         spacing: 12
         Repeater {
@@ -38,7 +38,7 @@ Card {
     }
 
     Column {
-        visible: c.look === "bars"
+        visible: c.layout === "bars"
         x: 20; y: 18
         width: parent.width - 40
         spacing: 12
@@ -67,7 +67,7 @@ Card {
 
     Row {
         id: chips
-        visible: c.look === "chips"
+        visible: c.layout === "chips"
         anchors.centerIn: parent
         spacing: 6
         Repeater {
@@ -92,7 +92,7 @@ Card {
     Item {
         id: g
         anchors.fill: parent
-        visible: c.look === "graph"
+        visible: c.layout === "graph"
         readonly property real gx: 18
         readonly property real gy: 54
         readonly property real gw: width - 36

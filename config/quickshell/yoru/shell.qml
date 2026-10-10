@@ -21,11 +21,18 @@ ShellRoot {
         onTriggered: Quickshell.execDetached(["yoru", "wall", Config.o.wallpaper.shuffle ? "random" : "next"])
     }
     Desktop {}
+    Editor {}
     FirefoxStart {}
     Island { id: island }
     Lock { id: lockScreen }
 
     // the binds in ~/.config/aro/config call these
+    IpcHandler {
+        target: "desktop"
+        function edit(): void { Desk.edit(); }
+        function done(): void { Desk.done(); }
+        function toggle(): void { Desk.toggle(); }
+    }
     IpcHandler {
         target: "island"
         function toggle(mode: string): void { island.open(mode, ""); }

@@ -38,7 +38,7 @@ Item {
             let m = arg.match(/island toggle (\w+)/);
             if (m) return ["yoru", island[m[1]] ?? m[1]];
             const spawns = [
-                [/settings\.qml/, "yoru", "Settings"], [/yoru wall next/, "yoru", "Next wallpaper"],
+                [/settings\.qml/, "yoru", "Settings"], [/yoru wall next/, "yoru", "Next wallpaper"], [/desktop toggle/, "yoru", "Edit the desktop"],
                 [/rice toggle/, "yoru", "Switch rice (kon ↔ yoru)"], [/yoru-lock|aro-lock/, "System", "Lock the screen"],
                 [/yoru-shot full/, "Capture", "Screenshot"], [/yoru-shot area/, "Capture", "Screenshot an area"],
                 [/record toggle/, "Capture", "Record the screen"], [/record area/, "Capture", "Record an area"],

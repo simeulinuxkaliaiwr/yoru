@@ -69,7 +69,7 @@ Scope {
 
             // ── the widgets: a window per spot that has any ────────────
             readonly property var order: ["day", "weather", "calendar", "system", "media"]
-            readonly property var enabledWidgets: order.filter(n => desk.c.widgets && desk.c[n] && (n !== "media" || Media.title !== "")
+            readonly property var enabledWidgets: order.filter(n => !Desk.custom && desk.c.widgets && desk.c[n] && (n !== "media" || Media.title !== "")
                                                                && (n !== "weather" || Weather.ready))
             function spotOf(n) {
                 const a = desk.c.arrangement;
@@ -125,8 +125,13 @@ Scope {
 
                     // one widget, by name
                     component Widget: Loader {
+                        id: w
                         required property string name
                         sourceComponent: ({ day: dayC, weather: weatherC, calendar: calC, system: sysC, media: mediaC })[name]
+                        // so the first edit (Desk.snapshot) starts from where it is
+                        readonly property string key: scr.modelData.name + ":" + name
+                        Component.onCompleted: Desk.report(key, { item: w, win: widgetWin, type: name, output: scr.modelData.name })
+                        Component.onDestruction: Desk.report(key, null)
                     }
                     Component { id: dayC; DayCard {} }
                     Component { id: weatherC; WeatherCard {} }
@@ -192,6 +197,39 @@ Scope {
                             shadowVerticalOffset: 1
                         }
                     }
+                }
+            }
+
+            // ── placed widgets (arrangement "custom"): a window each ──
+            // keyed by id, so moving one doesn't rebuild the others. Edit mode
+            // draws its own copies, so these step aside while it's open
+            Variants {
+                model: Desk.custom && desk.c.widgets && !Desk.editing ? Desk.itemsOn(scr.modelData.name).map(i => i.id) : []
+                PanelWindow {
+                    id: placedWin
+                    required property string modelData
+                    readonly property var item: Desk.items.find(i => i.id === modelData) ?? null
+                    // room for glows and shadows, less where it nears the screen's edge
+                    readonly property int pad: 48
+                    readonly property int padL: Math.min(pad, Math.max(0, item?.x ?? 0))
+                    readonly property int padT: Math.min(pad, Math.max(0, item?.y ?? 0))
+                    screen: scr.modelData
+                    visible: !!item && view.shown
+                    anchors { top: true; left: true }
+                    margins { left: Math.max(0, (item?.x ?? 0) - pad); top: Math.max(0, (item?.y ?? 0) - pad) }
+                    // where it sits on the screen, for the frosted look
+                    readonly property real frostX: margins.left
+                    readonly property real frostY: margins.top
+                    implicitWidth: Math.max(1, view.width + padL + pad)
+                    implicitHeight: Math.max(1, view.height + padT + pad)
+                    color: "transparent"
+                    exclusionMode: ExclusionMode.Ignore
+                    WlrLayershell.layer: WlrLayer.Bottom
+                    WlrLayershell.namespace: "yoru-widgets"
+                    WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
+                    mask: Region { item: view }
+
+                    Placed { id: view; x: placedWin.padL; y: placedWin.padT; item: placedWin.item }
                 }
             }
 

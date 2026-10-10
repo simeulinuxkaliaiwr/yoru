@@ -62,8 +62,12 @@ Singleton {
                 property bool media: true
                 property bool calendar: false
                 property bool day: false
-                // where: column (one side), grid (two columns on a side), row (under the island), free
+                // where: column (one side), grid (two columns on a side), row (under the island), free,
+                // or custom: placed by hand in edit mode (mod+e), from `items`
                 property string arrangement: "column"
+                // custom: [{ id, type, output, x, y, scale, layout, look }], see Desk.qml
+                property var items: []
+                property bool snapGrid: true                  // edit mode's grid (G)
                 // each widget's look
                 property string weatherStyle: "card"          // card, hero, pill, graph, split
                 property string calendarStyle: "month"        // month, week, date, dots

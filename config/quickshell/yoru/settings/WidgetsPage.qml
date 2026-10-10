@@ -1,13 +1,16 @@
+import Quickshell
 import QtQuick
 import qs
 import qs.parts
+import qs.desktop
 
 Column {
     spacing: 14
     readonly property var c: Config.o.desktop
 
     // roughly where each widget lands, for the preview
-    readonly property var names: ["day", "weather", "calendar", "system", "media"].filter(n => c.widgets && c[n])
+    readonly property var names: ["day", "weather", "calendar", "system", "media"].filter(n => c.widgets && c[n] && !Desk.custom)
+    function editDesktop() { Quickshell.execDetached(["qs", "-c", "yoru", "ipc", "call", "desktop", "edit"]); }
     readonly property var labels: ({ day: "Today", weather: "Weather", calendar: "Calendar", system: "System", media: "Now playing" })
     function spotOf(n) {
         if (c.arrangement === "row") return "top-center";
@@ -53,6 +56,16 @@ Column {
                     Behavior on y { NumberAnimation { duration: Theme.slow; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.spatial } }
                 }
             }
+            // placed by hand: the real widgets, where they are on the first screen
+            Repeater {
+                model: Desk.custom && c.widgets ? Desk.itemsOn(Quickshell.screens[0]?.name ?? "") : []
+                Placed { required property var modelData; item: modelData; force: true; x: modelData.x; y: modelData.y }
+            }
+        }
+        Row {
+            x: 10; spacing: 12
+            Btn { icon: "edit"; label: "Edit on the desktop"; onClicked: editDesktop() }
+            Txt { anchors.verticalCenter: parent.verticalCenter; text: "Super+E: add, move and resize them where they live"; size: 12; color: Theme.inkDim }
         }
         Item { width: 1; height: 10 }
     }
@@ -76,14 +89,15 @@ Column {
             Range { value: c.widgetRadius; from: 0; to: 40; step: 2; suffix: " px"; onMoved: v => c.widgetRadius = v }
         }
         SetRow {
+            visible: !Desk.custom
             icon: "align_horizontal_right"; label: "Side"
             Choice { width: 200; current: c.widgetSide; options: [{ value: "left", label: "Left" }, { value: "right", label: "Right" }]; onPicked: v => c.widgetSide = v }
         }
-        SetRow { icon: "partly_cloudy_day"; label: "Weather"; Toggle { checked: c.weather; onToggled: on => c.weather = on } }
-        SetRow { icon: "monitoring"; label: "System"; hint: "Processor, memory, temperature, battery"; Toggle { checked: c.system; onToggled: on => c.system = on } }
-        SetRow { icon: "album"; label: "Now playing"; Toggle { checked: c.media; onToggled: on => c.media = on } }
-        SetRow { icon: "calendar_month"; label: "Calendar"; Toggle { checked: c.calendar; onToggled: on => c.calendar = on } }
-        SetRow { icon: "hourglass_bottom"; label: "Today"; hint: "How much of the day, week and year has gone"; Toggle { checked: c.day; onToggled: on => c.day = on } }
+        SetRow { visible: !Desk.custom; icon: "partly_cloudy_day"; label: "Weather"; Toggle { checked: c.weather; onToggled: on => c.weather = on } }
+        SetRow { visible: !Desk.custom; icon: "monitoring"; label: "System"; hint: "Processor, memory, temperature, battery"; Toggle { checked: c.system; onToggled: on => c.system = on } }
+        SetRow { visible: !Desk.custom; icon: "album"; label: "Now playing"; Toggle { checked: c.media; onToggled: on => c.media = on } }
+        SetRow { visible: !Desk.custom; icon: "calendar_month"; label: "Calendar"; Toggle { checked: c.calendar; onToggled: on => c.calendar = on } }
+        SetRow { visible: !Desk.custom; icon: "hourglass_bottom"; label: "Today"; hint: "How much of the day, week and year has gone"; Toggle { checked: c.day; onToggled: on => c.day = on } }
     }
 
     Section {
@@ -92,8 +106,16 @@ Column {
         Choice {
             x: 10; current: c.arrangement
             options: [{ value: "column", label: "Column", icon: "view_agenda" }, { value: "grid", label: "Grid", icon: "grid_view" },
-                      { value: "row", label: "Row under the island", icon: "view_week" }, { value: "free", label: "Free", icon: "open_with" }]
-            onPicked: v => c.arrangement = v
+                      { value: "row", label: "Row under the island", icon: "view_week" }, { value: "free", label: "Free", icon: "open_with" },
+                      { value: "custom", label: "Placed by hand", icon: "drag_pan" }]
+            // placing by hand starts from where they are now, in the editor
+            onPicked: v => { if (v === "custom") editDesktop(); else c.arrangement = v; }
+        }
+        Txt {
+            visible: Desk.custom
+            x: 10; width: parent.width - 20; topPadding: 8
+            text: "Which widgets, where, their layouts and looks: all in the editor. The other arrangements keep their own settings, so you can go back and forth."
+            size: 12; color: Theme.inkDim; wrapMode: Text.Wrap
         }
         Item { width: 1; height: 8 }
         // free: a spot for each widget

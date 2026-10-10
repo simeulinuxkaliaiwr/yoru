@@ -8,8 +8,8 @@ import qs.parts
 // today in one of three layouts: bars, three rings, or the sun's way across the sky
 Card {
     id: c
-    readonly property string look: Config.o.desktop.dayStyle
-    height: look === "rings" ? 140 : look === "sun" ? 168 : 150
+    property string layout: Config.o.desktop.dayStyle
+    height: layout === "rings" ? 140 : layout === "sun" ? 168 : 150
     SystemClock { id: clock; precision: SystemClock.Minutes }
     readonly property date now: clock.date
     readonly property real day: (now.getHours() * 60 + now.getMinutes()) / 1440
@@ -41,17 +41,17 @@ Card {
     }
 
     Row {
-        visible: c.look === "rings"
+        visible: c.layout === "rings"
         anchors { horizontalCenter: parent.horizontalCenter; bottom: parent.bottom; bottomMargin: 12 }
         spacing: 26
         Ring { value: c.day; icon: "sunny"; label: "Day"; text: Math.round(c.day * 100) + "%" }
         Ring { value: c.week; icon: "date_range"; label: "Week " + c.isoWeek; text: Math.round(c.week * 100) + "%"; tone: Theme.secondary }
         Ring { value: c.year; icon: "public"; label: Qt.formatDate(c.now, "yyyy"); text: Math.round(c.year * 100) + "%"; tone: Theme.tertiary }
     }
-    Txt { visible: c.look === "rings"; x: 20; y: 14; text: Qt.formatDate(c.now, "dddd, d MMMM"); size: 13; weight: Font.DemiBold }
+    Txt { visible: c.layout === "rings"; x: 20; y: 14; text: Qt.formatDate(c.now, "dddd, d MMMM"); size: 13; weight: Font.DemiBold }
 
     Column {
-        visible: c.look === "bars"
+        visible: c.layout === "bars"
         x: 20; y: 16
         width: parent.width - 40
         spacing: 2
@@ -70,7 +70,7 @@ Card {
     Item {
         id: sun
         anchors.fill: parent
-        visible: c.look === "sun"
+        visible: c.layout === "sun"
         function mins(iso) { return iso ? parseInt(iso.slice(11, 13)) * 60 + parseInt(iso.slice(14, 16)) : 0; }
         readonly property real rise: mins(Weather.sunrise) || 360
         readonly property real set: mins(Weather.sunset) || 1080
