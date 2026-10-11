@@ -200,9 +200,11 @@ say "palette, app colours and wallpaper thumbnails"
 "$bin/yoru" apply
 "$bin/yoru" walls >/dev/null 2>&1 &
 
-read -p "Installation finished! Do you want to install firefox's theme? (recommended) (y/n): " $fox
+read -p "Installation finished! Do you want to install firefox's theme? (recommended) (y/n): " fox
 
-if [[ "$fox" == "y" || "$fox" == "Y" ]]; then
+if [[ -z "$fox" ]]; then
+	warn "Empty field, ignoring..."
+elif [[ "$fox" =~ ^[Yy]$ ]]; then
 	say "Ok, running sudo install -m644 config/firefox/mozilla.cfg /usr/lib/firefox ..."
 	sudo install -m644 config/firefox/mozilla.cfg /usr/lib/firefox
 	EXIT_CODE="$?"
