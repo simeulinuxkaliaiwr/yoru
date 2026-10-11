@@ -1,5 +1,5 @@
 #!/bin/sh
-# starts yoru's shell (aro's config and `rice` call this).
+# starts yoru's shell (the compositor's autostart calls this).
 # aro gives children 1024 open files; quickshell wants more.
 ulimit -n 65536
 # with NVIDIA's driver installed but no NVIDIA card, glvnd still loads and

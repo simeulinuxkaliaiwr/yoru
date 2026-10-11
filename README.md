@@ -81,7 +81,7 @@ The install script installs dependencies, and sets up yoru for the compositor th
 | Hyprland 0.56+ | `require("yoru")` in `hyprland.lua` | brings [config/hypr/yoru.lua](config/hypr/yoru.lua) |
 | older Hyprland | `source = ~/.config/hypr/yoru.conf` | brings [config/hypr/yoru.conf](config/hypr/yoru.conf) |
 | niri | `include "yoru.kdl"` in `config.kdl` | brings [config/niri/yoru.kdl](config/niri/yoru.kdl) |
-| aro | yoru's whole aro config, or `rice yoru` beside kon | [config/aro/config](config/aro/config) |
+| aro | yoru's whole aro config | [config/aro/config](config/aro/config) |
 
 Why do you need to do that? So your compositor gets the border colors, and keybinds.
 

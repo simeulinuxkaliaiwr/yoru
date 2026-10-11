@@ -2,7 +2,7 @@
 # restarts yoru's shell when its files change (Quickshell's own hot reload
 # crashes 0.3.1, so the shell turns it off). yoru-shell starts this; one runs
 # at a time. It only restarts a shell that's running, so it never brings yoru
-# up over kon, and never while the screen is locked (that would drop the lock).
+# up when it was stopped, and never while the screen is locked (that would drop the lock).
 exec 9>"${XDG_RUNTIME_DIR:-/tmp}/yoru-watch.lock"
 flock -n 9 || exit 0
 

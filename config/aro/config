@@ -1,8 +1,7 @@
 # aro config — yoru
 #
-# This is the live config while yoru is the rice (`rice` swaps it with kon's;
-# the inactive one waits in ~/.config/aro/config.kon or config.yoru). The
-# colours are rewritten by `yoru` from the wallpaper, so edit the rest freely.
+# Copy it to ~/.config/aro/config. The colours are rewritten by `yoru`
+# from the wallpaper, so edit the rest freely.
 # See man 5 aro. Colours are 0xRRGGBBAA.
 
 mod = super
@@ -80,7 +79,7 @@ overview_tint = 0x0a0d1280
 font = Geist 10
 font_small = Geist 9
 
-# motion: slower and springier than kon
+# motion: slow and springy
 anim_ms = 420
 fullscreen_anim_ms = 260
 focus_anim_ms = 180
@@ -116,9 +115,6 @@ bind = mod+shift+w, spawn, yoru wall next
 bind = mod+i, spawn, qs -n -p ~/.config/quickshell/yoru/settings.qml
 bind = mod+slash, spawn, qs -c yoru ipc call island toggle keys
 bind = mod+e, spawn, qs -c yoru ipc call desktop toggle   # edit the desktop's widgets
-
-# switch rices: yoru <-> kon
-bind = mod+ctrl+r, spawn, rice toggle
 
 bind = mod+q, spawn, foot
 bind = mod+shift+a, spawn, fuzzel

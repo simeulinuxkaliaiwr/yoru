@@ -95,7 +95,7 @@ for c in $needs; do has "$c" || missing="$missing $c"; done
 say "linking the shell and the scripts"
 mkdir -p "$cfg/quickshell" "$bin" "$cfg/yoru"
 ln -sfn "$here/config/quickshell/yoru" "$cfg/quickshell/yoru"
-for f in yoru yoru-shell yoru-watch yoru-shot yoru-lock yoru-idle rice; do ln -sf "$here/bin/$f" "$bin/$f"; done
+for f in yoru yoru-shell yoru-watch yoru-shot yoru-lock yoru-idle; do ln -sf "$here/bin/$f" "$bin/$f"; done
 case :$PATH: in *":$bin:"*) ;; *) warn "$bin isn't on your PATH: the compositor's binds call yoru from there" ;; esac
 
 # fonts and the cursor
@@ -151,15 +151,7 @@ for wm in $wms; do
 	aro)
 		say "aro"
 		cp "$here/config/aro/config" "$cfg/yoru/aro.config"
-		if [ -f "$cfg/aro/config.kon" ] || [ -d "$cfg/quickshell/aroclip" ]; then
-			# kon is here: its aro config gets the key back to yoru, and `rice` swaps them
-			if [ -f "$cfg/aro/config" ] && ! grep -q "rice toggle" "$cfg/aro/config"; then
-				cp "$cfg/aro/config" "$cfg/aro/config.bak-$stamp-yoru"
-				printf '\n# switch rices: kon <-> yoru\nbind = mod+ctrl+r, spawn, rice toggle\n' >> "$cfg/aro/config"
-				aroctl reload >/dev/null 2>&1 || true
-			fi
-			say "kon found: mod+ctrl+r (or \`rice yoru\`) switches to yoru"
-		elif [ -f "$cfg/aro/config" ] && ! grep -q "yoru-shell" "$cfg/aro/config"; then
+		if [ -f "$cfg/aro/config" ] && ! grep -q "yoru-shell" "$cfg/aro/config"; then
 			say "yoru's aro config is ~/.config/yoru/aro.config; to use it:"
 			say "  cp ~/.config/aro/config ~/.config/aro/config.mine && cp ~/.config/yoru/aro.config ~/.config/aro/config"
 		elif [ ! -f "$cfg/aro/config" ]; then

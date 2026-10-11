@@ -16,13 +16,6 @@ Column {
             Txt { text: "a night rice for aro, Hyprland and niri"; size: 14; color: Theme.inkDim }
             Item { width: 1; height: 10 }
         }
-        // kon waits as aro's config.kon while yoru is on (bin/rice); without it there's nothing to go back to
-        FileView { id: kon; path: Quickshell.env("HOME") + "/.config/aro/config.kon"; printErrors: false }
-        SetRow {
-            visible: kon.loaded
-            icon: "swap_horiz"; label: "Back to kon"; hint: "mod+ctrl+r switches either way"
-            Btn { label: "Switch"; tonal: true; onClicked: Quickshell.execDetached(["rice", "kon"]) }
-        }
         SetRow {
             icon: "description"; label: "Config file"; hint: Config.path
             Btn { label: "Copy path"; tonal: true; onClicked: Quickshell.execDetached(["wl-copy", Config.path]) }
@@ -35,7 +28,7 @@ Column {
             model: [
                 ["mod+a", "Launcher"], ["mod+v", "Clipboard"], ["mod+x", "Control centre"], ["mod+m", "Player"],
                 ["mod+w", "Wallpapers"], ["mod+shift+w", "Next wallpaper"], ["mod+i", "Settings"],
-                ["mod+escape", "Lock"], ["mod+shift+e", "Power"], ["Print, mod+Print", "Screenshot, area"], ["mod+ctrl+r", "Switch rice"]
+                ["mod+escape", "Lock"], ["mod+shift+e", "Power"], ["Print, mod+Print", "Screenshot, area"]
             ]
             Item {
                 required property var modelData

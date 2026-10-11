@@ -4,7 +4,7 @@ import Quickshell
 import Quickshell.Io
 import QtQuick
 
-// screen recording with wl-screenrec (on the CPU, as kon does: the hardware
+// screen recording with wl-screenrec (on the CPU: the hardware
 // encoder was unreliable here). The island shows it running; stopping it
 // saves to ~/Videos/Recordings and copies the path.
 Singleton {
