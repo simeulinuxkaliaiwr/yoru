@@ -151,15 +151,7 @@ for wm in $wms; do
 	aro)
 		say "aro"
 		cp "$here/config/aro/config" "$cfg/yoru/aro.config"
-		if [ -f "$cfg/aro/config.kon" ] || [ -d "$cfg/quickshell/aroclip" ]; then
-			# kon is here: its aro config gets the key back to yoru, and `rice` swaps them
-			if [ -f "$cfg/aro/config" ] && ! grep -q "rice toggle" "$cfg/aro/config"; then
-				cp "$cfg/aro/config" "$cfg/aro/config.bak-$stamp-yoru"
-				printf '\n# switch rices: kon <-> yoru\nbind = mod+ctrl+r, spawn, rice toggle\n' >> "$cfg/aro/config"
-				aroctl reload >/dev/null 2>&1 || true
-			fi
-			say "kon found: mod+ctrl+r (or \`rice yoru\`) switches to yoru"
-		elif [ -f "$cfg/aro/config" ] && ! grep -q "yoru-shell" "$cfg/aro/config"; then
+		if [ -f "$cfg/aro/config" ] && ! grep -q "yoru-shell" "$cfg/aro/config"; then
 			say "yoru's aro config is ~/.config/yoru/aro.config; to use it:"
 			say "  cp ~/.config/aro/config ~/.config/aro/config.mine && cp ~/.config/yoru/aro.config ~/.config/aro/config"
 		elif [ ! -f "$cfg/aro/config" ]; then
