@@ -202,7 +202,7 @@ say "palette, app colours and wallpaper thumbnails"
 
 read -p "Installation finished! Do you want to install firefox's theme? (recommended) (y/n): " $fox
 
-if [[ "$fox" =~ ^[Yy]$ ]]; then
+if [[ "$fox" == "y" || "$fox" == "Y" ]]; then
 	say "Ok, running sudo install -m644 config/firefox/mozilla.cfg /usr/lib/firefox ..."
 	sudo install -m644 config/firefox/mozilla.cfg /usr/lib/firefox
 	EXIT_CODE="$?"
