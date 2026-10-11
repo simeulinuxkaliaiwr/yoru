@@ -200,6 +200,22 @@ say "palette, app colours and wallpaper thumbnails"
 "$bin/yoru" apply
 "$bin/yoru" walls >/dev/null 2>&1 &
 
+read -p "Installation finished! Do you want to install firefox's theme? (recommended) (y/n): " $fox
+if [[ -z "$fox" ]]; then
+	warn "Empty field, ignoring..."
+elif [[ "$fox" == [Yy]* ]]; then
+	say "Ok, running sudo install -m644 config/firefox/mozilla.cfg /usr/lib/firefox ..."
+	sudo install -m644 config/firefox/mozilla.cfg /usr/lib/firefox
+	EXIT_CODE="$?"
+	if [[ EXIT_CODE -ne 0 ]]; then
+		warn "Something went wrong, exit code: $EXIT_CODE"
+	else
+		say "Installed firefox theme successfully!"
+	fi
+else
+	say "Ok, not installing it."
+fi
+
 case $wms in
 *aro*) say "done" ;;
 *) say "done: log in to your compositor again (or run yoru-shell) to start yoru" ;;
