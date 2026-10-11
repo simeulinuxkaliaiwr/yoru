@@ -1,7 +1,7 @@
 # yoru
 
 夜, night. A Quickshell rice for [aro](https://github.com/simeulinuxkaliaiwr/aro),
-[hyprland](https://github.com/hyprwm/hyprland) and [niri](https://github.com/niri-wm/niri).
+[hyprland](https://github.com/hyprwm/hyprland) and [niri](https://github.com/niri-wm/niri). [Demonstration video](https://youtu.be/SwnPey0mfXo?si=V4ve6P0GJIUeT3nZ)
 
 <img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/ef23e842-9f62-47fb-a9f1-c01a59d6b3b9" />
 
