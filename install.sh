@@ -9,7 +9,7 @@
 # Run it again any time: it only adds what's missing. Your own compositor
 # config gets one line (backed up first); files yoru later writes over whole
 # are kept as NAME.pre-yoru.
-set -eu
+set -e
 here=$(cd "$(dirname "$0")" && pwd)
 cfg=${XDG_CONFIG_HOME:-$HOME/.config}
 bin=$HOME/.local/bin
