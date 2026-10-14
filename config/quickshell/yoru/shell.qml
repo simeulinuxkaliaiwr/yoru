@@ -68,6 +68,14 @@ ShellRoot {
         function done(): void { Desk.done(); }
         function toggle(): void { Desk.toggle(); }
     }
+    Connections {
+        target: Alerts
+        function onRaised(t) { island.showToast(t); }
+    }
+    IpcHandler {
+        target: "alerts"
+        function preview(kind: string): void { Alerts.preview(kind); }
+    }
     IpcHandler {
         target: "island"
         function toggle(mode: string): void { island.open(mode, ""); }
