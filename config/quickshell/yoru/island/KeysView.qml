@@ -47,7 +47,8 @@ Item {
     // what a bind does, said plainly, and which group it belongs to
     function describe(action, arg) {
         const island = { launcher: "Launcher", clip: "Clipboard", control: "Control centre", media: "Player",
-                         walls: "Wallpapers", power: "Power menu", windows: "Window picker", keys: "This cheatsheet", calendar: "Calendar" };
+                         walls: "Wallpapers", power: "Power menu", windows: "Window picker", keys: "This cheatsheet", calendar: "Calendar",
+                         projects: "Projects" };
         if (action === "spawn") {
             let m = arg.match(/island toggle (\w+)/);
             if (m) return ["yoru", island[m[1]] ?? m[1]];
@@ -62,7 +63,7 @@ Item {
                 [/brightnessctl.*\+/, "Media keys", "Brighter"], [/brightnessctl.*-/, "Media keys", "Dimmer"],
                 [/play-pause/, "Media keys", "Play / pause"], [/playerctl next/, "Media keys", "Next track"],
                 [/playerctl previous/, "Media keys", "Previous track"],
-                [/^foot$/, "Apps", "Terminal"], [/^fuzzel/, "Apps", "fuzzel"],
+                [/^foot$/, "Apps", "Terminal"], [/^kehai-term/, "Apps", "Terminal (in the focused one's folder)"], [/^fuzzel/, "Apps", "fuzzel"],
             ];
             for (const [re, g, w] of spawns) if (re.test(arg)) return [g, w];
             // anything else by its program's name, not its path
