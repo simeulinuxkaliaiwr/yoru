@@ -98,7 +98,7 @@ Item {
         highlightMoveDuration: Theme.normal
         highlight: Rectangle {
             width: v.cardW; height: v.cardH
-            radius: 22
+            radius: Theme.r(22)
             color: Theme.primaryContainer
         }
         delegate: Item {
@@ -110,7 +110,7 @@ Item {
 
             Rectangle {
                 anchors.fill: parent
-                radius: 22
+                radius: Theme.r(22)
                 color: card.sel ? "transparent" : Theme.surfaceMid
                 border.width: card.modelData.focused ? 2 : 0
                 border.color: Theme.primary

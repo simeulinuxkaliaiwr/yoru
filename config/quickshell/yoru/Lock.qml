@@ -142,7 +142,7 @@ Scope {
 
                     ClippingRectangle {
                         anchors.horizontalCenter: parent.horizontalCenter
-                        width: 88; height: 88; radius: 44
+                        width: 88; height: 88; radius: Theme.r(44)
                         color: Theme.primaryContainer
                         Txt {
                             anchors.centerIn: parent
@@ -169,7 +169,7 @@ Scope {
                     Rectangle {
                         id: pill
                         anchors.horizontalCenter: parent.horizontalCenter
-                        width: 340; height: 54; radius: 27
+                        width: 340; height: 54; radius: Theme.r(27)
                         color: Theme.alpha(Theme.surfaceLowest, 0.6)
                         border.width: input.activeFocus ? 2 : 1
                         border.color: root.failed ? Theme.danger : root.checking ? Theme.tertiary : Theme.alpha(Theme.primary, 0.7)
@@ -216,7 +216,7 @@ Scope {
                                     Rectangle {
                                         visible: !mark.shaped
                                         anchors.centerIn: parent
-                                        width: 10; height: 10; radius: 5
+                                        width: 10; height: 10; radius: Theme.r(5)
                                         color: mark.tint
                                     }
                                     Blob {
@@ -272,7 +272,7 @@ Scope {
                 Rectangle {
                     visible: Focus.active
                     anchors { horizontalCenter: parent.horizontalCenter; bottom: parent.bottom; bottomMargin: Config.o.lock.media && Media.title !== "" ? 120 : 36 }
-                    width: focusRow.implicitWidth + 36; height: 40; radius: 20
+                    width: focusRow.implicitWidth + 36; height: 40; radius: Theme.r(20)
                     color: Theme.alpha(Theme.surfaceLowest, 0.55)
                     Row {
                         id: focusRow
@@ -295,12 +295,12 @@ Scope {
                 Rectangle {
                     visible: Config.o.lock.media && Media.title !== ""
                     anchors { horizontalCenter: parent.horizontalCenter; bottom: parent.bottom; bottomMargin: 36 }
-                    width: 380; height: 72; radius: 26
+                    width: 380; height: 72; radius: Theme.r(26)
                     color: Theme.alpha(Theme.surfaceLowest, 0.55)
                     ClippingRectangle {
                         id: art
                         x: 12; anchors.verticalCenter: parent.verticalCenter
-                        width: 48; height: 48; radius: 14
+                        width: 48; height: 48; radius: Theme.r(14)
                         color: Theme.surfaceHigh
                         Image { anchors.fill: parent; source: Media.art; fillMode: Image.PreserveAspectCrop; sourceSize: Qt.size(96, 96); asynchronous: true }
                     }

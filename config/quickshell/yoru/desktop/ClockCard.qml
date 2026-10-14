@@ -70,7 +70,7 @@ Item {
         // the hands: rounded bars from the middle
         Rectangle {
             // hour
-            width: 16; height: cookie.r * 0.5; radius: 8
+            width: 16; height: cookie.r * 0.5; radius: Theme.r(8)
             x: cookie.cx - width / 2; y: cookie.cy - height + width / 2
             color: Theme.primary
             transformOrigin: Item.Bottom
@@ -79,17 +79,17 @@ Item {
         }
         Rectangle {
             // minute
-            width: 10; height: cookie.r * 0.78; radius: 5
+            width: 10; height: cookie.r * 0.78; radius: Theme.r(5)
             x: cookie.cx - width / 2; y: cookie.cy - height + width / 2
             color: Theme.tertiary
             transformOrigin: Item.Bottom
             rotation: cookie.mm * 6
             Behavior on rotation { RotationAnimation { duration: Theme.slow; direction: RotationAnimation.Clockwise } }
         }
-        Rectangle { width: 14; height: 14; radius: 7; x: cookie.cx - 7; y: cookie.cy - 7; color: Theme.inkPrimaryContainer }
+        Rectangle { width: 14; height: 14; radius: Theme.r(7); x: cookie.cx - 7; y: cookie.cy - 7; color: Theme.inkPrimaryContainer }
         // the day of the month, in a bubble at the rim
         Rectangle {
-            width: 50; height: 50; radius: 25
+            width: 50; height: 50; radius: Theme.r(25)
             x: cookie.cx + cookie.r * 0.62; y: cookie.cy + cookie.r * 0.62
             color: Theme.surfaceHigh
             border.width: 3; border.color: Theme.primaryContainer

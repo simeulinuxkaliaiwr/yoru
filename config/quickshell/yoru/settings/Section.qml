@@ -10,7 +10,7 @@ Rectangle {
     default property alias rows: body.data
     width: parent ? parent.width : 600
     height: body.implicitHeight + 70
-    radius: 26
+    radius: Theme.r(26)
     color: Theme.surfaceLow
 
     Row {

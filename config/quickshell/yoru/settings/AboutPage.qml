@@ -35,7 +35,7 @@ Column {
                 width: parent.width; height: 36
                 Rectangle {
                     x: 10; anchors.verticalCenter: parent.verticalCenter
-                    width: k.implicitWidth + 20; height: 28; radius: 8
+                    width: k.implicitWidth + 20; height: 28; radius: Theme.r(8)
                     color: Theme.surfaceHigh
                     Txt { id: k; anchors.centerIn: parent; text: parent.parent.modelData[0]; size: 12; font.family: Theme.mono }
                 }

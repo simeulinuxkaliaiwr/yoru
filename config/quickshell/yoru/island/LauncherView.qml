@@ -169,7 +169,7 @@ Item {
         id: field
         x: 12; y: 12
         width: parent.width - 24; height: 44
-        radius: 22
+        radius: Theme.r(22)
         color: Theme.surfaceMid
         Icon {
             id: glass; x: 14; anchors.verticalCenter: parent.verticalCenter; size: 20; color: Theme.primary
@@ -186,7 +186,7 @@ Item {
         Rectangle {
             id: caret
             anchors { left: typed.right; leftMargin: 1; verticalCenter: parent.verticalCenter }
-            width: 2; height: 20; radius: 1
+            width: 2; height: 20; radius: Theme.r(1)
             color: Theme.primary
             visible: v.shown
             SequentialAnimation on opacity {
@@ -212,7 +212,7 @@ Item {
         visible: v.answer !== ""
         x: 12; y: field.y + field.height + 8
         width: parent.width - 24; height: 50
-        radius: 18
+        radius: Theme.r(18)
         color: Theme.tertiaryContainer
         Icon { id: eq; x: 14; anchors.verticalCenter: parent.verticalCenter; name: "calculate"; size: 22; fill: 1; color: Theme.inkTertiaryContainer }
         Txt {
@@ -238,7 +238,7 @@ Item {
         highlightMoveDuration: Theme.normal
         highlightMoveVelocity: -1
         highlight: Rectangle {
-            radius: 18
+            radius: Theme.r(18)
             color: Theme.secondaryContainer
         }
         delegate: Item {
@@ -269,7 +269,7 @@ Item {
                 Rectangle {
                     anchors.fill: parent
                     visible: row.modelData.kind === "web" || row.modelData.kind === "run"
-                    radius: 12
+                    radius: Theme.r(12)
                     color: Theme.primaryContainer
                     Icon { anchors.centerIn: parent; name: row.modelData.icon ?? ""; size: 20; color: Theme.inkPrimaryContainer }
                 }

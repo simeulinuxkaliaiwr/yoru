@@ -50,7 +50,7 @@ Item {
     // a line under the big time, shared by most styles
     component DateLine: Row {
         spacing: 12
-        Rectangle { width: 26 * f.k; height: 3; radius: 2; color: Theme.primary; anchors.verticalCenter: parent.verticalCenter }
+        Rectangle { width: 26 * f.k; height: 3; radius: Theme.r(2); color: Theme.primary; anchors.verticalCenter: parent.verticalCenter }
         Txt { text: f.date; size: 22 * f.k; weight: Font.Light; opacity: 0.85 }
     }
 
@@ -139,7 +139,7 @@ Item {
         Row {
             spacing: 22 * f.k
             Txt { text: Qt.formatTime(f.now, f.h24 ? "HH" : "h"); size: 168 * f.k; weight: Font.Bold; font.letterSpacing: -6 * f.k; font.features: { "tnum": 1 } }
-            Rectangle { width: 4 * f.k; height: 136 * f.k; radius: 2; color: Theme.primary; anchors.verticalCenter: parent.verticalCenter }
+            Rectangle { width: 4 * f.k; height: 136 * f.k; radius: Theme.r(2); color: Theme.primary; anchors.verticalCenter: parent.verticalCenter }
             Column {
                 anchors.verticalCenter: parent.verticalCenter
                 spacing: 0

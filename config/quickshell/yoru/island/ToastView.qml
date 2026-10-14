@@ -79,7 +79,7 @@ Item {
                     required property var modelData
                     height: 28
                     width: label.implicitWidth + 24
-                    radius: 14
+                    radius: Theme.r(14)
                     color: Theme.secondaryContainer
                     Txt { id: label; anchors.centerIn: parent; text: parent.modelData.text; size: 12; weight: Font.Medium; color: Theme.inkSecondaryContainer }
                     StateLayer { onClicked: { parent.modelData.invoke(); v.isle.dropToast(); } }

@@ -32,9 +32,9 @@ Card {
         Txt { width: 52; anchors.verticalCenter: parent.verticalCenter; text: parent.label; size: 12; color: Theme.inkDim }
         Rectangle {
             x: 56; anchors.verticalCenter: parent.verticalCenter
-            width: parent.width - 56 - 44; height: 8; radius: 4
+            width: parent.width - 56 - 44; height: 8; radius: Theme.r(4)
             color: Theme.surfaceHighest
-            Rectangle { width: Math.max(8, parent.width * value); height: 8; radius: 4; color: Theme.primary
+            Rectangle { width: Math.max(8, parent.width * value); height: 8; radius: Theme.r(4); color: Theme.primary
                         property real value: parent.parent.value }
         }
         Txt { anchors { right: parent.right; verticalCenter: parent.verticalCenter } text: Math.round(parent.value * 100) + "%"; size: 12; weight: Font.Medium; font.features: { "tnum": 1 } }
@@ -99,7 +99,7 @@ Card {
         Rectangle { x: 16; y: sun.cy; width: parent.width - 32; height: 1; color: Theme.alpha(Theme.ink, 0.15) }
         // the sun, or the moon after dark
         Rectangle {
-            width: 20; height: 20; radius: 10
+            width: 20; height: 20; radius: Theme.r(10)
             x: sun.cx + sun.r * Math.cos(sun.ang) - 10
             y: sun.cy - sun.r * 0.72 * Math.sin(sun.ang) - 10
             color: sun.up ? Theme.tertiary : Theme.inkDim

@@ -34,7 +34,7 @@ Column {
             id: shot
             x: 10
             width: Math.min(parent.width - 20, 640); height: width * 10 / 16
-            radius: 18
+            radius: Theme.r(18)
             color: Theme.surfaceLowest
             border.width: 1; border.color: Theme.alpha(Theme.outlineVariant, 0.6)
             readonly property real k: width / 1600
@@ -65,7 +65,7 @@ Column {
                 color: Theme.alpha(Theme.surfaceLowest, 0.85)
                 Rectangle {
                     x: 64; anchors.verticalCenter: parent.verticalCenter
-                    width: parent.width * 0.38; height: 20; radius: 6
+                    width: parent.width * 0.38; height: 20; radius: Theme.r(6)
                     color: Theme.alpha(Theme.ink, 0.06)
                     border.width: page.c.focus === "address" ? 1.5 : 0
                     border.color: Theme.primary
@@ -77,7 +77,7 @@ Column {
                 }
                 Row {
                     x: 12; anchors.verticalCenter: parent.verticalCenter; spacing: 8
-                    Repeater { model: 3; Rectangle { width: 9; height: 9; radius: 4.5; color: Theme.alpha(Theme.ink, 0.25) } }
+                    Repeater { model: 3; Rectangle { width: 9; height: 9; radius: Theme.r(4.5); color: Theme.alpha(Theme.ink, 0.25) } }
                 }
             }
 
@@ -122,14 +122,14 @@ Column {
                     // the search
                     Rectangle {
                         x: stage.centred ? (col.width - width) / 2 : 0
-                        width: stage.layout === "left" ? 620 : 700; height: 66; radius: 33
+                        width: stage.layout === "left" ? 620 : 700; height: 66; radius: Theme.r(33)
                         color: Theme.alpha(Theme.surfaceLowest, 0.72)
                         border.width: page.c.focus === "search" ? 2.5 : 1
                         border.color: page.c.focus === "search" ? Theme.primary : Theme.alpha(Theme.ink, 0.12)
                         Rectangle {
                             id: chip
                             x: 10; anchors.verticalCenter: parent.verticalCenter
-                            width: engineName.implicitWidth + 32; height: 46; radius: 23
+                            width: engineName.implicitWidth + 32; height: 46; radius: Theme.r(23)
                             color: Theme.primaryContainer
                             Txt { id: engineName; anchors.centerIn: parent; size: 16; weight: Font.DemiBold; color: Theme.inkPrimaryContainer
                                   text: (page.engines.find(e => e[0] === page.c.engine) ?? page.engines[0])[1] }
@@ -305,7 +305,7 @@ Column {
         }
         Rectangle {
             visible: !setup.ready
-            x: 10; width: parent.width - 20; height: 46; radius: 14
+            x: 10; width: parent.width - 20; height: 46; radius: Theme.r(14)
             color: Theme.surfaceLowest
             Txt { anchors { left: parent.left; leftMargin: 16; right: copy.left; rightMargin: 10; verticalCenter: parent.verticalCenter }
                   text: setup.cmd; size: 12; font.family: Theme.mono; color: Theme.ink }

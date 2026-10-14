@@ -7,7 +7,7 @@ Rectangle {
     id: sw
     property bool checked: false
     signal toggled(bool on)
-    width: 52; height: 32; radius: 16
+    width: 52; height: 32; radius: Theme.r(16)
     color: checked ? Theme.primary : Theme.surfaceHighest
     border.width: checked ? 0 : 2
     border.color: Theme.outline

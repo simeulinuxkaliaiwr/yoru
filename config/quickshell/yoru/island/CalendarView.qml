@@ -66,7 +66,7 @@ Item {
                 width: 46; height: 36
                 Rectangle {
                     anchors.centerIn: parent
-                    width: 34; height: 34; radius: 17
+                    width: 34; height: 34; radius: Theme.r(17)
                     color: parent.today ? Theme.primary : "transparent"
                 }
                 Txt {

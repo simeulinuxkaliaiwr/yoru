@@ -99,7 +99,7 @@ Item {
         id: field
         x: 12; y: 12
         width: parent.width - 24; height: 44
-        radius: 22
+        radius: Theme.r(22)
         color: Theme.surfaceMid
         Icon { id: ic; x: 14; anchors.verticalCenter: parent.verticalCenter; name: "folder_open"; size: 20; color: Theme.primary }
         Txt {
@@ -112,7 +112,7 @@ Item {
         }
         Rectangle {
             anchors { left: typed.right; leftMargin: 1; verticalCenter: parent.verticalCenter }
-            width: 2; height: 20; radius: 1
+            width: 2; height: 20; radius: Theme.r(1)
             color: Theme.primary
             visible: v.shown
             SequentialAnimation on opacity {
@@ -160,7 +160,7 @@ Item {
         boundsBehavior: Flickable.StopAtBounds
         highlightMoveDuration: Theme.normal
         highlightMoveVelocity: -1
-        highlight: Rectangle { radius: 16; color: Theme.secondaryContainer }
+        highlight: Rectangle { radius: Theme.r(16); color: Theme.secondaryContainer }
         delegate: Item {
             id: row
             required property var modelData
@@ -197,7 +197,7 @@ Item {
                     visible: row.modelData.changed > 0
                     spacing: 3
                     anchors.verticalCenter: parent.verticalCenter
-                    Rectangle { width: 7; height: 7; radius: 4; color: Theme.tertiary; anchors.verticalCenter: parent.verticalCenter }
+                    Rectangle { width: 7; height: 7; radius: Theme.r(4); color: Theme.tertiary; anchors.verticalCenter: parent.verticalCenter }
                     Txt { text: row.modelData.changed; size: 11; color: row.dim }
                 }
                 Row {
@@ -230,7 +230,7 @@ Item {
         id: pane
         visible: list.count > 0 && v.cur !== null
         anchors { left: list.right; leftMargin: 12; right: parent.right; rightMargin: 12; top: list.top; bottom: list.bottom }
-        radius: 22
+        radius: Theme.r(22)
         color: Theme.surfaceLow
         clip: true
 
@@ -255,7 +255,7 @@ Item {
                 property string icon
                 property string label
                 property color tint: Theme.inkDim
-                width: chipRow.implicitWidth + 20; height: 26; radius: 13
+                width: chipRow.implicitWidth + 20; height: 26; radius: Theme.r(13)
                 color: Theme.surfaceMid
                 Row {
                     id: chipRow
@@ -331,7 +331,7 @@ Item {
                         width: body.width
                         // not pushed yet: a dot in the accent
                         Rectangle {
-                            width: 6; height: 6; radius: 3
+                            width: 6; height: 6; radius: Theme.r(3)
                             anchors.verticalCenter: parent.verticalCenter
                             color: commit.local ? Theme.primary : "transparent"
                             border.width: commit.local ? 0 : 1
@@ -350,7 +350,7 @@ Item {
             anchors { right: parent.right; bottom: parent.bottom; margins: 10 }
             spacing: 8
             Rectangle {
-                width: newRow.implicitWidth + 24; height: 34; radius: 17
+                width: newRow.implicitWidth + 24; height: 34; radius: Theme.r(17)
                 color: Theme.surfaceMid
                 Row {
                     id: newRow
@@ -362,7 +362,7 @@ Item {
                 StateLayer { tint: Theme.ink; onClicked: if (v.cur) v.go(v.cur, true) }
             }
             Rectangle {
-                width: goRow.implicitWidth + 24; height: 34; radius: 17
+                width: goRow.implicitWidth + 24; height: 34; radius: Theme.r(17)
                 color: Theme.primary
                 Row {
                     id: goRow

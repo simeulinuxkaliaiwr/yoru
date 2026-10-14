@@ -37,7 +37,7 @@ Item {
         Rectangle {
             id: bubble
             x: 10; anchors.verticalCenter: parent.verticalCenter
-            width: 42; height: 42; radius: 21
+            width: 42; height: 42; radius: Theme.r(21)
             color: tile.on ? Theme.primary : Theme.surfaceHighest
             Behavior on color { ColorAnimation { duration: Theme.fast } }
             Icon { anchors.centerIn: parent; name: tile.icon; size: 21; fill: tile.on ? 1 : 0; color: tile.on ? Theme.inkPrimary : Theme.ink }
@@ -142,12 +142,12 @@ Item {
         Rectangle {
             visible: !!Media.player
             width: parent.width; height: 64
-            radius: 22
+            radius: Theme.r(22)
             color: Theme.surfaceMid
             ClippingRectangle {
                 id: art
                 x: 10; anchors.verticalCenter: parent.verticalCenter
-                width: 44; height: 44; radius: 12
+                width: 44; height: 44; radius: Theme.r(12)
                 color: Theme.surfaceHigh
                 Image { anchors.fill: parent; source: Media.art; fillMode: Image.PreserveAspectCrop; sourceSize: Qt.size(88, 88); asynchronous: true }
             }
@@ -220,7 +220,7 @@ Item {
                         readonly property var shown: all ? modelData.items : modelData.items.slice(0, 2)
                         width: groups.width
                         height: inner.implicitHeight + 16
-                        radius: 20
+                        radius: Theme.r(20)
                         color: Theme.surfaceMid
                         Column {
                             id: inner
@@ -259,7 +259,7 @@ Item {
                                     required property var modelData
                                     width: inner.width
                                     height: Math.max(48, body.implicitHeight + 16)
-                                    radius: 14
+                                    radius: Theme.r(14)
                                     color: Theme.surfaceHigh
                                     Column {
                                         id: body

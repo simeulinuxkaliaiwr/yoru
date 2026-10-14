@@ -11,7 +11,7 @@ ClippingRectangle {
     readonly property real k: width / 1920
     width: parent ? Math.min(parent.width - 20, 620) : 620
     height: width * 9 / 16
-    radius: 18
+    radius: Theme.r(18)
     color: Theme.surfaceLowest
     border.width: 1
     border.color: Theme.alpha(Theme.outlineVariant, 0.6)
@@ -32,7 +32,7 @@ ClippingRectangle {
         Rectangle {
             anchors.horizontalCenter: parent.horizontalCenter
             y: 6
-            width: 380; height: 36; radius: 18
+            width: 380; height: 36; radius: Theme.r(18)
             color: Theme.island
             border.width: 1; border.color: Theme.alpha(Theme.outlineVariant, 0.45)
         }

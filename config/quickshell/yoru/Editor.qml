@@ -394,7 +394,7 @@ Scope {
                         Rectangle {
                             visible: !view.live
                             anchors { horizontalCenter: parent.horizontalCenter; top: parent.bottom; topMargin: 8 }
-                            width: why.implicitWidth + 20; height: 24; radius: 12
+                            width: why.implicitWidth + 20; height: 24; radius: Theme.r(12)
                             color: Theme.alpha(Theme.surfaceLowest, 0.85)
                             Txt { id: why; anchors.centerIn: parent; size: 11; color: Theme.inkDim
                                   text: box.modelData.type === "media" ? "Shows while music plays" : "Shows once the forecast is in" }
@@ -483,7 +483,7 @@ Scope {
                                 required property int index
                                 readonly property bool atRight: index % 2 === 1
                                 readonly property bool atBottom: index >= 2
-                                width: 16; height: 16; radius: 8
+                                width: 16; height: 16; radius: Theme.r(8)
                                 x: (atRight ? box.width + 6 : -6) - width / 2
                                 y: (atBottom ? box.height + 6 : -6) - height / 2
                                 color: Theme.primary
@@ -523,7 +523,7 @@ Scope {
                         Rectangle {
                             visible: box.main
                             anchors { left: parent.left; bottom: parent.top; bottomMargin: 14 }
-                            width: tag.implicitWidth + 20; height: 26; radius: 13
+                            width: tag.implicitWidth + 20; height: 26; radius: Theme.r(13)
                             color: Theme.primary
                             Txt {
                                 id: tag
@@ -546,7 +546,7 @@ Scope {
                 Rectangle {
                     visible: ov.lassoing
                     x: ov.lasso.x; y: ov.lasso.y; width: ov.lasso.width; height: ov.lasso.height
-                    radius: 8
+                    radius: Theme.r(8)
                     color: Theme.alpha(Theme.primary, 0.12)
                     border.width: 1.5; border.color: Theme.primary
                 }
@@ -555,7 +555,7 @@ Scope {
                     readonly property var c: ed.crossing
                     visible: !!c && c.output === ov.out
                     x: c?.x ?? 0; y: c?.y ?? 0; width: c?.w ?? 0; height: c?.h ?? 0
-                    radius: 24
+                    radius: Theme.r(24)
                     color: Theme.alpha(Theme.primary, 0.16)
                     border.width: 2; border.color: Theme.primary
                     Txt { anchors.centerIn: parent; text: ed.picked.length > 1 ? "Move " + ed.picked.length + " here" : "Move here"
@@ -581,7 +581,7 @@ Scope {
                     y: Math.max(8, Math.min(root.height - height - 8, py))
                     width: tools.implicitWidth + 16
                     height: 52
-                    radius: 26
+                    radius: Theme.r(26)
                     color: Theme.island
                     border.width: 1
                     border.color: Theme.alpha(Theme.outlineVariant, 0.6)
@@ -636,7 +636,7 @@ Scope {
                     y: bar.y + bar.height + 10
                     width: Math.min(root.width - 80, 1180)
                     height: Math.min(root.height - y - 40, 860)
-                    radius: 30
+                    radius: Theme.r(30)
                     color: Theme.surface
                     border.width: 1
                     border.color: Theme.alpha(Theme.outlineVariant, 0.6)
@@ -714,7 +714,7 @@ Scope {
                                     readonly property real k: Math.min(0.6, 230 / Math.max(1, prev.baseWidth), 200 / Math.max(1, prev.baseHeight))
                                     width: Math.max(prev.width, 150) + 24
                                     height: prev.height + 48
-                                    radius: 22
+                                    radius: Theme.r(22)
                                     color: pick.containsMouse ? Theme.surfaceHigh : Theme.surfaceLow
                                     Behavior on color { ColorAnimation { duration: Theme.fast } }
                                     Placed {
@@ -753,7 +753,7 @@ Scope {
                     y: low ? root.height - height - 28 : bar.y + bar.height + 12
                     width: Math.min(root.width - 80, 1060)
                     height: fields.implicitHeight + 32
-                    radius: 28
+                    radius: Theme.r(28)
                     color: Theme.surface
                     border.width: 1
                     border.color: Theme.alpha(Theme.outlineVariant, 0.6)
@@ -828,7 +828,7 @@ Scope {
                 Rectangle {
                     visible: !ov.selHere && !ed.adding
                     anchors { horizontalCenter: parent.horizontalCenter; bottom: parent.bottom; bottomMargin: 26 }
-                    width: hints.implicitWidth + 32; height: 36; radius: 18
+                    width: hints.implicitWidth + 32; height: 36; radius: Theme.r(18)
                     color: Theme.alpha(Theme.island, 0.9)
                     Txt {
                         id: hints

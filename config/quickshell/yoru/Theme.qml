@@ -37,8 +37,22 @@ Singleton {
     property bool video: false
     property real bright: 0.5           // how bright the wallpaper is, 0..1
 
-    // the island is darker than any surface: it reads as a hole in the screen
-    readonly property color island: Qt.darker(surfaceLowest, 1.6)
+    // a mode (`yoru mode NAME`, appearance.mode): a whole look from a folder. Its
+    // palette comes in as the colours above; the rest of what it draws with is here.
+    property var mode: null             // palette.json's "mode": { name, light, font, mono,
+                                        // radiusScale, border, borderColour, shadow, island, cardLook }
+    readonly property bool light: !!(mode && mode.light)
+    // ink lines: a border this wide round the island, sheets and cards (0: none)
+    readonly property real border: mode && mode.border ? mode.border : 0
+    readonly property color borderColour: mode && mode.borderColour ? "#" + String(mode.borderColour).replace("#", "") : outlineVariant
+    // hard: a solid shadow offset down and right, as printed; soft: yoru's blur
+    readonly property bool hardShadow: !!(mode && mode.shadow === "hard")
+    readonly property int shadowOffset: mode && mode.shadowOffset ? mode.shadowOffset : 5
+
+    // the island is darker than any surface: it reads as a hole in the screen;
+    // a mode can make it paper instead (island "paper"), ruled in ink
+    readonly property bool paperIsland: !!(mode && mode.island === "paper")
+    readonly property color island: paperIsland ? surfaceLowest : Qt.darker(surfaceLowest, 1.6)
 
     Behavior on surface { ColorAnimation { duration: theme.recolourMs } }
     Behavior on surfaceLowest { ColorAnimation { duration: theme.recolourMs } }
@@ -63,15 +77,17 @@ Singleton {
     Behavior on danger { ColorAnimation { duration: theme.recolourMs } }
 
     // type
-    readonly property string sans: "Geist"
-    readonly property string mono: "Geist Mono"
+    readonly property string sans: mode && mode.font ? mode.font : "Geist"
+    readonly property string mono: mode && mode.mono ? mode.mono : "Geist Mono"
     readonly property string icons: "Material Symbols Rounded"
 
-    // shape
-    readonly property int rXs: 8
-    readonly property int rSm: 12
-    readonly property int rMd: 18
-    readonly property int rLg: 26
+    // shape: every corner goes through r(), so a mode can square them all off
+    readonly property real radiusScale: mode && mode.radiusScale !== undefined ? mode.radiusScale : 1
+    function r(px) { return Math.round(px * radiusScale); }
+    readonly property int rXs: r(8)
+    readonly property int rSm: r(12)
+    readonly property int rMd: r(18)
+    readonly property int rLg: r(26)
     readonly property int gap: 10
 
     // motion: Material 3 Expressive curves
@@ -184,6 +200,7 @@ Singleton {
             theme.still = p.still ?? "";
             theme.video = !!p.video;
             theme.timeline = p.timeline ?? [];
+            theme.mode = p.mode ?? null;
             theme.base = p;
             if (!theme.artOn) theme.apply(p);
         }

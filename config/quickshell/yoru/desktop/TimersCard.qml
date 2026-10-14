@@ -78,7 +78,7 @@ Item {
                     model: [1, 5]
                     Rectangle {
                         required property int modelData
-                        width: 28; height: 20; radius: 10
+                        width: 28; height: 20; radius: Theme.r(10)
                         color: Theme.alpha(Theme.ink, 0.1)
                         Txt { anchors.centerIn: parent; text: "+" + modelData; size: 10; weight: Font.Medium }
                         StateLayer { onClicked: Timers.add(parent.modelData) }
@@ -106,7 +106,7 @@ Item {
             Txt { text: Focus.phase === "break" ? "On a break" : Focus.active ? "Focusing" : "Focus"; size: 13; color: Theme.inkDim }
             Txt { text: Focus.active ? Focus.clock(Focus.left) : Config.o.focus.minutes + ":00"; size: 34; weight: Font.Light; font.features: { "tnum": 1 } }
             Rectangle {
-                width: 100; height: 32; radius: 16
+                width: 100; height: 32; radius: Theme.r(16)
                 color: Focus.active ? Theme.secondaryContainer : Theme.primary
                 Txt { anchors.centerIn: parent; text: Focus.active ? "Stop" : "Start"; size: 13; weight: Font.Medium
                       color: Focus.active ? Theme.inkSecondaryContainer : Theme.inkPrimary }

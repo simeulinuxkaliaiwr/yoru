@@ -51,7 +51,7 @@ Item {
         width: drag.pressed ? 3 : 4
         height: s.h * 1.15
         anchors.verticalCenter: parent.verticalCenter
-        radius: 2
+        radius: Theme.r(2)
         color: s.muted ? Theme.outline : Theme.primary
     }
 

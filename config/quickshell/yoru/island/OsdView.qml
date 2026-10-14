@@ -24,10 +24,10 @@ Item {
         }
         Rectangle {
             anchors.verticalCenter: parent.verticalCenter
-            width: 200; height: 6; radius: 3
+            width: 200; height: 6; radius: Theme.r(3)
             color: Theme.surfaceHighest
             Rectangle {
-                height: parent.height; radius: 3
+                height: parent.height; radius: Theme.r(3)
                 width: Math.max(6, parent.width * Math.min(1, v.value))
                 color: v.muted ? Theme.outline : Theme.primary
                 Behavior on width { NumberAnimation { duration: Theme.fast; easing.type: Easing.OutCubic } }

@@ -8,7 +8,8 @@ Item {
     id: v
     property var item
     readonly property var kind: Desk.kind(item?.type ?? "")
-    readonly property string look: item?.look || Config.o.desktop.widgetStyle
+    // a mode can dress every card alike (its cardLook)
+    readonly property string look: (Theme.mode && Theme.mode.cardLook) || item?.look || Config.o.desktop.widgetStyle
     property real k: item?.scale ?? 1
     property bool force: false          // show it even with nothing to show (previews, edit mode)
     readonly property Item card: loader.item

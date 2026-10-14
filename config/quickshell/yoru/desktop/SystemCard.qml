@@ -52,10 +52,10 @@ Card {
                 Rectangle {
                     id: meter
                     x: 96; anchors.verticalCenter: parent.verticalCenter
-                    width: parent.width - 96 - 62; height: 8; radius: 4
+                    width: parent.width - 96 - 62; height: 8; radius: Theme.r(4)
                     color: Theme.surfaceHighest
                     Rectangle {
-                        width: Math.max(8, meter.width * Math.min(1, parent.parent.modelData.value)); height: 8; radius: 4
+                        width: Math.max(8, meter.width * Math.min(1, parent.parent.modelData.value)); height: 8; radius: Theme.r(4)
                         color: parent.parent.modelData.tone
                         Behavior on width { NumberAnimation { duration: 700; easing.type: Easing.OutCubic } }
                     }
@@ -74,7 +74,7 @@ Card {
             model: c.stats
             Rectangle {
                 required property var modelData
-                height: 36; radius: 18
+                height: 36; radius: Theme.r(18)
                 width: chipRow.implicitWidth + 22
                 color: Theme.alpha(Theme.surfaceHigh, 0.7)
                 Row {
@@ -110,14 +110,14 @@ Card {
                 Row {
                     required property var modelData
                     spacing: 6
-                    Rectangle { width: 10; height: 10; radius: 5; color: parent.modelData[2]; anchors.verticalCenter: parent.verticalCenter }
+                    Rectangle { width: 10; height: 10; radius: Theme.r(5); color: parent.modelData[2]; anchors.verticalCenter: parent.verticalCenter }
                     Txt { text: parent.modelData[0]; size: 11; color: Theme.inkDim; anchors.verticalCenter: parent.verticalCenter }
                     Txt { text: parent.modelData[1]; size: 12; weight: Font.DemiBold; anchors.verticalCenter: parent.verticalCenter; font.features: { "tnum": 1 } }
                 }
             }
         }
         // the frame and a line at half
-        Rectangle { x: g.gx; y: g.gy; width: g.gw; height: g.gh; radius: 10; color: Theme.alpha(Theme.surfaceHigh, 0.45) }
+        Rectangle { x: g.gx; y: g.gy; width: g.gw; height: g.gh; radius: Theme.r(10); color: Theme.alpha(Theme.surfaceHigh, 0.45) }
         Rectangle { x: g.gx; y: g.gy + g.gh / 2; width: g.gw; height: 1; color: Theme.alpha(Theme.ink, 0.08) }
         Shape {
             anchors.fill: parent

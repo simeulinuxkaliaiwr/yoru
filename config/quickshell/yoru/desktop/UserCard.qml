@@ -73,7 +73,7 @@ Card {
         x: 20; anchors { bottom: parent.bottom; bottomMargin: 18 }
         spacing: 8
         Rectangle {
-            width: 120; height: 36; radius: 18
+            width: 120; height: 36; radius: Theme.r(18)
             color: Theme.primary
             Row {
                 anchors.centerIn: parent; spacing: 6

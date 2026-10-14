@@ -41,7 +41,7 @@ Column {
         property string placeholder
         signal edited(string text)
         width: 520; height: Math.min(150, Math.max(72, edit.contentHeight + 24))
-        radius: 18
+        radius: Theme.r(18)
         color: Theme.surfaceMid
         border.width: edit.activeFocus ? 2 : 1
         border.color: edit.activeFocus ? Theme.primary : Theme.outlineVariant
@@ -70,7 +70,7 @@ Column {
         id: adder
         property string placeholder
         signal added(string text)
-        width: 300; height: 40; radius: 20
+        width: 300; height: 40; radius: Theme.r(20)
         color: Theme.surfaceMid
         border.width: input.activeFocus ? 2 : 1
         border.color: input.activeFocus ? Theme.primary : Theme.outlineVariant

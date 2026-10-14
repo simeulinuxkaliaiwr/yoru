@@ -8,7 +8,7 @@ Rectangle {
     property string text
     property string placeholder: ""
     signal edited(string text)
-    width: 260; height: 40; radius: 20
+    width: 260; height: 40; radius: Theme.r(20)
     color: Theme.surfaceMid
     border.width: input.activeFocus ? 2 : 1
     border.color: input.activeFocus ? Theme.primary : Theme.outlineVariant

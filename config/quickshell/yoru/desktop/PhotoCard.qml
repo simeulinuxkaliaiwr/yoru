@@ -49,7 +49,7 @@ Item {
     RectangularShadow {
         visible: c.polaroid
         anchors.fill: paper
-        radius: 6; blur: 24; offset: Qt.vector2d(0, 8)
+        radius: Theme.r(6); blur: 24; offset: Qt.vector2d(0, 8)
         color: Qt.rgba(0, 0, 0, 0.45)
         rotation: paper.rotation
     }
@@ -57,7 +57,7 @@ Item {
         id: paper
         visible: c.polaroid
         anchors.fill: parent
-        radius: 6
+        radius: Theme.r(6)
         color: "#f4f1ea"
         rotation: -2.5
         antialiasing: true

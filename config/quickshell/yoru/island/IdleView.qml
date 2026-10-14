@@ -78,7 +78,7 @@ Item {
                 anchors.verticalCenter: parent.verticalCenter
                 spacing: 8
                 ClippingRectangle {
-                    width: 22; height: 22; radius: 7
+                    width: 22; height: 22; radius: Theme.r(7)
                     anchors.verticalCenter: parent.verticalCenter
                     color: Theme.surfaceHigh
                     Image {
@@ -119,7 +119,7 @@ Item {
                 spacing: 7
                 Rectangle {
                     id: recDot
-                    width: 10; height: 10; radius: 5
+                    width: 10; height: 10; radius: Theme.r(5)
                     anchors.verticalCenter: parent.verticalCenter
                     color: "#ff4f5e"
                     // a blink, not an animation: the island doesn't redraw every frame
@@ -192,7 +192,7 @@ Item {
             spacing: 7
             Rectangle {
                 visible: Notifs.unseen > 0 || Notifs.dnd
-                width: 6; height: 6; radius: 3
+                width: 6; height: 6; radius: Theme.r(3)
                 anchors.verticalCenter: parent.verticalCenter
                 color: Notifs.dnd ? Theme.outline : Theme.tertiary
             }

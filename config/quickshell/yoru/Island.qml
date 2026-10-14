@@ -173,7 +173,18 @@ Scope {
                 readonly property bool round: perScreen.shown === "idle" || perScreen.shown === "osd"
                 readonly property bool gone: perScreen.shown === "idle" && perScreen.hideIdle
 
+                // a mode's hard shadow: the shape again in ink, set down and right
+                Rectangle {
+                    visible: Theme.hardShadow
+                    x: shape.x + Theme.shadowOffset
+                    y: shape.y + Theme.shadowOffset
+                    width: shape.width; height: shape.height
+                    radius: shape.radius
+                    color: Theme.borderColour
+                    opacity: shape.opacity
+                }
                 RectangularShadow {
+                    visible: !Theme.hardShadow
                     anchors.fill: shape
                     radius: shape.radius
                     blur: win.round ? 18 : 42
@@ -190,10 +201,10 @@ Scope {
                     y: win.gone ? -height - 24 : 6
                     width: win.current.implicitWidth
                     height: win.current.implicitHeight
-                    radius: win.round ? height / 2 : 30
+                    radius: Theme.r(win.round ? height / 2 : 30)
                     color: Theme.island
-                    border.width: 1
-                    border.color: Theme.alpha(Theme.outlineVariant, 0.45)
+                    border.width: Theme.border > 0 ? Theme.border : 1
+                    border.color: Theme.border > 0 ? Theme.borderColour : Theme.alpha(Theme.outlineVariant, 0.45)
                     clip: true
                     opacity: win.gone ? 0 : 1
 

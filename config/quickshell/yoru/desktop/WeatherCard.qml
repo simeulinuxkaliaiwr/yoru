@@ -45,7 +45,7 @@ Card {
                 Rectangle {
                     required property var modelData
                     width: (c.width - 40) / 3; height: 58
-                    radius: 18
+                    radius: Theme.r(18)
                     color: Theme.alpha(Theme.surfaceHigh, 0.6)
                     Column {
                         anchors.centerIn: parent
@@ -108,13 +108,13 @@ Card {
                     Rectangle {
                         id: track
                         x: 114; anchors.verticalCenter: parent.verticalCenter
-                        width: parent.width - 114 - 40; height: 6; radius: 3
+                        width: parent.width - 114 - 40; height: 6; radius: Theme.r(3)
                         color: Theme.surfaceHighest
                         Rectangle {
                             readonly property real span: Math.max(1, drow.range.hi - drow.range.lo)
                             x: track.width * (drow.modelData.min - drow.range.lo) / span
                             width: Math.max(6, track.width * (drow.modelData.max - drow.modelData.min) / span)
-                            height: 6; radius: 3
+                            height: 6; radius: Theme.r(3)
                             gradient: Gradient {
                                 orientation: Gradient.Horizontal
                                 GradientStop { position: 0; color: Theme.primary }
@@ -210,7 +210,7 @@ Card {
             Rectangle {
                 required property var modelData
                 required property int index
-                width: 8; height: 8; radius: 4
+                width: 8; height: 8; radius: Theme.r(4)
                 x: graph.px(index * 6) - 4; y: graph.py(modelData.temp) - 4
                 color: Theme.surfaceLowest
                 border.width: 2; border.color: Theme.primary

@@ -85,7 +85,7 @@ Item {
                 id: frame
                 anchors.centerIn: parent
                 width: 320; height: 180
-                radius: 22
+                radius: Theme.r(22)
                 scale: card.sel ? 1 : 0.9
                 opacity: card.sel || hover.containsMouse ? 1 : 0.62
                 color: Theme.surfaceHigh
@@ -103,7 +103,7 @@ Item {
                 Rectangle {
                     visible: card.modelData.video
                     anchors { left: parent.left; bottom: parent.bottom; margins: 10 }
-                    width: 66; height: 26; radius: 13
+                    width: 66; height: 26; radius: Theme.r(13)
                     color: Theme.alpha(Theme.island, 0.8)
                     Row {
                         anchors.centerIn: parent; spacing: 3
@@ -114,7 +114,7 @@ Item {
                 Rectangle {
                     visible: card.current
                     anchors { right: parent.right; top: parent.top; margins: 10 }
-                    width: 28; height: 28; radius: 14
+                    width: 28; height: 28; radius: Theme.r(14)
                     color: Theme.primary
                     Icon { anchors.centerIn: parent; name: "check"; size: 18; weight: 700; color: Theme.inkPrimary }
                 }

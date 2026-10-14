@@ -93,7 +93,7 @@ Card {
             Rectangle {
                 required property var modelData
                 readonly property date t: c.at(modelData.tz)
-                width: (c.width - 28 - 8) / 2; height: 58; radius: 18
+                width: (c.width - 28 - 8) / 2; height: 58; radius: Theme.r(18)
                 color: Theme.alpha(Theme.ink, 0.06)
                 Txt { x: 12; y: 8; width: parent.width - 50; text: modelData.name || modelData.tz.split("/").pop().replace(/_/g, " "); size: 12; color: Theme.inkDim }
                 Txt { anchors { right: parent.right; rightMargin: 12 } y: 8; text: c.diff(modelData.tz); size: 10; color: Theme.inkDim }

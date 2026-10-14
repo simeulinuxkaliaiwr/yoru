@@ -1,4 +1,5 @@
 import Quickshell
+import Quickshell.Io
 import Quickshell.Widgets
 import QtQuick
 import qs
@@ -16,7 +17,7 @@ Column {
                 id: preview
                 x: 10; y: 4
                 width: 340; height: 200
-                radius: 20
+                radius: Theme.r(20)
                 color: Theme.surfaceHigh
                 Image {
                     anchors.fill: parent
@@ -62,6 +63,32 @@ Column {
     }
     // the file is written a moment after the change; recolour after that
     Timer { id: recolour; interval: 300; onTriggered: Quickshell.execDetached(["yoru"]) }
+
+    // modes: whole looks from a folder (yoru mode)
+    property var modes: []
+    Process {
+        id: listModes
+        running: true
+        command: ["yoru", "mode"]
+        stdout: StdioCollector {
+            onStreamFinished: { try { modes = JSON.parse(this.text).modes; } catch (e) {} }
+        }
+    }
+    Section {
+        icon: "auto_awesome"; title: "Mode"
+        SetRow {
+            icon: "theater_comedy"; label: "A whole look"
+            hint: modes.length ? "Colours, type, shapes and wallpapers from a mode instead of the wallpaper's palette"
+                               : "None yet: a mode is a folder with a mode.json in ~/.config/yoru/modes"
+        }
+        Choice {
+            x: 10; width: parent.width - 20
+            current: c.appearance.mode
+            options: [{ value: "", label: "None", icon: "wallpaper" }].concat(modes.map(m => ({ value: m.name, label: m.name.charAt(0).toUpperCase() + m.name.slice(1) })))
+            // yoru writes the setting itself, with the mode's wallpapers and hooks
+            onPicked: v => Quickshell.execDetached(["yoru", "mode", v === "" ? "off" : v])
+        }
+    }
 
     Section {
         icon: "animation"; title: "Wallpaper transition"

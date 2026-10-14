@@ -82,7 +82,7 @@ ShellRoot {
                 id: search
                 x: 14; y: 80
                 width: parent.width - 28; height: 40
-                radius: 20
+                radius: Theme.r(20)
                 color: Theme.surfaceMid
                 border.width: field.activeFocus ? 2 : 0
                 border.color: Theme.primary
@@ -126,7 +126,7 @@ ShellRoot {
                                     Rectangle {
                                         x: 12; width: parent.width - 24; height: 40
                                         anchors.verticalCenter: parent.verticalCenter
-                                        radius: 20
+                                        radius: Theme.r(20)
                                         color: tab.on ? Theme.secondaryContainer : hover.containsMouse ? Theme.alpha(Theme.ink, 0.06) : "transparent"
                                         Behavior on color { ColorAnimation { duration: Theme.fast } }
                                     }
@@ -154,7 +154,7 @@ ShellRoot {
         // the page
         Rectangle {
             anchors { left: side.right; right: parent.right; top: parent.top; bottom: parent.bottom; margins: 12; leftMargin: 0 }
-            radius: 28
+            radius: Theme.r(28)
             color: Theme.surfaceLowest
 
             Flickable {

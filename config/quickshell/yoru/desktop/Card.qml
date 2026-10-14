@@ -8,12 +8,15 @@ import qs
 //   glass · solid · tonal · outline · neon · minimal
 //   frosted: the wallpaper behind it, blurred · gradient: a wash of the accents
 //   hud: corner brackets, nothing else · stack: a second sheet behind
+//   manga: paper ruled in ink, a hard shadow and the accent's band along the top
+// (a mode can choose the look for every card: its cardLook)
 Rectangle {
     id: card
-    property string look: Config.o.desktop.widgetStyle
+    property string look: Theme.mode && Theme.mode.cardLook ? Theme.mode.cardLook : Config.o.desktop.widgetStyle
     width: 320
-    radius: Config.o.desktop.widgetRadius
-    color: look === "glass" ? Theme.alpha(Theme.surfaceLowest, 0.62)
+    radius: Theme.r(Config.o.desktop.widgetRadius)
+    color: look === "manga" ? Theme.surfaceLowest
+         : look === "glass" ? Theme.alpha(Theme.surfaceLowest, 0.62)
          : look === "solid" || look === "stack" ? Theme.surfaceMid
          : look === "tonal" ? Theme.alpha(Theme.primaryContainer, 0.88)
          : look === "neon" ? Theme.alpha(Theme.island, 0.82)
@@ -23,12 +26,29 @@ Rectangle {
          // the light ones still need a little dark under the text on a bright wallpaper
          : look === "outline" ? Theme.alpha(Theme.surfaceLowest, 0.45)
          : Theme.alpha(Theme.surfaceLowest, 0.32)
-    border.width: look === "outline" ? 1.5 : look === "neon" ? 2 : look === "glass" || look === "frosted" ? 1 : 0
-    border.color: look === "neon" ? Theme.primary
+    border.width: look === "manga" ? Math.max(2, Theme.border) : look === "outline" ? 1.5 : look === "neon" ? 2 : look === "glass" || look === "frosted" ? 1 : 0
+    border.color: look === "manga" ? (Theme.border > 0 ? Theme.borderColour : Theme.ink)
+                : look === "neon" ? Theme.primary
                 : look === "outline" ? Theme.alpha(Theme.ink, 0.4)
                 : look === "frosted" ? Theme.alpha(Theme.ink, 0.18)
                 : Theme.alpha(Theme.outlineVariant, 0.5)
     Behavior on color { ColorAnimation { duration: Theme.normal } }
+
+    // manga: printed, so its shadow is solid ink, and a band of the accent runs along the top
+    Rectangle {
+        z: -2
+        visible: card.look === "manga"
+        x: Theme.shadowOffset; y: Theme.shadowOffset
+        width: parent.width; height: parent.height
+        radius: card.radius
+        color: Theme.border > 0 ? Theme.borderColour : Theme.ink
+    }
+    Rectangle {
+        visible: card.look === "manga"
+        x: card.border.width; y: card.border.width
+        width: parent.width - card.border.width * 2; height: 4
+        color: Theme.primary
+    }
 
     // neon glows; solid, tonal, gradient and stack cast a soft shadow
     RectangularShadow {
@@ -135,8 +155,8 @@ Rectangle {
             width: 22; height: 22
             x: atRight ? card.width - width : 0
             y: atBottom ? card.height - height : 0
-            Rectangle { width: 22; height: 3; radius: 1.5; color: Theme.primary; y: parent.atBottom ? 19 : 0 }
-            Rectangle { width: 3; height: 22; radius: 1.5; color: Theme.primary; x: parent.atRight ? 19 : 0 }
+            Rectangle { width: 22; height: 3; radius: Theme.r(1.5); color: Theme.primary; y: parent.atBottom ? 19 : 0 }
+            Rectangle { width: 3; height: 22; radius: Theme.r(1.5); color: Theme.primary; x: parent.atRight ? 19 : 0 }
         }
     }
 }

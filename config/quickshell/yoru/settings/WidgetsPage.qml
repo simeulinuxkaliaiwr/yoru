@@ -48,7 +48,7 @@ Column {
                 Rectangle {
                     required property var modelData
                     x: modelData.x; y: modelData.y; width: modelData.w; height: modelData.h
-                    radius: 28
+                    radius: Theme.r(28)
                     color: Theme.alpha(Theme.surfaceLowest, 0.7)
                     border.width: 3; border.color: Theme.alpha(Theme.primary, 0.7)
                     Txt { anchors.centerIn: parent; text: labels[parent.modelData.name]; size: 34; weight: Font.DemiBold }
@@ -80,7 +80,7 @@ Column {
             options: [{ value: "glass", label: "Glass" }, { value: "frosted", label: "Frosted" }, { value: "solid", label: "Solid" },
                       { value: "tonal", label: "Tonal" }, { value: "gradient", label: "Gradient" }, { value: "stack", label: "Stack" },
                       { value: "outline", label: "Outline" }, { value: "neon", label: "Neon" }, { value: "hud", label: "HUD" },
-                      { value: "minimal", label: "Minimal" }]
+                      { value: "minimal", label: "Minimal" }, { value: "manga", label: "Manga" }]
             onPicked: v => c.widgetStyle = v
         }
         Item { width: 1; height: 6 }

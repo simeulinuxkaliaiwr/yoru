@@ -10,7 +10,7 @@ Rectangle {
     signal clicked()
     height: 40
     width: row.implicitWidth + 32
-    radius: 20
+    radius: Theme.r(20)
     color: tonal ? Theme.secondaryContainer : Theme.primary
     readonly property color ink: tonal ? Theme.inkSecondaryContainer : Theme.inkPrimary
     Row {

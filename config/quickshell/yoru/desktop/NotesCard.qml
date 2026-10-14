@@ -21,7 +21,7 @@ Card {
         color: Theme.alpha(Theme.tertiaryContainer, 0.95)
         Rectangle {
             anchors { right: parent.right; bottom: parent.bottom }
-            width: 30; height: 30; radius: 6
+            width: 30; height: 30; radius: Theme.r(6)
             color: Theme.alpha(Theme.inkTertiaryContainer, 0.12)
         }
     }

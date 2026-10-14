@@ -15,6 +15,19 @@
     yoru lyrics TITLE ARTIST [SECONDS]   synced lyrics from lrclib.net, as JSON [[seconds, line], …]
     yoru restore            the palette back at login (the compositor's autostart runs it)
     yoru status             the current wallpaper
+    yoru mode [NAME|off]    a mode: a whole look from a folder instead of the wallpaper's palette
+                            (its colours, type, shapes, wallpapers, cursor; see "Modes" below).
+                            No argument: the modes there are, as JSON
+
+Modes: a folder with a mode.json, named by its folder in ~/.config/yoru/modes/
+(a link to it is enough) or given by path. mode.json holds "palette" (Material
+roles, as matugen gives them), "light", "ansi" (16 terminal colours, optional),
+"cursor", "fastfetch_logo", "pictures": {"walls": folder, "first": the one to start on}, "hooks": {"on": [...],
+"off": [...]} (commands run when the mode is turned on and off), "skip" (apps the
+mode dresses itself, e.g. ["firefox"]), and "yoru": what the shell draws with
+(font, mono, radiusScale, border, borderColour, shadow "hard", island "paper",
+cardLook). The setting is appearance.mode; the wallpaper from before is kept and
+put back when the mode goes off.
 
 State is ~/.config/yoru/yoru.json; the palette the shell reads is
 ~/.cache/yoru/palette.json. Apps are re-themed too, Hyprland and niri borders
@@ -38,6 +51,7 @@ CACHE = HOME / ".cache/yoru"
 STATE = CONF / "yoru/yoru.json"
 SETTINGS = CONF / "yoru/config.json"        # the settings window's file
 RICE = HOME / ".local/state/rice/current"
+MODES = CONF / "yoru/modes"
 os.environ["PATH"] = f"{HOME}/.local/bin:{os.environ.get('PATH', '')}"
 
 DEFAULTS = {
@@ -98,13 +112,56 @@ def state():
         s["dirs"] = cfg.get("wallpaper", {}).get("dirs") or s["dirs"]
         s["timeDirs"] = cfg.get("wallpaper", {}).get("timeDirs") or {}
         s["online"] = cfg.get("wallpaper", {}).get("online") or {}
+        s["mode"] = cfg.get("appearance", {}).get("mode") or ""
     except (OSError, ValueError):
         pass
+    m = mode(s)
+    if m and m.get("walls"):
+        s["dirs"] = [m["walls"]]
     return s
 
 
+def mode_dir(name):
+    """a mode's folder: by name in ~/.config/yoru/modes, or a path"""
+    if not name:
+        return None
+    p = Path(os.path.expanduser(name))
+    if not p.is_absolute():
+        p = MODES / name
+    return p if (p / "mode.json").is_file() else None
+
+
+def mode(s):
+    """the mode the settings name, read from its mode.json; None without one"""
+    d = mode_dir(s.get("mode", ""))
+    if not d:
+        return None
+    try:
+        m = json.loads((d / "mode.json").read_text())
+    except (OSError, ValueError):
+        return None
+    m["dir"] = str(d)
+    m["walls"] = os.path.expanduser(m.get("pictures", {}).get("walls", "")) or None
+    return m
+
+
+def modes():
+    out = []
+    for d in sorted(MODES.glob("*")) if MODES.is_dir() else []:
+        try:
+            m = json.loads((d / "mode.json").read_text())
+        except (OSError, ValueError):
+            continue
+        out.append({"name": d.name, "description": m.get("description", ""), "path": str(d.resolve())})
+    return out
+
+
 def save_state(s):
-    write(STATE, json.dumps({"wallpaper": s["wallpaper"]}, indent=2) + "\n")
+    keep = {"wallpaper": s["wallpaper"]}
+    for k in ("before_mode", "fastfetch_logo"):
+        if s.get(k):
+            keep[k] = s[k]
+    write(STATE, json.dumps(keep, indent=2) + "\n")
 
 
 def compositor():
@@ -172,8 +229,9 @@ def walls(s):
         if not d.is_dir():
             continue
         for f in sorted(d.iterdir(), key=lambda p: p.name.lower()):
-            if f.is_file() and f.suffix.lower() in IMAGES | VIDEOS:
-                found.append(str(f))
+            # a mode's folder may hold links to pictures kept elsewhere
+            if f.is_file() and f.suffix.lower() in IMAGES | VIDEOS and str(f.resolve()) not in found:
+                found.append(str(f.resolve()))
     return found
 
 
@@ -243,10 +301,18 @@ def hls(hue, light, sat):
     return rgb_hex(*colorsys.hls_to_rgb(hue % 1, light, sat))
 
 
+def light(c):
+    """whether a palette is a light one: dark text on a bright surface"""
+    r, g, b = hex_rgb(c["surface"])
+    return 0.299 * r + 0.587 * g + 0.114 * b > 0.5
+
+
 def ansi(c):
-    """16 terminal colours that belong to the wallpaper: fixed hues, nudged toward the primary"""
+    """16 terminal colours that belong to the wallpaper: fixed hues, nudged toward the primary
+    (deeper on a light palette, so they read on its pale background)"""
     ph, pl, ps = colorsys.rgb_to_hls(*hex_rgb(c["primary"]))
     pull = 0.06
+    lo, hi = (0.36, 0.44) if light(c) else (0.72, 0.80)
 
     def tint(h):
         d = ((ph - h + 0.5) % 1) - 0.5
@@ -256,8 +322,8 @@ def ansi(c):
     sat = 0.55 + min(ps, 0.6) * 0.3
     out = [c["surface_container_high"]] + [""] * 15
     for i, h in hues.items():
-        out[i] = hls(tint(h), 0.72, sat)
-        out[i + 8] = hls(tint(h), 0.80, sat)
+        out[i] = hls(tint(h), lo, sat)
+        out[i + 8] = hls(tint(h), hi, sat)
     out[4], out[12] = c["primary"], c["primary_fixed"] if "primary_fixed" in c else hls(ph, 0.85, ps)
     out[7] = c["on_surface_variant"]
     out[8] = c["outline"]
@@ -401,6 +467,9 @@ def shell(s, c):
     with it once worked out (in the background the first time: `yoru timeline`)"""
     f = s["wallpaper"]
     data = dict(c, wallpaper=f, still=still(f), video=is_video(f), bright=wall_brightness(f))
+    m = mode(s)
+    if m:
+        data["mode"] = dict(m.get("yoru", {}), name=Path(m["dir"]).name, light=light(c))
     if is_video(f):
         tl = timeline_file(f, s["scheme"])
         if tl.exists():
@@ -503,7 +572,8 @@ layout {{
 def foot(c):
     a = c["ansi"]
     out = ["# generated by yoru", "", "[colors-dark]",
-           f"foreground={c['on_surface']}", f"background={c['surface_container_lowest']}", "alpha=0.86", "blur=yes"]
+           f"foreground={c['on_surface']}", f"background={c['surface_container_lowest']}",
+           "alpha=1.0" if light(c) else "alpha=0.86", "blur=no" if light(c) else "blur=yes"]
     out += [f"regular{i}={a[i]}" for i in range(8)] + [f"bright{i}={a[i + 8]}" for i in range(8)]
     out += [f"selection-foreground={c['on_primary_container']}", f"selection-background={c['primary_container']}",
             f"cursor={c['on_primary']} {c['primary']}", f"urls={c['tertiary']}",
@@ -596,13 +666,18 @@ def gtk(c):
         write(f, '/* generated by yoru; your old gtk.css is gtk.css.pre-yoru */\n@import url("yoru.css");\n')
 
 
-def fuzzel(c):
+def fuzzel(c, look=None):
+    look = look or {}
+    font = look.get("font", "Geist")
+    radius = round(22 * look.get("radiusScale", 1))
+    border = round(look.get("border", 1))
+    edge = look.get("borderColour", c["outline_variant"])
     claim(CONF / "fuzzel/fuzzel.ini")
     write(CONF / "fuzzel/fuzzel.ini", f"""# generated by yoru
 
 [main]
-font=Geist:size=11
-icon-theme=Papirus-Dark
+font={font}:size=11
+icon-theme={"Papirus" if light(c) else "Papirus-Dark"}
 width=36
 lines=9
 horizontal-pad=20
@@ -622,12 +697,12 @@ selection={c['secondary_container']}ff
 selection-text={c['on_secondary_container']}ff
 selection-match={c['primary']}ff
 counter={c['outline']}ff
-border={c['outline_variant']}ff
+border={edge}ff
 
 [border]
-width=1
-radius=22
-selection-radius=14
+width={border}
+radius={radius}
+selection-radius={round(radius * 0.64)}
 """)
 
 
@@ -734,13 +809,30 @@ def starship(c):
     write(path, s)
 
 
-def fastfetch(c):
+def fastfetch(c, s=None, m=None):
     path = CONF / "fastfetch/config.jsonc"
     try:
         cfg = json.loads(path.read_text())
     except (OSError, ValueError):
         return
     cfg.setdefault("display", {})["color"] = {"keys": "#" + c["primary"], "title": "#" + c["tertiary"]}
+    if s is not None:
+        logo = os.path.expanduser(m.get("fastfetch_logo", "")) if m else ""
+        if logo and Path(logo).is_file():
+            if "fastfetch_logo" not in s:
+                s["fastfetch_logo"] = json.dumps(cfg.get("logo"))
+                save_state(s)
+            # the picture protocol the terminal was already shown with (sixel, kitty…), else fastfetch's guess
+            was = json.loads(s["fastfetch_logo"]) or {}
+            kind = was.get("type") if was.get("type") in ("sixel", "kitty", "kitty-direct", "iterm", "chafa") else "auto"
+            cfg["logo"] = {"type": kind, "source": logo, "width": 26, "padding": {"top": 1, "right": 3}}
+        elif "fastfetch_logo" in s:
+            old = json.loads(s.pop("fastfetch_logo"))
+            if old is None:
+                cfg.pop("logo", None)
+            else:
+                cfg["logo"] = old
+            save_state(s)
     write(path, json.dumps(cfg, indent=2) + "\n")
 
 
@@ -841,8 +933,15 @@ def pywal(c):
         sh("pywalfox", "update")
 
 
-def cursor(s):
+def cursor(s, m=None):
     name = s.get("cursor")
+    if m and m.get("cursor"):
+        name = m["cursor"]
+        own = Path(m["dir"]) / "cursor" / name
+        link = HOME / ".local/share/icons" / name
+        if (own / "cursors").is_dir() and not link.exists():
+            link.parent.mkdir(parents=True, exist_ok=True)
+            link.symlink_to(own)
     dirs = (HOME / ".local/share/icons", HOME / ".icons", Path("/usr/share/icons"))
     if not name or not any((d / name / "cursors").is_dir() for d in dirs):
         return
@@ -858,11 +957,13 @@ def cursor(s):
     sh("gsettings", "set", "org.gnome.desktop.interface", "cursor-theme", name)
 
 
-def dark():
-    sh("gsettings", "set", "org.gnome.desktop.interface", "color-scheme", "prefer-dark")
+def dark(c=None):
+    """gtk's colour scheme: dark, or light for a light palette (a mode's)"""
+    on = not (c and light(c))
+    sh("gsettings", "set", "org.gnome.desktop.interface", "color-scheme", "prefer-dark" if on else "prefer-light")
     for f in (CONF / "gtk-3.0/settings.ini", CONF / "gtk-4.0/settings.ini"):
         if f.exists():
-            write(f, re.sub(r"^gtk-application-prefer-dark-theme=.*$", "gtk-application-prefer-dark-theme=1",
+            write(f, re.sub(r"^gtk-application-prefer-dark-theme=.*$", f"gtk-application-prefer-dark-theme={int(on)}",
                             f.read_text(), flags=re.M))
 
 
@@ -893,30 +994,83 @@ def night_sky(out):
        "-quality", "90", str(out))
 
 
+def mode_palette(m):
+    """a mode's colours, in the shape palette() gives"""
+    c = dict(FALLBACK)
+    c.update({k: v.lstrip("#") for k, v in m.get("palette", {}).items()})
+    c["ansi"] = [x.lstrip("#") for x in m["ansi"]] if len(m.get("ansi", [])) == 16 else ansi(c)
+    return c
+
+
 def apply(s, apps=True):
     if not Path(s["wallpaper"]).is_file():
         s["wallpaper"] = DEFAULTS["wallpaper"]
         if not Path(s["wallpaper"]).is_file():
             night_sky(Path(s["wallpaper"]))
-    c = palette(s["wallpaper"], s["scheme"])
+    m = mode(s)
+    c = mode_palette(m) if m else palette(s["wallpaper"], s["scheme"])
     shell(s, c)
     if apps and active():
-        cursor(s)
+        skip = set(m.get("skip", [])) if m else set()
+        cursor(s, m)
         aro(c)
         hyprland(c)
         niri(c)
         wallpaper(s)
         foot(c)
         gtk(c)
-        dark()
-        fuzzel(c)
+        dark(c)
+        fuzzel(c, m.get("yoru") if m else None)
         swaylock(c)
         btop(c)
         cava(c)
         starship(c)
-        fastfetch(c)
-        firefox(s, c)
+        fastfetch(c, s, m)
+        if "firefox" not in skip:
+            firefox(s, c)
     return c
+
+
+def hooks(m, when):
+    """a mode's own commands for being turned on or off (in the background: one can be slow)"""
+    for cmd in m.get("hooks", {}).get(when, []):
+        subprocess.Popen(["sh", "-c", cmd], cwd=m["dir"], stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+                         stderr=subprocess.DEVNULL, start_new_session=True)
+
+
+def set_mode(s, name):
+    """the appearance.mode setting, the mode's hooks, its first wallpaper (the one from
+    before kept for later), and everything applied again"""
+    old = mode(s)
+    new = mode_dir(name) if name not in ("", "off", "none") else None
+    if name not in ("", "off", "none") and not new:
+        print(f"yoru: no mode {name} (a folder with a mode.json, in {MODES} or by path)", file=sys.stderr)
+        return 1
+    try:
+        cfg = json.loads(SETTINGS.read_text())
+    except (OSError, ValueError):
+        cfg = {}
+    cfg.setdefault("appearance", {})["mode"] = name if new else ""
+    write(SETTINGS, json.dumps(cfg, indent=4) + "\n")
+    if old:
+        hooks(old, "off")
+    s = state()
+    m = mode(s)
+    if m:
+        if not old:
+            s["before_mode"] = s["wallpaper"]
+        ws = walls(s)
+        first = os.path.expanduser(m.get("pictures", {}).get("first", ""))
+        if first and not os.path.isabs(first) and m["walls"]:
+            first = os.path.join(m["walls"], first)
+        if ws and s["wallpaper"] not in ws:
+            s["wallpaper"] = str(Path(first).resolve()) if first and Path(first).is_file() else ws[0]
+        hooks(m, "on")
+    elif s.get("before_mode"):
+        s["wallpaper"] = s.pop("before_mode")
+    save_state(s)
+    apply(s)
+    return 0
 
 
 # lyrics
@@ -1093,6 +1247,11 @@ def main():
         wallpaper(s)
     elif cmd == "status":
         print(s["wallpaper"])
+    elif cmd == "mode":
+        if len(args) < 2:
+            print(json.dumps({"current": s.get("mode", ""), "modes": modes()}))
+        else:
+            return set_mode(s, args[1])
     else:
         print(__doc__.strip(), file=sys.stderr)
         return 2

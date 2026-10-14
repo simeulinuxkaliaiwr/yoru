@@ -28,6 +28,10 @@ Singleton {
                 property string scheme: "scheme-tonal-spot"   // matugen's scheme types
                 property real speed: 1.0                      // animation speed, > 1 is faster
                 property bool musicColours: true              // the shell takes the album art's colours while it plays
+                // a mode: a whole look from a folder (~/.config/yoru/modes/NAME, or a path) instead of
+                // the wallpaper's palette; "" for none. Set it with `yoru mode NAME|off`, which also
+                // runs the mode's hooks and moves to its wallpapers
+                property string mode: ""
             }
 
             property JsonObject wallpaper: JsonObject {
@@ -75,7 +79,7 @@ Singleton {
                 property real visualizerOpacity: 0.85
                 property bool widgets: true
                 property string widgetSide: "right"
-                property string widgetStyle: "glass"          // glass, frosted, solid, tonal, gradient, stack, outline, neon, hud, minimal
+                property string widgetStyle: "glass"          // glass, frosted, solid, tonal, gradient, stack, outline, neon, hud, minimal, manga
                 property int widgetRadius: 28
                 property bool weather: true
                 property bool system: true

@@ -114,7 +114,7 @@ Item {
         id: field
         x: 12; y: 12
         width: parent.width - 24; height: 44
-        radius: 22
+        radius: Theme.r(22)
         color: Theme.surfaceMid
         Icon { id: ic; x: 14; anchors.verticalCenter: parent.verticalCenter; name: "content_paste"; size: 20; color: Theme.primary }
         Txt {
@@ -127,7 +127,7 @@ Item {
         }
         Rectangle {
             anchors { left: typed.right; leftMargin: 1; verticalCenter: parent.verticalCenter }
-            width: 2; height: 20; radius: 1
+            width: 2; height: 20; radius: Theme.r(1)
             color: Theme.primary
             visible: v.shown
             SequentialAnimation on opacity {
@@ -172,7 +172,7 @@ Item {
         boundsBehavior: Flickable.StopAtBounds
         highlightMoveDuration: Theme.normal
         highlightMoveVelocity: -1
-        highlight: Rectangle { radius: 16; color: Theme.secondaryContainer }
+        highlight: Rectangle { radius: Theme.r(16); color: Theme.secondaryContainer }
         delegate: Item {
             id: row
             required property var modelData
@@ -182,7 +182,7 @@ Item {
             ClippingRectangle {
                 id: thumb
                 x: 8; anchors.verticalCenter: parent.verticalCenter
-                width: 40; height: 32; radius: 8
+                width: 40; height: 32; radius: Theme.r(8)
                 color: Theme.surfaceHigh
                 Image {
                     anchors.fill: parent
@@ -227,7 +227,7 @@ Item {
         id: pane
         visible: list.count > 0
         anchors { left: list.right; leftMargin: 12; right: parent.right; rightMargin: 12; top: list.top; bottom: list.bottom }
-        radius: 22
+        radius: Theme.r(22)
         color: Theme.surfaceLow
         clip: true
 
@@ -237,7 +237,7 @@ Item {
             visible: v.cur?.image ?? false
             anchors { top: parent.top; left: parent.left; right: parent.right; margins: 14 }
             height: parent.height - 70
-            radius: 16
+            radius: Theme.r(16)
             color: Theme.surfaceMid
             Image {
                 id: bigImg
@@ -253,7 +253,7 @@ Item {
         Rectangle {
             visible: !(v.cur?.image ?? true) && /^#[0-9a-f]{6}$/i.test(v.cur?.text ?? "")
             anchors { top: parent.top; left: parent.left; right: parent.right; margins: 14 }
-            height: 120; radius: 16
+            height: 120; radius: Theme.r(16)
             color: visible ? v.cur.text : "transparent"
         }
         // text, in full
@@ -294,7 +294,7 @@ Item {
         }
         Rectangle {
             anchors { right: parent.right; bottom: parent.bottom; margins: 10 }
-            width: copyRow.implicitWidth + 24; height: 34; radius: 17
+            width: copyRow.implicitWidth + 24; height: 34; radius: Theme.r(17)
             color: Theme.primary
             Row {
                 id: copyRow

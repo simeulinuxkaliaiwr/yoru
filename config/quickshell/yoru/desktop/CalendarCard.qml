@@ -46,7 +46,7 @@ Card {
                     readonly property bool real: modelData >= 1 && modelData <= c.len
                     readonly property bool today: modelData === c.now.getDate()
                     width: 41; height: 28
-                    Rectangle { anchors.centerIn: parent; width: 26; height: 26; radius: 13; visible: parent.today && parent.real; color: Theme.primary }
+                    Rectangle { anchors.centerIn: parent; width: 26; height: 26; radius: Theme.r(13); visible: parent.today && parent.real; color: Theme.primary }
                     Txt {
                         anchors.centerIn: parent
                         visible: parent.real
@@ -75,7 +75,7 @@ Card {
                     required property int index
                     readonly property date d: new Date(c.now.getFullYear(), c.now.getMonth(), c.now.getDate() - ((c.now.getDay() + 6) % 7) + index)
                     readonly property bool today: index === (c.now.getDay() + 6) % 7
-                    width: 38; height: 64; radius: 19
+                    width: 38; height: 64; radius: Theme.r(19)
                     color: today ? Theme.primary : Theme.alpha(Theme.surfaceHigh, 0.55)
                     Column {
                         anchors.centerIn: parent
@@ -105,7 +105,7 @@ Card {
         Row {
             anchors { horizontalCenter: parent.horizontalCenter; top: band.bottom; topMargin: -5 }
             spacing: 62
-            Repeater { model: 2; Rectangle { width: 10; height: 10; radius: 5; color: Theme.surfaceLowest; border.width: 2; border.color: Theme.alpha(Theme.ink, 0.3) } }
+            Repeater { model: 2; Rectangle { width: 10; height: 10; radius: Theme.r(5); color: Theme.surfaceLowest; border.width: 2; border.color: Theme.alpha(Theme.ink, 0.3) } }
         }
         Txt {
             anchors { horizontalCenter: parent.horizontalCenter; top: band.bottom; topMargin: 8 }

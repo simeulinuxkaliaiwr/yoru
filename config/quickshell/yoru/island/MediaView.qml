@@ -37,7 +37,7 @@ Item {
         id: cover
         x: 22; y: 22
         width: 152; height: 152
-        radius: 22
+        radius: Theme.r(22)
         color: Theme.surfaceHigh
         Image {
             anchors.fill: parent

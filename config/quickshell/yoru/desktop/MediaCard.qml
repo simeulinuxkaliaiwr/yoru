@@ -22,7 +22,7 @@ Card {
         ClippingRectangle {
             id: art
             x: 14; y: 14
-            width: 84; height: 84; radius: 20
+            width: 84; height: 84; radius: Theme.r(20)
             color: Theme.surfaceHigh
             Image { anchors.fill: parent; source: Media.art; fillMode: Image.PreserveAspectCrop; sourceSize: Qt.size(168, 168); asynchronous: true }
             Icon { anchors.centerIn: parent; visible: Media.art === ""; name: "music_note"; size: 32; color: Theme.inkDim }
@@ -34,10 +34,10 @@ Card {
         }
         Rectangle {
             anchors { left: art.right; leftMargin: 14; right: parent.right; rightMargin: 16; bottom: art.bottom }
-            height: 4; radius: 2
+            height: 4; radius: Theme.r(2)
             color: Theme.surfaceHighest
             visible: Media.length > 0
-            Rectangle { width: parent.width * c.frac; height: 4; radius: 2; color: Theme.primary }
+            Rectangle { width: parent.width * c.frac; height: 4; radius: Theme.r(2); color: Theme.primary }
         }
         Row {
             anchors { left: art.right; leftMargin: 6; bottom: art.bottom; bottomMargin: 8 }
@@ -77,10 +77,10 @@ Card {
         }
         Rectangle {
             anchors { right: parent.right; rightMargin: 18; bottom: parent.bottom; bottomMargin: 30 }
-            width: 120; height: 4; radius: 2
+            width: 120; height: 4; radius: Theme.r(2)
             visible: Media.length > 0
             color: Theme.alpha(Theme.ink, 0.25)
-            Rectangle { width: parent.width * c.frac; height: 4; radius: 2; color: Theme.primary }
+            Rectangle { width: parent.width * c.frac; height: 4; radius: Theme.r(2); color: Theme.primary }
         }
     }
 
@@ -91,7 +91,7 @@ Card {
         ClippingRectangle {
             id: dot
             x: 10; anchors.verticalCenter: parent.verticalCenter
-            width: 40; height: 40; radius: 20
+            width: 40; height: 40; radius: Theme.r(20)
             color: Theme.surfaceHigh
             Image { anchors.fill: parent; source: Media.art; fillMode: Image.PreserveAspectCrop; sourceSize: Qt.size(80, 80); asynchronous: true }
             Icon { anchors.centerIn: parent; visible: Media.art === ""; name: "music_note"; size: 20; color: Theme.inkDim }
@@ -129,11 +129,11 @@ Card {
             }
             ClippingRectangle {
                 anchors.centerIn: parent
-                width: 54; height: 54; radius: 27
+                width: 54; height: 54; radius: Theme.r(27)
                 color: Theme.primary
                 Image { anchors.fill: parent; source: Media.art; fillMode: Image.PreserveAspectCrop; sourceSize: Qt.size(108, 108); asynchronous: true }
             }
-            Rectangle { anchors.centerIn: parent; width: 8; height: 8; radius: 4; color: Theme.surfaceLowest }
+            Rectangle { anchors.centerIn: parent; width: 8; height: 8; radius: Theme.r(4); color: Theme.surfaceLowest }
             // one texture, turned in 30 fps steps at a calm 10 rpm: a 60 fps
             // animation kept the whole widget window redrawing for a label
             layer.enabled: c.layout === "vinyl"

@@ -29,7 +29,7 @@ Card {
         x: 16; y: 16
         spacing: 12
         ClippingRectangle {
-            width: 56; height: 56; radius: 14
+            width: 56; height: 56; radius: Theme.r(14)
             color: Theme.surfaceHigh
             Image { anchors.fill: parent; source: Media.art; fillMode: Image.PreserveAspectCrop; sourceSize: Qt.size(112, 112); asynchronous: true }
             Icon { anchors.centerIn: parent; visible: Media.art === ""; name: "music_note"; size: 24; color: Theme.inkDim }

@@ -36,7 +36,7 @@ Card {
     component Tick: Rectangle {
         property bool on
         property color tone: Theme.primary
-        width: 22; height: 22; radius: 11
+        width: 22; height: 22; radius: Theme.r(11)
         color: on ? tone : "transparent"
         border.width: on ? 0 : 2
         border.color: Theme.alpha(Theme.ink, 0.55)
@@ -57,7 +57,7 @@ Card {
                 readonly property var tones: [[Theme.primaryContainer, Theme.inkPrimaryContainer], [Theme.secondaryContainer, Theme.inkSecondaryContainer],
                                               [Theme.tertiaryContainer, Theme.inkTertiaryContainer]]
                 readonly property var tone: tones[index % 3]
-                width: parent.width; height: 46; radius: 23
+                width: parent.width; height: 46; radius: Theme.r(23)
                 color: tone[0]
                 opacity: modelData.done ? 0.55 : 1
                 Tick { x: 12; anchors.verticalCenter: parent.verticalCenter; on: modelData.done; tone: parent.tone[1] }
@@ -108,7 +108,7 @@ Card {
         Item { width: 1; height: 4 }
         Rectangle {
             visible: !!c.next
-            width: 96; height: 30; radius: 15
+            width: 96; height: 30; radius: Theme.r(15)
             color: Theme.secondaryContainer
             Txt { anchors.centerIn: parent; text: "Done"; size: 12; weight: Font.Medium; color: Theme.inkSecondaryContainer }
             StateLayer { tint: Theme.inkSecondaryContainer; onClicked: c.toggle(c.items.indexOf(c.next)) }

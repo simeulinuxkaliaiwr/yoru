@@ -156,7 +156,7 @@ Item {
                     required property var modelData
                     width: (flow.width - 24) / 3
                     height: col.implicitHeight + 24
-                    radius: 20
+                    radius: Theme.r(20)
                     color: Theme.surfaceMid
                     Column {
                         id: col
@@ -176,7 +176,7 @@ Item {
                                 }
                                 Rectangle {
                                     anchors { right: parent.right; verticalCenter: parent.verticalCenter }
-                                    width: Math.min(keyText.implicitWidth + 14, parent.width * 0.44); height: 22; radius: 7
+                                    width: Math.min(keyText.implicitWidth + 14, parent.width * 0.44); height: 22; radius: Theme.r(7)
                                     color: Theme.surfaceHighest
                                     Txt { id: keyText; anchors.centerIn: parent; width: Math.min(implicitWidth, parent.width - 10); text: parent.parent.modelData.keys; size: 10; font.family: Theme.mono; color: Theme.inkDim }
                                 }
