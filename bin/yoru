@@ -13,6 +13,7 @@
     yoru timeline FILE      a video's colours across its loop (yoru starts it itself)
     yoru art URL            a palette from album art, as JSON (the shell uses it while music plays)
     yoru lyrics TITLE ARTIST [SECONDS]   synced lyrics from lrclib.net, as JSON [[seconds, line], …]
+                                         (null when lrclib couldn't be reached: nothing cached, ask again)
     yoru restore            the palette back at login (the compositor's autostart runs it)
     yoru status             the current wallpaper
     yoru mode [NAME|off]    a mode: a whole look from a folder instead of the wallpaper's palette
@@ -1094,9 +1095,14 @@ def lrc(text):
 def lyrics(title, artist, length):
     """synced lyrics for what's playing. mpv names YouTube uploads "Artist - Title
     [Official Video]" with itself as the artist, so that gets untangled first.
-    Nightcore and slowed uploads change the tempo: the original's timings are
-    stretched to this version's length. Misses are remembered for a day."""
+    YouTube Music gives romanised or translated names that lrclib files under
+    other artists, so the last try is the title alone, kept only when its length
+    matches. Nightcore and slowed uploads change the tempo: the original's
+    timings are stretched to this version's length. Misses are remembered for a
+    day; when lrclib couldn't be reached (it's often busy) nothing is remembered
+    and None comes back, so the shell can ask again."""
     import time
+    import urllib.error
     import urllib.parse
     import urllib.request
     LYRICS.mkdir(parents=True, exist_ok=True)
@@ -1118,24 +1124,53 @@ def lyrics(title, artist, length):
             a, t = (x.strip() for x in t.split(" - ", 1))
             t = NOISE.sub("", t).strip()
     a = re.sub(r"\s*-\s*topic$", "", a, flags=re.I)
+    # "Nightcore - Song" names the tempo, not who sang it
+    if SPEED.fullmatch(a):
+        a = ""
+    # the title alone, without "(feat. …)" and the like, for the last try
+    bare = re.sub(r"\s*[\[(][^\])]*[\])]", "", t).strip() or t
+    timed = bool(length) and not fast
     q = urllib.parse.quote
-    urls = [] if fast or not length else [f"https://lrclib.net/api/get?track_name={q(t)}&artist_name={q(a)}&duration={int(length)}"]
-    urls += [f"https://lrclib.net/api/search?track_name={q(t)}&artist_name={q(a)}",
-             f"https://lrclib.net/api/search?q={q(t + ' ' + a)}"]
-    found = None
-    for url in urls:
+    # (url, whether a hit has to match the length to count)
+    urls = [(f"https://lrclib.net/api/get?track_name={q(t)}&artist_name={q(a)}&duration={int(length)}", False)] if timed else []
+    urls += [(f"https://lrclib.net/api/search?track_name={q(t)}&artist_name={q(a)}", False),
+             (f"https://lrclib.net/api/search?q={q(t + ' ' + a)}", False)]
+    if length:
+        urls.append((f"https://lrclib.net/api/search?track_name={q(bare)}", True))
+
+    def off(hit):
+        return abs(float(hit.get("duration") or 0) - float(length))
+
+    def near(hit):
+        # a sped-up or slowed version runs somewhere between 0.6 and 1.6 times as long
+        if timed:
+            return off(hit) <= 3
+        return 0.6 <= float(length) / float(hit.get("duration") or 1e9) <= 1.6
+
+    found, failed = None, False
+    for url, strict in urls:
         try:
             req = urllib.request.Request(url, headers={"User-Agent": "yoru (a quickshell rice)"})
             with urllib.request.urlopen(req, timeout=8) as r:
                 d = json.loads(r.read())
-        except Exception:
+        except urllib.error.HTTPError as e:
+            # 404 is lrclib's "not found", an answer; 429 and 5xx mean it's busy
+            failed |= e.code == 429 or e.code >= 500
             continue
-        for hit in (d if isinstance(d, list) else [d]):
-            if hit and hit.get("syncedLyrics"):
-                found = hit
-                break
-        if found:
+        except Exception:
+            failed = True
+            continue
+        hits = [h for h in (d if isinstance(d, list) else [d]) if h and h.get("syncedLyrics")]
+        if timed:
+            # the same song in another edit or another language runs longer or shorter
+            hits.sort(key=off)
+        if strict:
+            hits = [h for h in hits if near(h)]
+        if hits:
+            found = hits[0]
             break
+    if not found and failed:
+        return None
     lines = lrc(found["syncedLyrics"]) if found else []
     if lines and fast and length and found.get("duration"):
         k = float(length) / float(found["duration"])
