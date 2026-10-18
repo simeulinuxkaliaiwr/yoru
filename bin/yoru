@@ -1147,18 +1147,34 @@ def lyrics(title, artist, length):
             return off(hit) <= 3
         return 0.6 <= float(length) / float(hit.get("duration") or 1e9) <= 1.6
 
+    def ask(url):
+        """lrclib's answer, None for "not found", or "busy" (429, 5xx, no network): asked twice"""
+        for attempt in range(2):
+            try:
+                req = urllib.request.Request(url, headers={"User-Agent": "yoru (a quickshell rice)"})
+                with urllib.request.urlopen(req, timeout=8) as r:
+                    return json.loads(r.read())
+            except urllib.error.HTTPError as e:
+                if e.code == 404:
+                    return None
+            except Exception:
+                pass
+            if not attempt:
+                time.sleep(1.5)
+        return "busy"
+
     found, failed = None, False
     for url, strict in urls:
-        try:
-            req = urllib.request.Request(url, headers={"User-Agent": "yoru (a quickshell rice)"})
-            with urllib.request.urlopen(req, timeout=8) as r:
-                d = json.loads(r.read())
-        except urllib.error.HTTPError as e:
-            # 404 is lrclib's "not found", an answer; 429 and 5xx mean it's busy
-            failed |= e.code == 429 or e.code >= 500
-            continue
-        except Exception:
+        # the title alone can find another artist's song of the same name and length
+        # ("Call Me Up": K-391's and Patrick Baker's), so it's only asked once the
+        # better questions have really been answered "no"
+        if strict and failed:
+            break
+        d = ask(url)
+        if d == "busy":
             failed = True
+            continue
+        if d is None:
             continue
         hits = [h for h in (d if isinstance(d, list) else [d]) if h and h.get("syncedLyrics")]
         if timed:
