@@ -125,7 +125,9 @@ Singleton {
     // where the video is; paused, the colours stay where the video stopped
     property var timeline: []
     property real videoPos: 0           // seconds, from Wallpaper
+    // (only while the shell plays it: skwd's player doesn't say where it is)
     readonly property bool videoOn: Config.o.wallpaper.liveColours && video && timeline.length > 1
+                                    && Config.o.wallpaper.backend !== "skwd"
     readonly property int step: {
         if (!videoOn) return -1;
         let i = 0;

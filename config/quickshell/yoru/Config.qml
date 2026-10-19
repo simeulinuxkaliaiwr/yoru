@@ -35,6 +35,10 @@ Singleton {
             }
 
             property JsonObject wallpaper: JsonObject {
+                // what draws it: yoru (the shell: its transitions, parallax and sky) or skwd
+                // (skwd-wall v2's daemon; yoru still takes the colours). Change it with
+                // `yoru backend NAME`, which also starts or stops skwd's daemon
+                property string backend: "yoru"
                 // ripple, fade, wipe, disc, stripes, zoom, honeycomb, pixelate, or random
                 property string transition: "random"
                 property list<string> pool: ["ripple", "fade", "wipe", "disc", "stripes", "zoom", "honeycomb", "pixelate"]

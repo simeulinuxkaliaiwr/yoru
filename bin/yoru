@@ -19,6 +19,9 @@
     yoru mode [NAME|off]    a mode: a whole look from a folder instead of the wallpaper's palette
                             (its colours, type, shapes, wallpapers, cursor; see "Modes" below).
                             No argument: the modes there are, as JSON
+    yoru backend [yoru|skwd]   what draws the wallpaper: the shell itself, or skwd-wall v2's
+                            daemon (skwd-walld; yoru still takes the colours, and follows what
+                            skwd's own picker applies). No argument: the current one
 
 Modes: a folder with a mode.json, named by its folder in ~/.config/yoru/modes/
 (a link to it is enough) or given by path. mode.json holds "palette" (Material
@@ -114,6 +117,7 @@ def state():
         s["timeDirs"] = cfg.get("wallpaper", {}).get("timeDirs") or {}
         s["online"] = cfg.get("wallpaper", {}).get("online") or {}
         s["mode"] = cfg.get("appearance", {}).get("mode") or ""
+        s["backend"] = cfg.get("wallpaper", {}).get("backend") or "yoru"
     except (OSError, ValueError):
         pass
     m = mode(s)
@@ -969,9 +973,111 @@ def dark(c=None):
 
 
 def wallpaper(s):
-    # the shell draws the wallpaper; aropaper would only sit underneath it
+    # the shell or skwd draws the wallpaper; aropaper would only sit underneath it
     if compositor() == "aro":
         sh("aroctl", "wallpaper", "none")
+    if s.get("backend") == "skwd":
+        skwd_apply(s["wallpaper"])
+
+
+# skwd-wall v2 as the wallpaper backend: its daemon (skwd-walld) draws the wallpaper
+# and yoru keeps the colours. skwd-helm talks to the daemon; it exits 3 when none runs
+SKWD_CONF = CONF / "skwd-wall-v2/config.json"
+# skwd's settings that would fight yoru's: its own palette for the apps (yoru's
+# stays: "Keep current colours"), a notification on every change, and a layer
+# above yoru's widgets
+SKWD_SETTINGS = {"theme": {"policy": "off"}, "general": {"notifyOnWallpaperChange": False},
+                 "paper": {"wallpaperLayer": "background"}}
+
+
+def skwd_ok():
+    return shutil.which("skwd-helm") is not None and shutil.which("skwd-walld") is not None
+
+
+def skwd_helm(*args):
+    try:
+        return subprocess.run(["skwd-helm", *args], capture_output=True, text=True, timeout=20)
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+
+
+def skwd_setup():
+    try:
+        cfg = json.loads(SKWD_CONF.read_text())
+    except (OSError, ValueError):
+        cfg = {}
+    old = json.dumps(cfg, sort_keys=True)
+    for part, values in SKWD_SETTINGS.items():
+        cfg.setdefault(part, {}).update(values)
+    if json.dumps(cfg, sort_keys=True) != old:
+        write(SKWD_CONF, json.dumps(cfg, indent=2) + "\n")
+        SKWD_CONF.chmod(0o600)
+
+
+def skwd_up():
+    """the daemon running, started from here rather than as its user service: it then
+    draws on this session's display. systemd's copy of WAYLAND_DISPLAY is whatever the
+    last compositor to start put there (a nested or test one too), and skwd's renderers
+    on a display that's gone fail with 'wayland setup'"""
+    r = skwd_helm("current")
+    if r and r.returncode != 3:
+        return True
+    if not os.environ.get("WAYLAND_DISPLAY"):
+        return False
+    subprocess.Popen(["skwd-walld", "--wait-for-session"], stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+                     stderr=subprocess.DEVNULL, start_new_session=True)
+    import time
+    for _ in range(50):
+        time.sleep(0.2)
+        r = skwd_helm("current")
+        if r and r.returncode != 3:
+            return True
+    return False
+
+
+def skwd_down():
+    # its renderers go with it (and the user service, if it was started that way)
+    sh("systemctl", "--user", "stop", "skwd-walld.service")
+    sh("pkill", "-x", "skwd-walld")
+
+
+def skwd_apply(f):
+    """f on every screen, unless skwd already shows it there (it picked it itself)"""
+    if not Path(f).is_file():
+        return
+    if not skwd_ok() or not skwd_up():
+        print("yoru: skwd-wall's daemon isn't running (is skwd-wall-v2 installed?)", file=sys.stderr)
+        return
+    r = skwd_helm("current", "--json")
+    try:
+        shown = [o.get("path") or "" for o in json.loads(r.stdout).get("outputs", []) if o.get("connected", True)]
+    except (AttributeError, ValueError):
+        shown = []
+    if shown and all(p and Path(p).resolve() == Path(f).resolve() for p in shown):
+        return
+    skwd_helm("apply", f)
+
+
+def set_backend(s, name):
+    if name not in ("yoru", "skwd"):
+        print("yoru: the backend is yoru or skwd", file=sys.stderr)
+        return 2
+    if name == "skwd" and not skwd_ok():
+        print("yoru: skwd-wall v2 isn't installed (skwd-wall-v2 and skwd-deck, from the AUR)", file=sys.stderr)
+        return 1
+    try:
+        cfg = json.loads(SETTINGS.read_text())
+    except (OSError, ValueError):
+        cfg = {}
+    cfg.setdefault("wallpaper", {})["backend"] = name
+    write(SETTINGS, json.dumps(cfg, indent=4) + "\n")
+    s["backend"] = name
+    if name == "skwd":
+        skwd_setup()
+        wallpaper(s)
+    else:
+        skwd_down()
+    return 0
 
 
 def night_sky(out):
@@ -1296,6 +1402,11 @@ def main():
     elif cmd == "restore":
         apply(s, apps=False)
         wallpaper(s)
+    elif cmd == "backend":
+        if len(args) < 2:
+            print(s["backend"])
+        else:
+            return set_backend(s, args[1])
     elif cmd == "status":
         print(s["wallpaper"])
     elif cmd == "mode":

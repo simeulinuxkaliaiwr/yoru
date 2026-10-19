@@ -7,8 +7,48 @@ import qs.parts
 Column {
     spacing: 14
     readonly property var c: Config.o.wallpaper
+    readonly property bool skwd: c.backend === "skwd"
 
     Section {
+        icon: "brush"; title: "Drawn by"
+        SetRow {
+            icon: "layers"; label: "Wallpaper backend"
+            hint: backend.error !== "" ? backend.error
+                : skwd ? "skwd-wall v2 draws it, with its own transitions; yoru still takes its colours, and follows what you pick in skwd's picker"
+                : "yoru draws it itself: transitions, parallax and the sky"
+        }
+        Choice {
+            x: 10; width: parent.width - 20
+            options: [
+                { value: "yoru", label: "yoru", icon: "nights_stay" },
+                { value: "skwd", label: "skwd-wall", icon: "view_carousel" }
+            ]
+            current: c.backend
+            // the engine writes the setting once skwd's daemon is set up (or stopped)
+            onPicked: v => {
+                if (v === c.backend || backend.running)
+                    return;
+                backend.error = "";
+                backend.command = ["yoru", "backend", v];
+                backend.running = true;
+            }
+        }
+        SetRow {
+            visible: skwd
+            icon: "photo_library"; label: "skwd-wall's picker"; hint: "Its slices, hexes and library; what you pick there re-themes yoru too"
+            Btn { icon: "open_in_new"; label: "Open"; onClicked: Quickshell.execDetached(["skwd-wall-v2"]) }
+        }
+        Item { width: 1; height: 8 }
+
+        Process {
+            id: backend
+            property string error: ""
+            stderr: StdioCollector { onStreamFinished: if (text.trim() !== "") backend.error = text.trim().split("\n")[0].replace(/^yoru: /, "") }
+        }
+    }
+
+    Section {
+        visible: !skwd
         icon: "animation"; title: "Transitions"
         SetRow {
             icon: "timer"; label: "Duration"
@@ -78,6 +118,7 @@ Column {
     }
 
     Section {
+        visible: !skwd
         icon: "weather_snowy"; title: "Sky"
         SetRow { icon: "cloud"; label: "Over the wallpaper"; hint: "Weather follows the sky outside, with an aurora on clear nights" }
         Choice {
@@ -104,14 +145,17 @@ Column {
     Section {
         icon: "wallpaper"; title: "Behaviour"
         SetRow {
+            visible: !skwd
             icon: "3d_rotation"; label: "Parallax"; hint: "The wallpaper drifts as you move between workspaces"
             Toggle { checked: c.parallax; onToggled: on => c.parallax = on }
         }
         SetRow {
+            visible: !skwd
             icon: "motion_photos_on"; label: "Colours follow the video"; hint: "The island and widgets drift with a live wallpaper's scenes"
             Toggle { checked: c.liveColours; onToggled: on => c.liveColours = on }
         }
         SetRow {
+            visible: !skwd
             icon: "pause_circle"; label: "Pause videos under windows"; hint: "Saves battery: off keeps live wallpapers playing behind your windows"
             Toggle { checked: c.pauseCovered; onToggled: on => c.pauseCovered = on }
         }

@@ -24,6 +24,12 @@ and power menu. Also in notifications pop-ups, brightness and volume. **Control 
 Drawn by the shell: it drifts with the workspaces (parallax, optional), plays videos
 (paused while windows cover it, you can disable this).
 
+Or let [skwd-wall v2](https://github.com/liixini/skwd-wall) draw it: pick "skwd-wall" under
+Settings → Wallpaper → Drawn by (or run `yoru backend skwd`). Its daemon then shows the
+wallpaper with its own transitions and players, and yoru keeps taking the colors, also from
+whatever you pick in skwd's own picker. yoru's transitions, parallax and weather rest meanwhile.
+Needs `skwd-wall-v2-bin` and `skwd-deck-bin` (AUR); `yoru backend yoru` goes back.
+
 ### Colors from the wallpaper
 
 When you set a wallpaper, yoru get its colors, and apply them to the shell, and to your apps. When it's a video wallpaper, the colors change live (the shell, not GTK apps and etc).

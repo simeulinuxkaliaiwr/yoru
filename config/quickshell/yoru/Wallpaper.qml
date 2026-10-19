@@ -1,11 +1,14 @@
 import Quickshell
+import Quickshell.Io
 import Quickshell.Wayland
 import QtQuick
 import QtMultimedia
 
 // the wallpaper, drawn by the shell so it can move: it drifts with the
 // workspaces (parallax), plays videos (paused while windows cover it), and a
-// new one ripples out of the island instead of just appearing
+// new one ripples out of the island instead of just appearing. With
+// wallpaper.backend "skwd", skwd-wall v2 draws it instead and yoru only follows
+// what it applies, for the colours
 Scope {
     id: root
 
@@ -83,7 +86,7 @@ Scope {
     property int sky: 0
     property real skyFade: 0
     onSkyWantChanged: skySwap.restart()
-    Component.onCompleted: skySwap.restart()
+    Component.onCompleted: { skySwap.restart(); skwdWatch.running = skwd; }
     SequentialAnimation {
         id: skySwap
         NumberAnimation { target: root; property: "skyFade"; to: 0; duration: root.sky > 0 ? 1500 : 0; easing.type: Easing.InOutSine }
@@ -91,8 +94,33 @@ Scope {
         NumberAnimation { target: root; property: "skyFade"; to: 1; duration: 3000; easing.type: Easing.InOutSine }
     }
 
+    // skwd draws the wallpaper: a wallpaper picked in its own picker becomes
+    // yoru's too (palette, apps). One yoru picked comes back here as well, and
+    // stops there: it's already Theme.wallpaper, or skwd already shows it
+    readonly property bool skwd: Config.o.wallpaper.backend === "skwd"
+    // set by hand, not bound: the retry below would break a binding
+    onSkwdChanged: skwdWatch.running = skwd
+    Process {
+        id: skwdWatch
+        command: ["skwd-helm", "watch"]
+        stdout: SplitParser {
+            onRead: line => {
+                let e;
+                try { e = JSON.parse(line); } catch (err) { return; }
+                const d = e.data ?? {};
+                // Wallpaper Engine scenes aren't a picture yoru can read colours from
+                if (e.event === "skwd.wall.applied" && (d.type === "static" || d.type === "video")
+                        && d.path && d.path !== Theme.wallpaper)
+                    Quickshell.execDetached(["yoru", "wall", d.path]);
+            }
+        }
+        // the daemon isn't up yet, or went away: try again
+        onExited: if (root.skwd) skwdAgain.restart()
+    }
+    Timer { id: skwdAgain; interval: 3000; onTriggered: if (root.skwd) skwdWatch.running = true }
+
     Variants {
-        model: Quickshell.screens
+        model: root.skwd ? [] : Quickshell.screens
 
         PanelWindow {
             id: win
