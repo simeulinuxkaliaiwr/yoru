@@ -27,7 +27,10 @@ Drawn by the shell: it drifts with the workspaces (parallax, optional), plays vi
 Or let [skwd-wall v2](https://github.com/liixini/skwd-wall) draw it: pick "skwd-wall" under
 Settings → Wallpaper → Drawn by (or run `yoru backend skwd`). Its daemon then shows the
 wallpaper with its own transitions and players, and yoru keeps taking the colors, also from
-whatever you pick in skwd's own picker. yoru's transitions, parallax and weather rest meanwhile.
+whatever you pick in skwd's own picker (Wallpaper Engine scenes included). yoru's weather still
+falls over it, and yoru pauses skwd's videos under your windows. The same settings page has
+skwd's transitions (with its sand ones), video sound, battery saver and idle pause, whether
+mod+w opens yoru's picker or skwd's, and buttons for skwd's picker, mixer and settings.
 Needs `skwd-wall-v2-bin` and `skwd-deck-bin` (AUR); `yoru backend yoru` goes back.
 
 ### Colors from the wallpaper

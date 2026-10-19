@@ -39,6 +39,8 @@ Singleton {
                 // (skwd-wall v2's daemon; yoru still takes the colours). Change it with
                 // `yoru backend NAME`, which also starts or stops skwd's daemon
                 property string backend: "yoru"
+                // with skwd drawing it, what mod+w opens: yoru (the island's picker) or skwd (skwd-wall's own)
+                property string picker: "yoru"
                 // ripple, fade, wipe, disc, stripes, zoom, honeycomb, pixelate, or random
                 property string transition: "random"
                 property list<string> pool: ["ripple", "fade", "wipe", "disc", "stripes", "zoom", "honeycomb", "pixelate"]

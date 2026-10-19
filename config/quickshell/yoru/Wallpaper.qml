@@ -96,10 +96,10 @@ Scope {
 
     // skwd draws the wallpaper: a wallpaper picked in its own picker becomes
     // yoru's too (palette, apps). One yoru picked comes back here as well, and
-    // stops there: it's already Theme.wallpaper, or skwd already shows it
+    // stops in `yoru skwd follow`: it's already yoru's wallpaper
     readonly property bool skwd: Config.o.wallpaper.backend === "skwd"
     // set by hand, not bound: the retry below would break a binding
-    onSkwdChanged: skwdWatch.running = skwd
+    onSkwdChanged: { skwdWatch.running = skwd; skwdPaused = false; }
     Process {
         id: skwdWatch
         command: ["skwd-helm", "watch"]
@@ -108,16 +108,34 @@ Scope {
                 let e;
                 try { e = JSON.parse(line); } catch (err) { return; }
                 const d = e.data ?? {};
-                // Wallpaper Engine scenes aren't a picture yoru can read colours from
-                if (e.event === "skwd.wall.applied" && (d.type === "static" || d.type === "video")
-                        && d.path && d.path !== Theme.wallpaper)
-                    Quickshell.execDetached(["yoru", "wall", d.path]);
+                // a Wallpaper Engine scene's colours come from skwd's thumbnail of it
+                if (e.event === "skwd.wall.applied" && ["static", "video", "we"].includes(d.type)
+                        && (d.path || d.type === "we") && d.path !== Theme.wallpaper)
+                    Quickshell.execDetached(["yoru", "skwd", "follow", d.type, d.path ?? ""]);
             }
         }
         // the daemon isn't up yet, or went away: try again
         onExited: if (root.skwd) skwdAgain.restart()
     }
     Timer { id: skwdAgain; interval: 3000; onTriggered: if (root.skwd) skwdWatch.running = true }
+
+    // skwd's own pause rules need the compositor to report fullscreen or maximised
+    // windows (aro's tiles are neither): yoru knows when windows cover the screens,
+    // so it pauses skwd's videos itself, once every screen is covered. It resumes
+    // only what it paused, after a moment, so moving between windows doesn't stutter
+    readonly property bool skwdCovered: skwd && Config.o.wallpaper.pauseCovered && Quickshell.screens.length > 0
+        && Quickshell.screens.every(sc => Wm.busy(sc.name) || Wm.fullscreen(sc.name))
+    property bool skwdPaused: false
+    onSkwdCoveredChanged: skwdPause.restart()
+    Timer {
+        id: skwdPause
+        interval: root.skwdCovered ? 400 : 250
+        onTriggered: {
+            if (root.skwdCovered === root.skwdPaused) return;
+            root.skwdPaused = root.skwdCovered;
+            Quickshell.execDetached(["skwd-helm", root.skwdPaused ? "pause" : "resume"]);
+        }
+    }
 
     Variants {
         model: root.skwd ? [] : Quickshell.screens
@@ -271,6 +289,28 @@ Scope {
                     fragmentShader: Qt.resolvedUrl("shaders/reveal.frag.qsb")
                 }
             }
+        }
+    }
+
+    // the sky and the shade under the island and the clock, over whichever picture
+    // (yoru's or skwd's), in a see-through window of their own. It's in the Bottom
+    // layer, under the widgets because it maps first and stays: skwd makes new
+    // surfaces in the Background layer as it changes wallpapers, which would cover
+    // anything there, and switching backends doesn't remake this window
+    Variants {
+        model: Quickshell.screens
+
+        PanelWindow {
+            id: sky
+            required property var modelData
+            screen: modelData
+            color: "transparent"
+            anchors { top: true; bottom: true; left: true; right: true }
+            exclusionMode: ExclusionMode.Ignore
+            WlrLayershell.layer: WlrLayer.Bottom
+            WlrLayershell.namespace: "yoru-sky"
+            WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
+            mask: Region {}
 
             // the sky over the picture, drawn at half size and 30 frames a second
             // (it's soft anyway; full size at 60 kept the GPU 30% busy), and
@@ -283,13 +323,13 @@ Scope {
                 layer.enabled: visible
                 layer.textureSize: Qt.size(Math.ceil(width / 2), Math.ceil(height / 2))
                 layer.smooth: true
-                readonly property bool hidden: Wm.busy(win.modelData.name) || Wm.fullscreen(win.modelData.name)
+                readonly property bool hidden: Wm.busy(sky.modelData.name) || Wm.fullscreen(sky.modelData.name)
                 // seconds since it started, from the clock, so a late tick doesn't slow it
                 property real t0: Date.now()
                 function deep(c: color): color { return Qt.hsla(c.hslHue, Math.max(c.hslSaturation, 0.75), 0.55, 1); }
                 Timer {
                     interval: 33; repeat: true
-                    running: skyBox.visible && (!skyBox.hidden || win.moving)
+                    running: skyBox.visible && !skyBox.hidden
                     // wrapped well before a float loses the fractions of a second
                     onTriggered: skyFx.time = ((Date.now() - skyBox.t0) / 1000) % 20000
                 }

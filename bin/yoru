@@ -22,6 +22,9 @@
     yoru backend [yoru|skwd]   what draws the wallpaper: the shell itself, or skwd-wall v2's
                             daemon (skwd-walld; yoru still takes the colours, and follows what
                             skwd's own picker applies). No argument: the current one
+    yoru skwd get           skwd-wall's settings yoru shows (transition, sound, power, rotation), as JSON
+    yoru skwd set PATH VALUE [PATH VALUE…]   skwd's settings (dotted paths in its config.json; VALUE as JSON)
+    yoru skwd follow TYPE PATH   take the colours of what skwd just applied (the shell runs this)
 
 Modes: a folder with a mode.json, named by its folder in ~/.config/yoru/modes/
 (a link to it is enough) or given by path. mode.json holds "palette" (Material
@@ -976,7 +979,8 @@ def wallpaper(s):
     # the shell or skwd draws the wallpaper; aropaper would only sit underneath it
     if compositor() == "aro":
         sh("aroctl", "wallpaper", "none")
-    if s.get("backend") == "skwd":
+    # (`yoru wall` sends it to skwd first, and what skwd picked itself is there already)
+    if s.get("backend") == "skwd" and not s.get("skwd_has"):
         skwd_apply(s["wallpaper"])
 
 
@@ -1041,8 +1045,9 @@ def skwd_down():
     sh("pkill", "-x", "skwd-walld")
 
 
-def skwd_apply(f):
-    """f on every screen, unless skwd already shows it there (it picked it itself)"""
+def skwd_apply(f, wait=True):
+    """f on every screen, unless skwd already shows it there (it picked it itself).
+    Not waiting: skwd's transition runs while yoru works out the colours"""
     if not Path(f).is_file():
         return
     if not skwd_ok() or not skwd_up():
@@ -1055,7 +1060,83 @@ def skwd_apply(f):
         shown = []
     if shown and all(p and Path(p).resolve() == Path(f).resolve() for p in shown):
         return
-    skwd_helm("apply", f)
+    if wait:
+        skwd_helm("apply", f)
+    else:
+        subprocess.Popen(["skwd-helm", "apply", f], stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+                         stderr=subprocess.DEVNULL, start_new_session=True)
+
+
+def skwd_get():
+    """what the settings window shows of skwd's: its config (None where skwd keeps its
+    own default) and the sound, which the daemon keeps per screen"""
+    try:
+        cfg = json.loads(SKWD_CONF.read_text())
+    except (OSError, ValueError):
+        cfg = {}
+
+    def at(path):
+        v = cfg
+        for k in path.split("."):
+            if not isinstance(v, dict) or k not in v:
+                return None
+            v = v[k]
+        return v
+    out = {"installed": skwd_ok(), "running": False, "mute": True, "volume": 100}
+    for k in ("transition.enabled", "transition.durationMs", "transition.shader", "transition.sandQuality",
+              "general.randomRotate", "general.randomInterval", "schedule.enabled",
+              "performance.batterySaver", "paper.idlePauseSeconds"):
+        out[k] = at(k)
+    r = skwd_helm("outputs", "--json") if out["installed"] else None
+    if r and r.returncode == 0:
+        out["running"] = True
+        try:
+            o = (json.loads(r.stdout).get("outputs") or [{}])[0]
+            out["mute"], out["volume"] = bool(o.get("mute", True)), int(o.get("volume", 100))
+        except (ValueError, TypeError, AttributeError):
+            pass
+    return out
+
+
+def skwd_set(pairs):
+    """settings, written the way skwd's own picker writes them (dotted paths into
+    nested JSON), all at once; the daemon follows its config file"""
+    try:
+        cfg = json.loads(SKWD_CONF.read_text())
+    except (OSError, ValueError):
+        cfg = {}
+    for path, value in pairs:
+        try:
+            v = json.loads(value)
+        except ValueError:
+            v = value
+        *parents, last = path.split(".")
+        node = cfg
+        for k in parents:
+            if not isinstance(node.get(k), dict):
+                node[k] = {}
+            node = node[k]
+        node[last] = v
+    write(SKWD_CONF, json.dumps(cfg, indent=2) + "\n")
+    SKWD_CONF.chmod(0o600)
+
+
+SKWD_CACHE = HOME / ".cache/skwd-wall-v2"
+
+
+def skwd_scene_still(path):
+    """a Wallpaper Engine scene has no picture yoru can read: skwd's thumbnail of it"""
+    try:
+        last = json.loads((SKWD_CACHE / "last-wallpaper.json").read_text())
+        if last.get("thumb") and Path(last["thumb"]).is_file() and (last.get("path") == path or not path):
+            return last["thumb"]
+    except (OSError, ValueError):
+        pass
+    name = Path(path).name if path else ""
+    for d in ("we-thumbs", "thumbs"):
+        for f in sorted((SKWD_CACHE / d).glob(f"*{name}*")) if name else []:
+            return str(f)
+    return ""
 
 
 def set_backend(s, name):
@@ -1344,6 +1425,9 @@ def main():
     if cmd == "apply":
         apply(s)
     elif cmd == "wall" and len(args) > 1:
+        # from the shell, for what skwd applied itself: only the colours are left to do
+        s["skwd_has"] = "--from-skwd" in args
+        args = [a for a in args if a != "--from-skwd"]
         target = args[1]
         if target == "time" and len(args) > 2:
             fits = walls_for(s, args[2])
@@ -1382,6 +1466,9 @@ def main():
             return 1
         s["wallpaper"] = target
         save_state(s)
+        if s["backend"] == "skwd" and not s["skwd_has"]:
+            skwd_apply(target, wait=False)
+            s["skwd_has"] = True
         apply(s)
     elif cmd == "walls":
         print(json.dumps([{"path": f, "thumb": thumb(f), "video": is_video(f), "name": Path(f).stem}
@@ -1402,6 +1489,26 @@ def main():
     elif cmd == "restore":
         apply(s, apps=False)
         wallpaper(s)
+    elif cmd == "skwd" and len(args) > 1:
+        if args[1] == "get":
+            print(json.dumps(skwd_get()))
+        elif args[1] == "set" and len(args) > 3 and len(args) % 2 == 0:
+            skwd_set(list(zip(args[2::2], args[3::2])))
+        elif args[1] == "follow" and len(args) > 3:
+            kind, path = args[2], args[3]
+            f = skwd_scene_still(path) if kind == "we" else path
+            if not f or not Path(f).is_file():
+                return 1
+            # one yoru sent there itself comes back as an event too: already done
+            if str(Path(f).resolve()) == s["wallpaper"]:
+                return 0
+            s["wallpaper"] = str(Path(f).resolve())
+            s["skwd_has"] = True
+            save_state(s)
+            apply(s)
+        else:
+            print(__doc__.strip(), file=sys.stderr)
+            return 2
     elif cmd == "backend":
         if len(args) < 2:
             print(s["backend"])

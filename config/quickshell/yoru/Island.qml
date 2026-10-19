@@ -25,6 +25,13 @@ Scope {
     readonly property bool opened: modal.includes(mode)
 
     function open(m, out) {
+        // skwd-wall's own picker instead, if the settings ask for it: shown or hidden
+        // if it's already running, started otherwise
+        if (m === "walls" && Config.o.wallpaper.backend === "skwd" && Config.o.wallpaper.picker === "skwd") {
+            if (mode !== "idle") close();
+            Quickshell.execDetached(["sh", "-c", "skwd-helm ui toggle >/dev/null 2>&1 || exec skwd-wall-v2"]);
+            return;
+        }
         out = out || Wm.focusedOutput || Quickshell.screens[0]?.name;
         if (mode === m && output === out) { close(); return; }
         output = out;
