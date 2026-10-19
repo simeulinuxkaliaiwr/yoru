@@ -1023,6 +1023,8 @@ def skwd_up():
     draws on this session's display. systemd's copy of WAYLAND_DISPLAY is whatever the
     last compositor to start put there (a nested or test one too), and skwd's renderers
     on a display that's gone fail with 'wayland setup'"""
+    if skwd_stale():
+        skwd_down()
     r = skwd_helm("current")
     if r and r.returncode != 3:
         return True
@@ -1035,6 +1037,21 @@ def skwd_up():
         time.sleep(0.2)
         r = skwd_helm("current")
         if r and r.returncode != 3:
+            return True
+    return False
+
+
+def skwd_stale():
+    """this session's daemon still running a program an update has since replaced:
+    it keeps the old code until restarted (beta.17's drew transitions over the widgets)"""
+    run = os.environ.get("XDG_RUNTIME_DIR", "")
+    for pid in subprocess.run(["pgrep", "-x", "skwd-walld"], capture_output=True, text=True).stdout.split():
+        try:
+            exe = os.readlink(f"/proc/{pid}/exe")
+            env = Path(f"/proc/{pid}/environ").read_bytes().split(b"\0")
+        except OSError:
+            continue
+        if exe.endswith(" (deleted)") and f"XDG_RUNTIME_DIR={run}".encode() in env:
             return True
     return False
 
