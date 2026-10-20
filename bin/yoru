@@ -271,12 +271,46 @@ def walls_json(s):
     except (OSError, ValueError):
         cache = {}
     out = []
-    for f in walls(s):
+    for f, folder in walls_tree(s):
         t = thumb(f)
         out.append(dict(colours(t, cache), path=f, thumb=t, video=is_video(f), name=Path(f).stem,
-                        added=int(Path(f).stat().st_mtime)))
+                        added=int(Path(f).stat().st_mtime), dir=folder))
     write(path, json.dumps(cache))
     return out
+
+
+def walls_tree(s, depth=4):
+    """every wallpaper in the folders and the folders inside them, with the folder it's
+    in (relative, "" for the top). Only the picker looks this deep: rotation, next and
+    random keep to the top, so a folder of rejects never comes round by itself"""
+    found, found_paths, seen = [], set(), set()
+
+    def walk(d, rel, left):
+        try:
+            real = d.resolve()
+            entries = sorted(d.iterdir(), key=lambda p: p.name.lower())
+        except OSError:
+            return
+        if real in seen:
+            return
+        seen.add(real)
+        for f in entries:
+            if f.name.startswith("."):
+                continue
+            if f.is_dir():
+                if left:
+                    walk(f, f"{rel}/{f.name}" if rel else f.name, left - 1)
+            elif f.is_file() and f.suffix.lower() in IMAGES | VIDEOS:
+                p = str(f.resolve())
+                if p not in found_paths:
+                    found_paths.add(p)
+                    found.append((p, rel))
+
+    for d in s["dirs"]:
+        d = Path(os.path.expanduser(d))
+        if d.is_dir():
+            walk(d, "", depth)
+    return found
 
 
 def walls(s):

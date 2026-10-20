@@ -8,6 +8,9 @@ import qs.parts
 // the wallpaper picker: a grid of nights; picking one re-themes everything.
 // Type to search: names, and words like blue, dark or live (most walls are
 // called wallhaven-xxxxxx, so colour is what finds one); the chips do the same.
+// Folders inside the wallpaper folders come first as cards: open one to see
+// what's in it, Backspace (or the arrow) to go back up. A search looks in the
+// open folder and every folder below it.
 Item {
     id: v
     required property var isle
@@ -19,6 +22,9 @@ Item {
     property string kind: "all"        // all | still | live
     property string colour: ""         // one of hues' names, dark, light, or ""
     property string sort: "name"       // name | new | light
+    property string folder: ""         // the open folder, relative ("" the top)
+    readonly property bool filtering: query.trim() !== "" || kind !== "all" || colour !== ""
+    function inside(w) { return folder === "" || w.dir === folder || w.dir.startsWith(folder + "/"); }
 
     readonly property int cols: Math.max(3, Math.floor((width - 24) / 236))
     readonly property int rows: 3
@@ -43,19 +49,41 @@ Item {
     }
     readonly property var items: {
         const terms = query.trim().toLowerCase().split(/\s+/).filter(t => t !== "");
-        const found = walls.filter(w => (kind === "all" || (kind === "live") === w.video)
+        const found = walls.filter(w => (filtering ? inside(w) : w.dir === folder)
+            && (kind === "all" || (kind === "live") === w.video)
             && (colour === "" || fits(w, colour))
             && terms.every(t => words(w).includes(t)));
         if (sort === "new") found.sort((a, b) => b.added - a.added);
         else if (sort === "light") found.sort((a, b) => a.light - b.light);
         return found;
     }
+    // the folders right inside the open one, each with a few of its pictures
+    readonly property var folders: {
+        if (filtering) return [];
+        const by = {};
+        for (const w of walls) {
+            if (!inside(w) || w.dir === folder) continue;
+            const name = w.dir.slice(folder === "" ? 0 : folder.length + 1).split("/")[0];
+            const f = by[name] ?? (by[name] = { isFolder: true, name: name, rel: folder === "" ? name : folder + "/" + name, count: 0, thumbs: [] });
+            f.count++;
+            if (f.thumbs.length < 4 && w.thumb) f.thumbs.push(w.thumb);
+        }
+        return Object.keys(by).sort((a, b) => a.toLowerCase() < b.toLowerCase() ? -1 : 1).map(k => by[k]);
+    }
+    readonly property var entries: folders.concat(items)
+    function open(rel) { picked = ""; folder = rel; }
+    function up() {
+        if (folder === "") return;
+        const was = folder;
+        folder = folder.includes("/") ? folder.slice(0, folder.lastIndexOf("/")) : "";
+        picked = was;               // back on the folder you came out of
+    }
     // keep the same wallpaper selected while the filter narrows around it
     property string picked: ""
     // (a tick later: the grid takes its new model after this and starts over at 0)
-    onItemsChanged: Qt.callLater(reselect)
+    onEntriesChanged: Qt.callLater(reselect)
     function reselect() {
-        const i = items.findIndex(w => w.path === picked);
+        const i = entries.findIndex(w => (w.isFolder ? w.rel : w.path) === picked);
         grid.currentIndex = i >= 0 ? i : 0;
         grid.positionViewAtIndex(grid.currentIndex, GridView.Contain);
     }
@@ -67,7 +95,11 @@ Item {
 
     function key(e) {
         const n = grid.count;
-        const step = d => { grid.currentIndex = Math.max(0, Math.min(n - 1, grid.currentIndex + d)); picked = items[grid.currentIndex]?.path ?? ""; };
+        const step = d => {
+            grid.currentIndex = Math.max(0, Math.min(n - 1, grid.currentIndex + d));
+            const e = entries[grid.currentIndex];
+            picked = e ? (e.isFolder ? e.rel : e.path) : "";
+        };
         if (e.key === Qt.Key_Left) { step(-1); return true; }
         if (e.key === Qt.Key_Right) { step(1); return true; }
         if (e.key === Qt.Key_Up) { step(-cols); return true; }
@@ -80,9 +112,10 @@ Item {
         if (e.key === Qt.Key_Backtab) { kind = ({ all: "live", live: "still", still: "all" })[kind]; return true; }
         if (e.key === Qt.Key_R && (e.modifiers & Qt.ControlModifier)) { shuffle(); return true; }
         if (e.key === Qt.Key_Return || e.key === Qt.Key_Enter) {
-            if (n > 0) apply(items[grid.currentIndex]);
+            if (n > 0) choose(entries[grid.currentIndex]);
             return true;
         }
+        if (e.key === Qt.Key_Backspace && query === "" && folder !== "") { up(); return true; }
         return false;
     }
 
@@ -93,12 +126,15 @@ Item {
             onStreamFinished: {
                 let ws;
                 try { ws = JSON.parse(this.text); } catch (e) { return; }
+                v.walls = ws.map(w => Object.assign({ colours: [], light: 0.5, added: 0, dir: "" }, w));
+                // open where the wallpaper you have on lives
+                v.folder = v.walls.find(w => w.path === Theme.wallpaper)?.dir ?? "";
                 v.picked = Theme.wallpaper;
-                v.walls = ws.map(w => Object.assign({ colours: [], light: 0.5, added: 0 }, w));
                 v.loading = false;
             }
         }
     }
+    function choose(e) { if (e.isFolder) open(e.rel); else apply(e); }
     function apply(w) {
         picked = w.path;
         Quickshell.execDetached(["yoru", "wall", w.path]);
@@ -108,12 +144,30 @@ Item {
         if (items.length) apply(items[Math.floor(Math.random() * items.length)]);
     }
 
-    Txt { x: 26; y: 20; text: "Wallpapers"; size: 18; weight: Font.DemiBold }
+    Row {
+        x: v.folder !== "" ? 14 : 26; y: 14
+        spacing: 6
+        IconButton {
+            visible: v.folder !== ""
+            anchors.verticalCenter: parent.verticalCenter
+            icon: "arrow_back"; size: 32
+            onClicked: v.up()
+        }
+        Txt {
+            anchors.verticalCenter: parent.verticalCenter
+            height: 32
+            text: v.folder === "" ? "Wallpapers" : v.folder.split("/").join("  ›  ")
+            size: 18; weight: Font.DemiBold
+        }
+    }
     Txt {
         x: 26; y: 44
+        readonly property int here: v.walls.filter(w => v.inside(w)).length
         text: v.loading ? "Making thumbnails…"
-            : v.items.length === v.walls.length ? v.walls.length + " nights  ·  type to search, Tab for live ones, Enter to pick"
-            : v.items.length + " of " + v.walls.length + "  ·  Ctrl+R picks one of these"
+            : v.filtering ? v.items.length + " of " + here + "  ·  Ctrl+R picks one of these"
+            : v.folder !== "" ? here + " nights  ·  Backspace to go back"
+            : v.items.length + " nights" + (v.folders.length ? " and " + v.folders.length + (v.folders.length === 1 ? " folder" : " folders") : "")
+              + "  ·  type to search, Tab for live ones, Enter to pick"
         size: 12; color: Theme.inkDim
     }
     Row {
@@ -224,7 +278,7 @@ Item {
         cellWidth: v.cellW
         cellHeight: v.cellH
         clip: true
-        model: v.items
+        model: v.entries
         boundsBehavior: Flickable.StopAtBounds
         highlightFollowsCurrentItem: false
         // only what's near the screen is made, however many walls there are
@@ -233,7 +287,8 @@ Item {
             id: card
             required property var modelData
             required property int index
-            readonly property bool current: modelData.path === Theme.wallpaper
+            readonly property bool isFolder: !!modelData.isFolder
+            readonly property bool current: !isFolder && modelData.path === Theme.wallpaper
             readonly property bool sel: GridView.isCurrentItem
             width: v.cellW; height: v.cellH
             ClippingRectangle {
@@ -248,9 +303,55 @@ Item {
                 border.color: card.current ? Theme.primary : Theme.ink
                 Behavior on scale { NumberAnimation { duration: Theme.normal; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.spatial } }
                 Behavior on opacity { NumberAnimation { duration: Theme.fast } }
-                Image {
+                // a folder: up to four of its pictures, side by side
+                Grid {
+                    visible: card.isFolder
                     anchors.fill: parent
-                    source: card.modelData.thumb ? "file://" + card.modelData.thumb : ""
+                    readonly property int n: card.isFolder ? card.modelData.thumbs.length : 0
+                    columns: n > 1 ? 2 : 1
+                    spacing: 2
+                    Repeater {
+                        model: card.isFolder ? card.modelData.thumbs : []
+                        Image {
+                            required property string modelData
+                            required property int index
+                            readonly property int n: parent.n
+                            width: n > 1 ? (frame.width - 2) / 2 : frame.width
+                            height: n > 2 ? (frame.height - 2) / 2 : frame.height
+                            source: "file://" + modelData
+                            fillMode: Image.PreserveAspectCrop
+                            sourceSize: Qt.size(240, 135)
+                            asynchronous: true
+                        }
+                    }
+                }
+                // its name on a band along the bottom, readable over any pictures
+                Rectangle {
+                    visible: card.isFolder
+                    anchors { left: parent.left; right: parent.right; bottom: parent.bottom }
+                    height: 40
+                    color: Theme.alpha(Theme.island, 0.88)
+                    Row {
+                        anchors { left: parent.left; leftMargin: 12; verticalCenter: parent.verticalCenter }
+                        spacing: 8
+                        Icon { anchors.verticalCenter: parent.verticalCenter; name: "folder"; size: 20; fill: 1; color: Theme.primary }
+                        Txt {
+                            anchors.verticalCenter: parent.verticalCenter
+                            width: Math.min(implicitWidth, frame.width - 110)
+                            text: card.isFolder ? card.modelData.name : ""
+                            size: 13; weight: Font.DemiBold
+                        }
+                    }
+                    Txt {
+                        anchors { right: parent.right; rightMargin: 12; verticalCenter: parent.verticalCenter }
+                        text: card.isFolder ? card.modelData.count : ""
+                        size: 12; color: Theme.inkDim
+                    }
+                }
+                Image {
+                    visible: !card.isFolder
+                    anchors.fill: parent
+                    source: !card.isFolder && card.modelData.thumb ? "file://" + card.modelData.thumb : ""
                     fillMode: Image.PreserveAspectCrop
                     sourceSize: Qt.size(320, 180)
                     asynchronous: true
@@ -259,7 +360,7 @@ Item {
                 Rectangle {
                     anchors { left: parent.left; right: parent.right; bottom: parent.bottom }
                     height: 34
-                    visible: card.sel || hover.containsMouse
+                    visible: !card.isFolder && (card.sel || hover.containsMouse)
                     gradient: Gradient {
                         GradientStop { position: 0; color: "transparent" }
                         GradientStop { position: 1; color: Theme.alpha(Theme.island, 0.85) }
@@ -271,7 +372,7 @@ Item {
                     }
                 }
                 Rectangle {
-                    visible: card.modelData.video
+                    visible: !card.isFolder && !!card.modelData.video
                     anchors { left: parent.left; top: parent.top; margins: 8 }
                     width: 56; height: 22; radius: Theme.r(11)
                     color: Theme.alpha(Theme.island, 0.8)
@@ -294,7 +395,7 @@ Item {
                 anchors.fill: parent
                 hoverEnabled: true
                 cursorShape: Qt.PointingHandCursor
-                onClicked: { grid.currentIndex = card.index; v.apply(card.modelData); }
+                onClicked: { grid.currentIndex = card.index; v.choose(card.modelData); }
             }
         }
     }
