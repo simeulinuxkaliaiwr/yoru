@@ -13,6 +13,7 @@ Column {
     readonly property var c: Config.o.start
     readonly property var links: (c.links ?? []).filter(l => l && l.url).slice(0, 9)
     readonly property var engines: [["google", "Google"], ["duckduckgo", "DuckDuckGo"], ["youtube", "YouTube"], ["github", "GitHub"], ["wikipedia", "Wikipedia"]]
+    readonly property var imageEngines: [["lens", "Google Lens"], ["bing", "Bing"], ["saucenao", "SauceNAO"], ["yandex", "Yandex"], ["tineye", "TinEye"], ["tracemoe", "trace.moe"]]
 
     function setLinks(l) { c.links = l; }
     function editLink(i, key, value) {
@@ -147,6 +148,10 @@ Column {
                             anchors { left: chip.right; leftMargin: 24; verticalCenter: parent.verticalCenter }
                             text: "Search, or type an address"; size: 19; color: Theme.inkDim
                         }
+                        Icon {
+                            anchors { right: parent.right; rightMargin: 20; verticalCenter: parent.verticalCenter }
+                            name: "image_search"; size: 26; color: Theme.inkDim
+                        }
                     }
                     // the links: tiles, pills or plain icons
                     Grid {
@@ -196,7 +201,7 @@ Column {
                     visible: page.c.keys
                     x: stage.centred ? (stage.width - width) / 2 : 144
                     y: stage.height - 46
-                    text: (page.links.length ? "Esc then 1–" + page.links.length + " links  ·  " : "") + "/ search  ·  Tab engine"
+                    text: (page.links.length ? "Esc then 1–" + page.links.length + " links  ·  " : "") + "/ search  ·  Tab engine  ·  Ctrl V a picture"
                     size: 14; color: Theme.inkDim; opacity: 0.8
                 }
             }
@@ -231,6 +236,14 @@ Column {
             x: 10; current: page.c.engine
             options: page.engines.map(e => ({ value: e[0], label: e[1] }))
             onPicked: v => page.c.engine = v
+        }
+        Item { width: 1; height: 6 }
+        SetRow { icon: "image_search"; label: "Search pictures with"
+                 hint: "Paste or drop a picture on the page, or press its lens. Yandex, TinEye and trace.moe take only a picture's address" }
+        Choice {
+            x: 10; current: page.c.imageEngine
+            options: page.imageEngines.map(e => ({ value: e[0], label: e[1] }))
+            onPicked: v => page.c.imageEngine = v
         }
         Item { width: 1; height: 6 }
     }

@@ -11,7 +11,7 @@ Scope {
     readonly property string text: "// written by yoru's shell from ~/.config/yoru/config.json (Start page)\nwindow.YORU_START = "
         + JSON.stringify({
             layout: s.layout, greeting: s.greeting, name: s.name, clock: s.clock, seconds: s.seconds,
-            date: s.date, engine: s.engine, links: s.links, blur: s.blur, dim: s.dim, keys: s.keys, focus: s.focus
+            date: s.date, engine: s.engine, imageEngine: s.imageEngine, links: s.links, blur: s.blur, dim: s.dim, keys: s.keys, focus: s.focus
         }, null, 2) + ";\n"
 
     onTextChanged: save.restart()

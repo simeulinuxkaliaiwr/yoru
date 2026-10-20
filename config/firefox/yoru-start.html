@@ -54,6 +54,42 @@ input {
   color: var(--ink); font: 17px "Geist", sans-serif;
 }
 input::placeholder { color: color-mix(in srgb, var(--dim) 70%, transparent); }
+.ms { font: 22px "Material Symbols Rounded"; font-variation-settings: "opsz" 24; line-height: 1; }
+form .round {
+  width: 42px; height: 42px; flex: none; border: 0; border-radius: 21px; cursor: pointer;
+  display: grid; place-items: center; background: transparent; color: var(--dim);
+  transition: transform .3s var(--ease), background .2s, color .2s, border-radius .3s var(--ease);
+}
+form .round:hover, form .round:focus-visible { background: color-mix(in srgb, var(--ink) 10%, transparent); color: var(--ink); outline: 0; }
+form .round:active { transform: scale(.9); }
+#lens.on { background: var(--pc); color: var(--on-pc); border-radius: 14px; }
+#go { background: var(--primary); color: var(--on-primary); }
+#go:hover { background: var(--primary); color: var(--on-primary); border-radius: 14px; }
+/* the picture being searched: a thumbnail before the box */
+#pic {
+  position: relative; width: 42px; height: 42px; flex: none; border-radius: 12px; overflow: hidden;
+  background: var(--mid); animation: pop .45s var(--ease) both;
+}
+#pic img { width: 100%; height: 100%; object-fit: cover; display: block; }
+#pic button {
+  position: absolute; inset: 0; border: 0; cursor: pointer; opacity: 0; color: #fff;
+  background: rgba(0,0,0,.55); display: grid; place-items: center; transition: opacity .2s;
+}
+#pic:hover button, #pic button:focus-visible { opacity: 1; outline: 0; }
+@keyframes pop { from { transform: scale(.4); opacity: 0; } }
+form.nope { animation: nope .4s ease; }
+@keyframes nope { 25% { transform: translateX(-8px); } 50% { transform: translateX(6px); } 75% { transform: translateX(-3px); } }
+/* dragging a picture over the page */
+#drop {
+  position: fixed; inset: 22px; border-radius: 44px; z-index: 5; pointer-events: none;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px;
+  border: 2px dashed color-mix(in srgb, var(--primary) 80%, transparent);
+  background: color-mix(in srgb, var(--low) 55%, transparent); backdrop-filter: blur(10px);
+  color: var(--ink); font-size: 20px; opacity: 0; transform: scale(1.02);
+  transition: opacity .2s, transform .35s var(--ease);
+}
+#drop .ms { font-size: 56px; color: var(--primary); }
+body.dragging #drop { opacity: 1; transform: none; }
 .links { display: flex; gap: 14px; margin-top: 10px; }
 .links a {
   width: 112px; height: 104px; border-radius: 26px; text-decoration: none; color: var(--ink);
@@ -106,18 +142,24 @@ input::placeholder { color: color-mix(in srgb, var(--dim) 70%, transparent); }
   <div class="date rise" id="date"></div>
   <form class="rise" id="search">
     <button type="button" id="engine" title="Switch where you search (Tab)"></button>
+    <div id="pic" hidden><img alt=""><button type="button" class="ms" id="unpic" title="Put it away">close</button></div>
     <input id="q" autocomplete="off" placeholder="Search, or type an address">
+    <button type="button" class="round ms" id="pick" title="Choose a picture" hidden>upload</button>
+    <button type="submit" class="round ms" id="go" title="Search" hidden>arrow_forward</button>
+    <button type="button" class="round ms" id="lens" title="Search by image: paste, drop or choose a picture">image_search</button>
+    <input type="file" id="file" accept="image/*" hidden>
   </form>
   <nav class="links" id="links"></nav>
 </main>
 <div class="keys" id="keys"></div>
+<div id="drop"><span class="ms">image_search</span>Drop it to search by image</div>
 <!-- the settings window's choices (Start page), written by the shell -->
 <script src="yoru-start.js"></script>
 <script>
 const $ = id => document.getElementById(id);
 const S = Object.assign({
   layout: "centre", greeting: true, name: "", clock: true, seconds: false, date: true,
-  engine: "google", blur: 22, dim: 0.45, keys: true, focus: "search",
+  engine: "google", imageEngine: "lens", blur: 22, dim: 0.45, keys: true, focus: "search",
   links: [
     { name: "GitHub", url: "https://github.com" }, { name: "YouTube", url: "https://youtube.com" },
     { name: "Reddit", url: "https://reddit.com" }, { name: "Claude", url: "https://claude.ai" },
@@ -158,7 +200,7 @@ links.forEach((l, i) => {
 $("links").hidden = links.length === 0;
 $("keys").hidden = !S.keys;
 $("keys").innerHTML = (links.length ? `<kbd>Esc</kbd> then <kbd>1</kbd>${links.length > 1 ? `–<kbd>${links.length}</kbd>` : ""} links · ` : "")
-  + `<kbd>/</kbd> search · <kbd>Tab</kbd> engine`;
+  + `<kbd>/</kbd> search · <kbd>Tab</kbd> engine · <kbd>Ctrl</kbd> <kbd>V</kbd> a picture`;
 
 const ENGINES = [
   { id: "google", n: "Google", u: "https://www.google.com/search?q=" },
@@ -167,13 +209,99 @@ const ENGINES = [
   { id: "github", n: "GitHub", u: "https://github.com/search?q=" },
   { id: "wikipedia", n: "Wikipedia", u: "https://en.wikipedia.org/w/index.php?search=" },
 ];
+// reverse image search: a file goes up as the engine's own upload form would
+// send it (a file:// page can post a form anywhere, but can't read the answer,
+// so engines that need that only take addresses); an address goes in the URL
+const IMAGE = [
+  { id: "lens", n: "Google Lens", u: "https://lens.google.com/uploadbyurl?url=", post: "https://lens.google.com/v3/upload", field: "encoded_image" },
+  { id: "bing", n: "Bing", u: "https://www.bing.com/images/search?view=detailv2&iss=sbi&q=imgurl:", post: "https://www.bing.com/images/search?view=detailv2&iss=sbiupload&FORM=SBIHMP", field: "imageBin", base64: true },
+  { id: "saucenao", n: "SauceNAO", u: "https://saucenao.com/search.php?url=", post: "https://saucenao.com/search.php", field: "file" },
+  { id: "yandex", n: "Yandex", u: "https://yandex.com/images/search?rpt=imageview&url=" },
+  { id: "tineye", n: "TinEye", u: "https://tineye.com/search?url=" },
+  { id: "tracemoe", n: "trace.moe", u: "https://trace.moe/?url=" },
+];
 let ei = Math.max(0, ENGINES.findIndex(e => e.id === S.engine));
-function showEngine() { $("engine").textContent = ENGINES[ei].n; }
-function nextEngine() { ei = (ei + 1) % ENGINES.length; showEngine(); }
-showEngine();
+let ii = Math.max(0, IMAGE.findIndex(e => e.id === S.imageEngine));
+let imaging = false, pic = null;          // pic: { file } or { url }
+const usable = e => !(pic && pic.file) || !!e.post;
+
+function show() {
+  $("engine").textContent = imaging ? IMAGE[ii].n : ENGINES[ei].n;
+  $("search").classList.toggle("image", imaging);
+  $("lens").classList.toggle("on", imaging);
+  $("lens").title = imaging ? "Back to words (Esc)" : "Search by image: paste, drop or choose a picture";
+  $("pick").hidden = !imaging || !!pic;
+  $("go").hidden = !pic;
+  $("pic").hidden = !pic;
+  $("q").placeholder = !imaging ? "Search, or type an address"
+    : pic && pic.file ? "Enter searches it · Tab for another engine"
+    : "Paste, drop or choose a picture, or type its address";
+}
+function nextEngine() {
+  if (!imaging) { ei = (ei + 1) % ENGINES.length; return show(); }
+  do ii = (ii + 1) % IMAGE.length; while (!usable(IMAGE[ii]));
+  show();
+}
+function setImaging(on) {
+  imaging = on;
+  if (!on) setPic(null);
+  show();
+  $("q").focus();
+}
+function setPic(p) {
+  if (pic && pic.file) URL.revokeObjectURL(pic.src);
+  pic = p;
+  if (p) {
+    imaging = true;
+    if (p.file) { p.src = URL.createObjectURL(p.file); $("q").value = ""; }
+    else $("q").value = p.url;
+    $("pic").querySelector("img").src = p.src || p.url;
+    if (!usable(IMAGE[ii])) ii = IMAGE.findIndex(usable);
+  }
+  show();
+  if (p) $("q").focus();
+}
+const isUrl = t => /^https?:\/\/\S+$/i.test(t);
+const isPicture = f => f && /^image\//.test(f.type);
+// the picture as a JPEG in base64, for Bing's form (not too big: it rides in a text field)
+async function jpeg64(file) {
+  const b = await createImageBitmap(file), k = Math.min(1, 1600 / Math.max(b.width, b.height));
+  const c = document.createElement("canvas");
+  c.width = Math.round(b.width * k); c.height = Math.round(b.height * k);
+  c.getContext("2d").drawImage(b, 0, 0, c.width, c.height);
+  const d = c.toDataURL("image/jpeg", 0.9);
+  return d.slice(d.indexOf(",") + 1);
+}
+async function searchImage() {
+  const e = IMAGE[ii];
+  if (pic && pic.file) {
+    const f = document.createElement("form"), field = document.createElement("input");
+    f.method = "POST"; f.enctype = "multipart/form-data"; f.action = e.post; f.hidden = true;
+    field.name = e.field;
+    if (e.base64) { field.type = "hidden"; field.value = await jpeg64(pic.file); }
+    else { field.type = "file"; const dt = new DataTransfer(); dt.items.add(pic.file); field.files = dt.files; }
+    f.append(field); document.body.append(f); f.submit();
+    return;
+  }
+  const q = $("q").value.trim();
+  if (!isUrl(q)) {      // words, or nothing: there's no picture to search
+    $("search").classList.remove("nope"); void $("search").offsetWidth; $("search").classList.add("nope");
+    return;
+  }
+  location.href = e.u + encodeURIComponent(q);
+}
+
+show();
 $("engine").onclick = () => { nextEngine(); $("q").focus(); };
+$("lens").onclick = () => setImaging(!imaging);
+$("pick").onclick = () => $("file").click();
+$("unpic").onclick = () => { setPic(null); $("q").value = ""; $("q").focus(); };
+$("file").onchange = () => { if (isPicture($("file").files[0])) setPic({ file: $("file").files[0] }); $("file").value = ""; };
+// typing over the picture lets it go: the box then holds an address
+$("q").oninput = () => { if (pic && pic.url !== $("q").value.trim()) setPic(null); };
 $("search").onsubmit = e => {
   e.preventDefault();
+  if (imaging) return searchImage();
   const q = $("q").value.trim();
   if (!q) return;
   const url = /^[a-z]+:\/\//i.test(q) ? q : /^[\w-]+(\.[\w-]+)+(\/\S*)?$/.test(q) ? "https://" + q : ENGINES[ei].u + encodeURIComponent(q);
@@ -184,7 +312,27 @@ document.addEventListener("keydown", e => {
   if (e.key === "Tab") { e.preventDefault(); nextEngine(); $("q").focus(); return; }
   if (e.key === "/" && !typing) { e.preventDefault(); $("q").focus(); return; }
   if (!typing && /^[1-9]$/.test(e.key) && links[+e.key - 1]) { location.href = links[+e.key - 1].url; }
-  if (e.key === "Escape") $("q").blur();
+  if (e.key === "Escape") { if (imaging) setImaging(false); else $("q").blur(); }
+});
+// a copied picture pasted anywhere on the page searches it
+document.addEventListener("paste", e => {
+  const f = [...e.clipboardData.files].find(isPicture);
+  if (f) { e.preventDefault(); setPic({ file: f }); }
+});
+// and so does one dropped on it: a file, or a picture dragged out of another page
+let drags = 0;
+const carries = e => [...e.dataTransfer.types].some(t => t === "Files" || t === "text/uri-list");
+document.addEventListener("dragenter", e => { if (carries(e)) { drags++; document.body.classList.add("dragging"); } });
+document.addEventListener("dragleave", () => { if (--drags <= 0) { drags = 0; document.body.classList.remove("dragging"); } });
+document.addEventListener("dragover", e => { if (carries(e)) e.preventDefault(); });
+document.addEventListener("drop", e => {
+  drags = 0; document.body.classList.remove("dragging");
+  if (!carries(e)) return;
+  e.preventDefault();
+  const f = [...e.dataTransfer.files].find(isPicture);
+  const url = (e.dataTransfer.getData("text/uri-list") || "").split(/\r?\n/).find(l => isUrl(l.trim()));
+  if (f) setPic({ file: f });
+  else if (url) setPic({ url: url.trim() });
 });
 
 // typing goes to the search: yoru's Firefox script hands new tabs to the page,

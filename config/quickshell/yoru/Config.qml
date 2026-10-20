@@ -158,6 +158,7 @@ Singleton {
                 property bool seconds: false
                 property bool date: true
                 property string engine: "google"              // google, duckduckgo, youtube, github, wikipedia
+                property string imageEngine: "lens"           // reverse image search: lens, bing, saucenao (files too), yandex, tineye, tracemoe (addresses only)
                 property var links: [                         // [{ name, url }], up to 9, keys 1-9
                     { name: "GitHub", url: "https://github.com" },
                     { name: "YouTube", url: "https://youtube.com" },
