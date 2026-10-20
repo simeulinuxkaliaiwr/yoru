@@ -230,6 +230,50 @@ def thumb(f):
     return str(out) if out.exists() else ""
 
 
+# the picker's colour filter: which hues a wallpaper is mostly made of and how
+# light it is, read once from its thumbnail (most walls are named
+# wallhaven-xxxxxx, so their names are no use for finding one)
+HUES = [(15, "red"), (45, "orange"), (70, "yellow"), (160, "green"), (200, "cyan"),
+        (255, "blue"), (290, "purple"), (345, "pink"), (360, "red")]
+
+
+def colours(t, cache):
+    k = Path(t).name
+    if k not in cache:
+        px = subprocess.run(["magick", t, "-resize", "32x18!", "-depth", "8", "rgb:-"],
+                            capture_output=True).stdout if t else b""
+        weight, light = {}, 0.0
+        n = len(px) // 3
+        for i in range(n):
+            h, l, s = colorsys.rgb_to_hls(px[3 * i] / 255, px[3 * i + 1] / 255, px[3 * i + 2] / 255)
+            light += l
+            # greys and near-blacks say nothing about hue
+            w = s * (1 - abs(2 * l - 1))
+            if w > 0.12:
+                name = next(nm for top, nm in HUES if h * 360 < top)
+                weight[name] = weight.get(name, 0) + w
+        total = sum(weight.values())
+        names = sorted(weight, key=weight.get, reverse=True)
+        cache[k] = {"colours": [nm for nm in names[:3] if weight[nm] > 0.2 * total] if total > n * 0.04 else [],
+                    "light": round(light / n, 3) if n else 0.5}
+    return cache[k]
+
+
+def walls_json(s):
+    path = CACHE / "colours.json"
+    try:
+        cache = json.loads(path.read_text())
+    except (OSError, ValueError):
+        cache = {}
+    out = []
+    for f in walls(s):
+        t = thumb(f)
+        out.append(dict(colours(t, cache), path=f, thumb=t, video=is_video(f), name=Path(f).stem,
+                        added=int(Path(f).stat().st_mtime)))
+    write(path, json.dumps(cache))
+    return out
+
+
 def walls(s):
     found = []
     for d in s["dirs"]:
@@ -1488,8 +1532,7 @@ def main():
             s["skwd_has"] = True
         apply(s)
     elif cmd == "walls":
-        print(json.dumps([{"path": f, "thumb": thumb(f), "video": is_video(f), "name": Path(f).stem}
-                          for f in walls(s)]))
+        print(json.dumps(walls_json(s)))
     elif cmd == "timeline" and len(args) > 1:
         # worked out once per video, then handed to the shell if it's still the wallpaper
         timeline(args[1], s["scheme"])
