@@ -33,8 +33,13 @@ roles, as matugen gives them), "light", "ansi" (16 terminal colours, optional),
 "off": [...]} (commands run when the mode is turned on and off), "skip" (apps the
 mode dresses itself, e.g. ["firefox"]), and "yoru": what the shell draws with
 (font, mono, radiusScale, border, borderColour, shadow "hard", island "paper",
-cardLook). The setting is appearance.mode; the wallpaper from before is kept and
-put back when the mode goes off.
+cardLook). "desk" (optional) is the mode's desktop: {"desktop": {"items": [...],
+"arrangement": ..., "clockPlaced": ...}, "lock": {"clockStyle": ...}}, any keys of
+config.json's sections; they replace the user's while the mode is on. The setting
+is appearance.mode; the wallpaper and the desk from before are kept (yoru.json's
+before_mode, before_desk) and put back when the mode goes off. The mode's desk as
+it was left, edit-mode changes and all, is kept in yoru.json's desks (by the mode's
+folder) for the next time it goes on; drop it there to start from mode.json's again.
 
 State is ~/.config/yoru/yoru.json; the palette the shell reads is
 ~/.cache/yoru/palette.json. Apps are re-themed too, Hyprland and niri borders
@@ -166,7 +171,7 @@ def modes():
 
 def save_state(s):
     keep = {"wallpaper": s["wallpaper"]}
-    for k in ("before_mode", "fastfetch_logo"):
+    for k in ("before_mode", "before_desk", "desks", "fastfetch_logo"):
         if s.get(k):
             keep[k] = s[k]
     write(STATE, json.dumps(keep, indent=2) + "\n")
@@ -1287,9 +1292,43 @@ def hooks(m, when):
                          stderr=subprocess.DEVNULL, start_new_session=True)
 
 
+def desk_take(cfg, keys):
+    """the settings a desk names ({section: [key, …]}), as they are now; missing ones left out"""
+    return {sec: {k: cfg[sec][k] for k in ks if k in cfg.get(sec, {})} for sec, ks in keys.items()}
+
+
+def desk_swap(cfg, s, new):
+    """a mode's desk (its widgets and lock clock) in place of the user's, in cfg. The one
+    there before is kept in the state's before_desk; when the mode goes off, its desk as
+    the user left it (edit-mode tweaks and all) goes into the state's desks for next time"""
+    was = s.pop("before_desk", None)
+    if was:
+        keys = was["keys"]
+        s.setdefault("desks", {})[was["mode"]] = desk_take(cfg, keys)
+        for sec, ks in keys.items():
+            for k in ks:
+                if k in was["desk"].get(sec, {}):
+                    cfg.setdefault(sec, {})[k] = was["desk"][sec][k]
+                else:
+                    cfg.get(sec, {}).pop(k, None)
+    try:
+        m = json.loads((new / "mode.json").read_text()) if new else {}
+    except (OSError, ValueError):
+        m = {}
+    if m.get("desk"):
+        key = str(new.resolve())
+        mine = s.get("desks", {}).get(key) or m["desk"]
+        keys = {sec: sorted(set(m["desk"].get(sec, {})) | set(mine.get(sec, {}))) for sec in set(m["desk"]) | set(mine)}
+        s["before_desk"] = {"mode": key, "keys": keys, "desk": desk_take(cfg, keys)}
+        # what the mode gives, then the user's own changes to it
+        for part in (m["desk"], mine):
+            for sec, vals in part.items():
+                cfg.setdefault(sec, {}).update(vals)
+
+
 def set_mode(s, name):
-    """the appearance.mode setting, the mode's hooks, its first wallpaper (the one from
-    before kept for later), and everything applied again"""
+    """the appearance.mode setting, the mode's desk and hooks, its first wallpaper (the one
+    from before kept for later), and everything applied again"""
     old = mode(s)
     new = mode_dir(name) if name not in ("", "off", "none") else None
     if name not in ("", "off", "none") and not new:
@@ -1300,10 +1339,15 @@ def set_mode(s, name):
     except (OSError, ValueError):
         cfg = {}
     cfg.setdefault("appearance", {})["mode"] = name if new else ""
+    # the desk goes in with the mode in one write: the shell sees both at once
+    desk_swap(cfg, s, new)
     write(SETTINGS, json.dumps(cfg, indent=4) + "\n")
+    desks = {k: s[k] for k in ("before_desk", "desks") if s.get(k)}
     if old:
         hooks(old, "off")
     s = state()
+    s.pop("before_desk", None)
+    s.update(desks)
     m = mode(s)
     if m:
         if not old:
