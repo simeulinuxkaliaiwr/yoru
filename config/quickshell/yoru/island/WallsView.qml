@@ -97,6 +97,7 @@ Item {
         const n = grid.count;
         const step = d => {
             grid.currentIndex = Math.max(0, Math.min(n - 1, grid.currentIndex + d));
+            reveal(grid.currentIndex);
             const e = entries[grid.currentIndex];
             picked = e ? (e.isFolder ? e.rel : e.path) : "";
         };
@@ -133,6 +134,18 @@ Item {
                 v.loading = false;
             }
         }
+    }
+    // the cards draw their own selection, so the grid has no highlight to follow
+    // down the list: scroll to the one you're on, gliding there
+    function reveal(i) {
+        const from = grid.contentY;
+        glide.stop();
+        grid.positionViewAtIndex(i, GridView.Contain);
+        const to = grid.contentY;
+        if (to === from) return;
+        grid.contentY = from;
+        glide.to = to;
+        glide.start();
     }
     function choose(e) { if (e.isFolder) open(e.rel); else apply(e); }
     function apply(w) {
@@ -281,6 +294,12 @@ Item {
         model: v.entries
         boundsBehavior: Flickable.StopAtBounds
         highlightFollowsCurrentItem: false
+        NumberAnimation on contentY {
+            id: glide
+            running: false
+            duration: Theme.normal
+            easing.type: Easing.OutCubic
+        }
         // only what's near the screen is made, however many walls there are
         cacheBuffer: v.cellH * 2
         delegate: Item {
