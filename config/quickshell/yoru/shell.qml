@@ -55,12 +55,23 @@ ShellRoot {
     Editor {}
     FirefoxStart {}
     Island { id: island }
+    RingLauncher { id: ring; onTyped: text => island.search(text) }
+    // the launcher key opens the ring instead, when the settings say so
+    function openIsland(mode) {
+        if (mode === "launcher" && Config.o.launcher.style === "ring") {
+            island.close();
+            ring.toggle();
+            return;
+        }
+        if (ring.shown) ring.close();
+        island.open(mode, "");
+    }
     Lock { id: lockScreen }
 
     // the compositor's binds call these
     Connections {
         target: Desk
-        function onIsland(mode) { island.open(mode, ""); }
+        function onIsland(mode) { root.openIsland(mode); }
     }
     IpcHandler {
         target: "desktop"
@@ -73,12 +84,18 @@ ShellRoot {
         function onRaised(t) { island.showToast(t); }
     }
     IpcHandler {
+        target: "ring"
+        function toggle(): void { ring.toggle(); }
+        function open(): void { ring.open(); }
+        function close(): void { ring.close(); }
+    }
+    IpcHandler {
         target: "alerts"
         function preview(kind: string): void { Alerts.preview(kind); }
     }
     IpcHandler {
         target: "island"
-        function toggle(mode: string): void { island.open(mode, ""); }
+        function toggle(mode: string): void { root.openIsland(mode); }
         function search(text: string): void { island.search(text); }
         function close(): void { island.close(); }
     }

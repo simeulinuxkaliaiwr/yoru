@@ -130,6 +130,13 @@ Singleton {
                 property int toastSeconds: 5
             }
 
+            // what mod+a opens: list (the island's launcher) or ring (RingLauncher.qml)
+            property JsonObject launcher: JsonObject {
+                property string style: "list"                 // list, ring
+                property string ringAt: "pointer"             // pointer, center
+                property list<string> ringApps: []            // desktop ids; empty = the ones you open most
+            }
+
             property JsonObject focus: JsonObject {
                 property int minutes: 25
                 property int breakMinutes: 5

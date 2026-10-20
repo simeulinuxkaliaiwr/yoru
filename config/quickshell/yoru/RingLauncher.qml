@@ -1,0 +1,320 @@
+import Quickshell
+import Quickshell.Io
+import Quickshell.Wayland
+import Quickshell.Widgets
+import QtQuick
+import QtQuick.Shapes
+import qs
+import qs.parts
+
+// the ring: your apps in a circle around the pointer. Point toward one and click,
+// or turn it with the arrows / Tab and press Enter (1–9 pick directly). A dot under
+// an app means it's open: picking it brings that window back instead of a second one.
+// Typing hands over to the island's launcher with what you typed; right-click takes
+// an app off the ring. Apps: launcher.ringApps, or the ones you open most.
+Scope {
+    id: ring
+    property bool shown: false
+    property bool alive: false              // still drawing: open, or animating closed
+    property string output: ""
+    property var apps: []
+    signal typed(string text)
+
+    function toggle() { shown ? close() : open(); }
+    function open() {
+        store.reload();
+        output = Wm.focusedOutput || (Quickshell.screens[0]?.name ?? "");
+        apps = pickApps();
+        alive = true;
+        shown = true;
+    }
+    function close() { shown = false; }
+
+    // the launcher's counts: how often each app was opened
+    property var counts: ({})
+    FileView {
+        id: store
+        path: Theme.cacheDir + "/launches.json"
+        printErrors: false
+        onLoaded: { try { ring.counts = JSON.parse(text()); } catch (e) {} }
+    }
+
+    readonly property var entries: DesktopEntries.applications.values.filter(e => !e.noDisplay)
+    function entry(id) {
+        const want = String(id).replace(/\.desktop$/, "");
+        return entries.find(e => e.id === want) ?? entries.find(e => e.id.toLowerCase() === want.toLowerCase()) ?? null;
+    }
+    // an app's windows: its app_id is the desktop id, its last part, or the WM class
+    function windowsOf(e) {
+        if (!e) return [];
+        const ids = [e.id, e.startupClass ?? ""].filter(s => s).map(s => s.toLowerCase());
+        const tail = ids.map(s => s.split(".").pop());
+        return Wm.windows.filter(w => {
+            const a = (w.app_id ?? "").toLowerCase();
+            return a !== "" && w.state !== "scratchpad" && (ids.includes(a) || tail.includes(a) || tail.includes(a.split(".").pop()));
+        });
+    }
+    function pickApps() {
+        const pinned = Config.o.launcher.ringApps ?? [];
+        if (pinned.length > 0) return pinned.map(entry).filter(e => e).slice(0, 12);
+        // the ones you open most, then what's running, then a few by name so it's never bare
+        const out = entries.filter(e => (counts[e.id] ?? 0) > 0)
+                           .sort((a, b) => counts[b.id] - counts[a.id]).slice(0, 10);
+        for (const e of entries)
+            if (out.length < 12 && !out.includes(e) && windowsOf(e).length > 0) out.push(e);
+        for (const e of entries.slice().sort((a, b) => a.name.localeCompare(b.name)))
+            if (out.length < 8 && !out.includes(e)) out.push(e);
+        return out;
+    }
+
+    function pick(e) {
+        if (!e) return;
+        const ws = windowsOf(e);
+        if (ws.length > 0) {
+            // the one you used last
+            const w = ws.slice().sort((a, b) => {
+                const ia = Wm.mru.indexOf(a.id), ib = Wm.mru.indexOf(b.id);
+                return (ia < 0 ? 1e9 : ia) - (ib < 0 ? 1e9 : ib);
+            })[0];
+            const t = Wm.toplevels.find(t => t.appId === w.app_id && t.title === w.title)
+                   ?? Wm.toplevels.find(t => t.appId === w.app_id);
+            if (t) t.activate();
+        } else {
+            const c = Object.assign({}, counts);
+            c[e.id] = (c[e.id] ?? 0) + 1;
+            counts = c;
+            store.setText(JSON.stringify(c));
+            e.execute();
+        }
+        close();
+    }
+    // right-click: off the ring (the rest become the pinned list)
+    function unpin(e) {
+        Config.o.launcher.ringApps = apps.filter(a => a !== e).map(a => a.id);
+        apps = apps.filter(a => a !== e);
+    }
+
+    LazyLoader {
+        active: ring.alive
+        PanelWindow {
+            id: win
+            screen: Quickshell.screens.find(s => s.name === ring.output) ?? Quickshell.screens[0]
+            anchors { top: true; bottom: true; left: true; right: true }
+            color: "transparent"
+            exclusionMode: ExclusionMode.Ignore
+            WlrLayershell.layer: WlrLayer.Overlay
+            WlrLayershell.namespace: "yoru-ring"
+            WlrLayershell.keyboardFocus: ring.shown ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
+
+            readonly property int n: Math.max(1, ring.apps.length)
+            readonly property real outer: 236
+            readonly property real inner: 132
+            readonly property real mid: (outer + inner) / 2
+            readonly property real step: 360 / n
+            property real cx: width / 2
+            property real cy: height / 2
+            property bool placed: false
+            property int sel: -1
+            property real t: 0                  // 0 closed … 1 open
+
+            // where it opens: at the pointer (kept whole on the screen) or in the middle
+            function place(x, y) {
+                if (placed) return;
+                placed = true;
+                if (Config.o.launcher.ringAt === "pointer") {
+                    const m = outer + 20;
+                    cx = Math.max(m, Math.min(width - m, x));
+                    cy = Math.max(m, Math.min(height - m, y));
+                }
+                grow.start();
+            }
+            // a pie menu: the direction from the middle picks, past a small dead zone
+            function aim(x, y) {
+                const dx = x - cx, dy = y - cy;
+                if (Math.hypot(dx, dy) < inner * 0.4) { sel = -1; return; }
+                const deg = Math.atan2(dy, dx) * 180 / Math.PI + 90;
+                sel = ((Math.round(deg / step) % n) + n) % n;
+            }
+            function spot(i) {
+                const a = (-90 + i * step) * Math.PI / 180;
+                return Qt.point(Math.cos(a), Math.sin(a));
+            }
+            function backOut(x) { const c1 = 1.70158, c3 = c1 + 1; return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2); }
+
+            // the pointer may not move before it's wanted: open in the middle after a moment
+            Timer { interval: 90; running: true; onTriggered: win.place(win.width / 2, win.height / 2) }
+            NumberAnimation { id: grow; target: win; property: "t"; to: 1; duration: Theme.normal * 1.2 }
+            NumberAnimation {
+                id: shrink; target: win; property: "t"; to: 0; duration: Theme.fast * 0.8
+                onFinished: ring.alive = false
+            }
+            Connections {
+                target: ring
+                function onShownChanged() { if (!ring.shown) { grow.stop(); shrink.start(); } }
+            }
+
+            // a light veil, so the ring reads over any wallpaper
+            Rectangle { anchors.fill: parent; color: Theme.alpha(Theme.surfaceLowest, 0.28 * Math.min(1, win.t * 2)) }
+
+            MouseArea {
+                anchors.fill: parent
+                hoverEnabled: true
+                acceptedButtons: Qt.LeftButton | Qt.RightButton
+                onContainsMouseChanged: if (containsMouse) win.place(mouseX, mouseY)
+                onPositionChanged: m => { win.place(m.x, m.y); win.aim(m.x, m.y); }
+                onClicked: m => {
+                    const d = Math.hypot(m.x - win.cx, m.y - win.cy);
+                    if (d > win.outer + 30 || win.sel < 0) { ring.close(); return; }
+                    if (m.button === Qt.RightButton) ring.unpin(ring.apps[win.sel]);
+                    else ring.pick(ring.apps[win.sel]);
+                }
+            }
+
+            Item {
+                id: keys
+                anchors.fill: parent
+                focus: true
+                Keys.onPressed: e => {
+                    const n = win.n;
+                    if (e.key === Qt.Key_Escape) ring.close();
+                    else if (e.key === Qt.Key_Right || e.key === Qt.Key_Down || e.key === Qt.Key_Tab)
+                        win.sel = win.sel < 0 ? 0 : (win.sel + 1) % n;
+                    else if (e.key === Qt.Key_Left || e.key === Qt.Key_Up || e.key === Qt.Key_Backtab)
+                        win.sel = win.sel < 0 ? n - 1 : (win.sel - 1 + n) % n;
+                    else if (e.key === Qt.Key_Return || e.key === Qt.Key_Enter)
+                        ring.pick(ring.apps[Math.max(0, win.sel)]);
+                    else if (e.key >= Qt.Key_1 && e.key <= Qt.Key_9 && e.key - Qt.Key_1 < n)
+                        ring.pick(ring.apps[e.key - Qt.Key_1]);
+                    else if (e.text.length === 1 && e.text.trim() !== "" && !(e.modifiers & Qt.ControlModifier)) {
+                        ring.typed(e.text);         // over to the island's launcher
+                        ring.close();
+                    } else return;
+                    e.accepted = true;
+                }
+            }
+
+            // the ring itself
+            Item {
+                id: disc
+                x: win.cx - win.outer; y: win.cy - win.outer
+                width: win.outer * 2; height: win.outer * 2
+                readonly property real ease: 1 - Math.pow(1 - Math.min(1, win.t * 1.6), 3)
+                opacity: ease
+                scale: 0.86 + 0.14 * ease
+
+                Shape {
+                    anchors.fill: parent
+                    preferredRendererType: Shape.CurveRenderer
+                    // a soft edge outside the band, like a shadow
+                    ShapePath {
+                        strokeColor: Qt.rgba(0, 0, 0, 0.22); strokeWidth: win.outer - win.inner + 22
+                        fillColor: "transparent"; capStyle: ShapePath.FlatCap
+                        PathAngleArc { centerX: win.outer; centerY: win.outer; radiusX: win.mid; radiusY: win.mid; startAngle: 0; sweepAngle: 360 }
+                    }
+                    // the band: the island's dark glass
+                    ShapePath {
+                        strokeColor: Theme.alpha(Theme.island, 0.92); strokeWidth: win.outer - win.inner
+                        fillColor: "transparent"; capStyle: ShapePath.FlatCap
+                        PathAngleArc { centerX: win.outer; centerY: win.outer; radiusX: win.mid; radiusY: win.mid; startAngle: 0; sweepAngle: 360 }
+                    }
+                    // hairlines on both edges catch the light
+                    ShapePath {
+                        strokeColor: Theme.alpha(Theme.ink, 0.1); strokeWidth: 1; fillColor: "transparent"
+                        PathAngleArc { centerX: win.outer; centerY: win.outer; radiusX: win.outer - 0.5; radiusY: win.outer - 0.5; startAngle: 0; sweepAngle: 360 }
+                    }
+                    ShapePath {
+                        strokeColor: Theme.alpha(Theme.ink, 0.07); strokeWidth: 1; fillColor: "transparent"
+                        PathAngleArc { centerX: win.outer; centerY: win.outer; radiusX: win.inner + 0.5; radiusY: win.inner + 0.5; startAngle: 0; sweepAngle: 360 }
+                    }
+                }
+
+                // the highlight: a pill of light sliding round to the chosen app
+                Item {
+                    anchors.fill: parent
+                    visible: win.sel >= 0
+                    rotation: win.sel * win.step
+                    Behavior on rotation { RotationAnimation { direction: RotationAnimation.Shortest; duration: Theme.fast; easing.type: Easing.OutCubic } }
+                    Shape {
+                        anchors.fill: parent
+                        preferredRendererType: Shape.CurveRenderer
+                        ShapePath {
+                            strokeColor: Theme.alpha(Theme.primary, 0.2); strokeWidth: win.outer - win.inner - 18
+                            fillColor: "transparent"; capStyle: ShapePath.RoundCap
+                            PathAngleArc {
+                                centerX: win.outer; centerY: win.outer; radiusX: win.mid; radiusY: win.mid
+                                startAngle: -90 - Math.min(win.step * 0.5 - 6, 22) + 6
+                                sweepAngle: 2 * (Math.min(win.step * 0.5 - 6, 22) - 6)
+                            }
+                        }
+                    }
+                }
+
+                // the apps
+                Repeater {
+                    model: ring.apps
+                    Item {
+                        id: slot
+                        required property var modelData
+                        required property int index
+                        readonly property bool on: win.sel === index
+                        readonly property var wins: ring.windowsOf(modelData)
+                        readonly property bool focused: wins.some(w => w.focused)
+                        // each flies out a beat after the one before
+                        readonly property real k: Math.max(0, Math.min(1, win.t * (1 + win.n * 0.045) - index * 0.045))
+                        readonly property real r: win.mid * (0.35 + 0.65 * win.backOut(k))
+                        readonly property point dir: win.spot(index)
+                        width: 64; height: 64
+                        x: win.outer + dir.x * r - width / 2
+                        y: win.outer + dir.y * r - height / 2
+                        opacity: k
+
+                        IconImage {
+                            anchors.centerIn: parent
+                            implicitSize: 52
+                            source: Quickshell.iconPath(slot.modelData.icon, "application-x-executable")
+                            scale: slot.on ? 1.2 : 1
+                            Behavior on scale { NumberAnimation { duration: Theme.fast; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.spatial } }
+                        }
+                        // open: a dot toward the middle; the focused one stretches into a pill
+                        Rectangle {
+                            visible: slot.wins.length > 0
+                            width: slot.focused ? 16 : 6; height: 6; radius: 3
+                            color: slot.focused ? Theme.primary : Theme.alpha(Theme.ink, 0.75)
+                            x: slot.width / 2 - width / 2 - slot.dir.x * 36
+                            y: slot.height / 2 - height / 2 - slot.dir.y * 36
+                            Behavior on width { NumberAnimation { duration: Theme.fast } }
+                        }
+                    }
+                }
+
+                // the middle: what's chosen, or the time
+                Column {
+                    anchors.centerIn: parent
+                    spacing: 4
+                    readonly property var e: win.sel >= 0 ? ring.apps[win.sel] : null
+                    readonly property int count: e ? ring.windowsOf(e).length : 0
+                    Txt {
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        width: Math.min(implicitWidth, win.inner * 1.6)
+                        horizontalAlignment: Text.AlignHCenter
+                        elide: Text.ElideRight
+                        text: parent.e ? parent.e.name : Qt.formatTime(clock.date, Config.o.island.clock24 ? "HH:mm" : "h:mm")
+                        size: parent.e ? 20 : 30
+                        weight: Font.DemiBold
+                        color: Theme.ink
+                        style: Text.Outline; styleColor: Theme.alpha(Theme.surfaceLowest, 0.35)
+                    }
+                    Txt {
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        text: parent.e ? (parent.count > 1 ? parent.count + " windows · brings the last" : parent.count === 1 ? "open · brings it back" : "opens it")
+                                       : "point, or type to search"
+                        size: 12
+                        color: Theme.inkDim
+                        style: Text.Outline; styleColor: Theme.alpha(Theme.surfaceLowest, 0.35)
+                    }
+                }
+            }
+            SystemClock { id: clock; precision: SystemClock.Minutes }
+        }
+    }
+}

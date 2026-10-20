@@ -5,6 +5,7 @@ import qs.parts
 Column {
     spacing: 14
     readonly property var c: Config.o.island
+    readonly property var l: Config.o.launcher
 
     Section {
         icon: "toolbar"; title: "The island"
@@ -19,5 +20,33 @@ Column {
             icon: "notifications"; label: "Notifications stay for"
             Range { value: c.toastSeconds; from: 2; to: 15; step: 1; suffix: " s"; onMoved: v => c.toastSeconds = v }
         }
+    }
+
+    Section {
+        icon: "apps"; title: "Launcher"
+        SetRow { icon: "keyboard_command_key"; label: "mod+a opens"; hint: l.style === "ring" ? "Your apps in a ring around the pointer: point and click, or type to search" : "The island's list: type to search apps, emoji, the web" }
+        Choice {
+            x: 10
+            current: l.style
+            options: [{ value: "list", label: "List", icon: "view_list" }, { value: "ring", label: "Ring", icon: "radio_button_unchecked" }]
+            onPicked: v => l.style = v
+        }
+        SetRow {
+            visible: l.style === "ring"
+            icon: "my_location"; label: "Ring opens"
+            Choice { width: 240; current: l.ringAt; options: [{ value: "pointer", label: "At the pointer" }, { value: "center", label: "In the middle" }]; onPicked: v => l.ringAt = v }
+        }
+        SetRow {
+            visible: l.style === "ring"
+            icon: "push_pin"; label: "Ring apps"
+            hint: "Desktop ids, separated by commas; empty for the ones you open most. Right-click one on the ring to take it off"
+            Field {
+                width: 300
+                text: l.ringApps.join(", ")
+                placeholder: "the ones you open most"
+                onEdited: t => l.ringApps = t.split(/[,\s]+/).map(x => x.replace(/\.desktop$/, "")).filter(x => x !== "")
+            }
+        }
+        Item { width: 1; height: 8 }
     }
 }
