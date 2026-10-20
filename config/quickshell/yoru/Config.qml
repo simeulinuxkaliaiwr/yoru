@@ -26,6 +26,10 @@ Singleton {
 
             property JsonObject appearance: JsonObject {
                 property string scheme: "scheme-tonal-spot"   // matugen's scheme types
+                // which colour leads the palette: vivid (the most saturated in the picture: lively,
+                // but a small bright detail can take over) or main (the one the picture is mostly
+                // made of, as Android picks)
+                property string accent: "vivid"
                 property real speed: 1.0                      // animation speed, > 1 is faster
                 property bool musicColours: true              // the shell takes the album art's colours while it plays
                 // a mode: a whole look from a folder (~/.config/yoru/modes/NAME, or a path) instead of

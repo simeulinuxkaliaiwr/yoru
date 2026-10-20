@@ -53,6 +53,18 @@ Column {
         }
         Item { width: 1; height: 10 }
         SetRow {
+            icon: "colorize"; label: "Accent from"
+            hint: c.appearance.accent === "main" ? "The colour the wallpaper is mostly made of"
+                : "The most vivid colour in it, even a small one"
+        }
+        Choice {
+            x: 10; width: parent.width - 20
+            current: c.appearance.accent
+            options: [{ value: "vivid", label: "Most vivid" }, { value: "main", label: "Main colour" }]
+            onPicked: v => { c.appearance.accent = v; recolour.restart(); }
+        }
+        Item { width: 1; height: 10 }
+        SetRow {
             icon: "album"; label: "Colours from the music"; hint: "While a track with cover art plays, the island and widgets take its colours"
             Toggle { checked: c.appearance.musicColours; onToggled: on => c.appearance.musicColours = on }
         }
