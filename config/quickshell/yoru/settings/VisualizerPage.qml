@@ -20,7 +20,9 @@ Column {
         SetRow { icon: "equalizer"; label: "Style" }
         Choice {
             x: 10; current: c.visualizerStyle
-            options: [{ value: "bars", label: "Bars" }, { value: "mirror", label: "Mirror" }, { value: "wave", label: "Wave" }, { value: "dots", label: "Dots" }]
+            options: [{ value: "bars", label: "Bars" }, { value: "mirror", label: "Mirror" }, { value: "wave", label: "Wave" }, { value: "dots", label: "Dots" },
+                      { value: "aurora", label: "Aurora", icon: "auto_awesome" }, { value: "silk", label: "Silk", icon: "airwave" },
+                      { value: "glass", label: "Glass", icon: "water_drop" }]
             onPicked: v => c.visualizerStyle = v
         }
         Item { width: 1; height: 8 }

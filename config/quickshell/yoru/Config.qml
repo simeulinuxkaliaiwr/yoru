@@ -86,7 +86,7 @@ Singleton {
                 property string clockStyle: "thin"
                 property string clockPosition: "bottom-left"  // bottom-left, center, top-left
                 property bool visualizer: true
-                property string visualizerStyle: "bars"       // bars, mirror, wave, dots
+                property string visualizerStyle: "bars"       // bars, mirror, wave, dots, aurora, silk, glass
                 property bool visualizerBusy: true            // on workspaces with windows too
                 property real visualizerOpacity: 0.85
                 property bool widgets: true
