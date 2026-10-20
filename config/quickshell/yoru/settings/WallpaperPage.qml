@@ -215,15 +215,33 @@ Column {
 
     Section {
         icon: "travel_explore"; title: "From the internet"
-        SetRow { icon: "public"; label: "Source"; hint: "A random picture, safe for work, at least 1920x1080" }
+        SetRow {
+            icon: "public"; label: "Source"
+            hint: c.online.source === "motionbgs" ? "A random live wallpaper, a looping video" : "A random picture, safe for work, at least 1920x1080"
+        }
         Choice {
             x: 10; width: parent.width - 20
             options: [
                 { value: "wallhaven", label: "Wallhaven", icon: "landscape" },
-                { value: "konachan", label: "Konachan", icon: "draw" }
+                { value: "konachan", label: "Konachan", icon: "draw" },
+                { value: "motionbgs", label: "MotionBgs", icon: "animation" }
             ]
             current: c.online.source
             onPicked: v => c.online.source = v
+        }
+        SetRow {
+            visible: c.online.source === "motionbgs"
+            icon: "high_quality"; label: "Quality"; hint: "4K is several times the download, and the battery; HD when there's no 4K"
+        }
+        Choice {
+            visible: c.online.source === "motionbgs"
+            x: 10; width: parent.width - 20
+            options: [
+                { value: "hd", label: "HD", icon: "hd" },
+                { value: "4k", label: "4K", icon: "4k" }
+            ]
+            current: c.online.quality
+            onPicked: v => c.online.quality = v
         }
         SetRow {
             icon: "search"; label: "Search"; hint: c.online.source === "konachan" ? "Tags, like night sky (underscores join words)" : "Words, like night city; empty for anything"

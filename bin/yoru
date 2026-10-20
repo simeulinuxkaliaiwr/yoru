@@ -8,7 +8,8 @@
                                  period's folder if the settings give one, else by brightness;
                                  --keep leaves the current one if it already suits
     yoru wall fetch [SOURCE] [SEARCH]   a new one from the internet (wallhaven or konachan,
-                                 safe-for-work only), saved to the download folder
+                                 safe-for-work only, or a live one from motionbgs), saved to
+                                 the download folder
     yoru walls              every wallpaper as JSON, with thumbnails (the picker reads this)
     yoru timeline FILE      a video's colours across its loop (yoru starts it itself)
     yoru art URL            a palette from album art, as JSON (the shell uses it while music plays)
@@ -1529,18 +1530,52 @@ def lyrics(title, artist, length):
 
 def fetch(s, source, search):
     """a random safe-for-work wallpaper of at least 1920x1080 from wallhaven.cc or
-    konachan.net (end-4's Konachan button), saved under its site and id so a
-    second pick of the same one isn't downloaded twice. Returns the file."""
+    konachan.net (end-4's Konachan button), or a live one (an mp4) from motionbgs.com,
+    saved under its site and id so a second pick of the same one isn't downloaded
+    twice. Returns the file."""
+    import random
     import urllib.parse
     import urllib.request
 
-    def get(url):
+    def get(url, want=""):
         req = urllib.request.Request(url, headers={"User-Agent": "yoru (a quickshell rice)"})
         with urllib.request.urlopen(req, timeout=20) as r:
+            # an error page served with 200 mustn't be saved as a wallpaper
+            if want and not r.headers.get("Content-Type", "").startswith(want):
+                raise LookupError(f"{urllib.parse.urlparse(url).netloc} sent no {want.rstrip('/')} for that one")
             return r.read()
 
     q = urllib.parse.quote
-    if source == "konachan":
+    online = s.get("online", {})
+    folder = Path(os.path.expanduser(online.get("folder") or "~/Pictures/Wallpapers"))
+    ext = ""
+    if source == "motionbgs":
+        # No API: its search page (its 36 best matches), or for anything one of its listing
+        # pages (about 270 of 26; new ones push the old ones further back, so 250 stays safe).
+        site = "https://motionbgs.com"
+        page = f"{site}/search?q={q(search)}" if search.strip() else f"{site}/{random.randint(1, 250)}/"
+        def names_on(url):
+            html = get(url).decode("utf-8", "replace")
+            return html, list(dict.fromkeys(re.findall(r'live wallpaper" href=/([a-z0-9-]+)', html)))
+        html, names = names_on(page)
+        # a word that's one of its tags lands on the tag's pages ("160+ Rain Live Wallpapers",
+        # 36 a page): any of them, not only the newest 36
+        count, tag = re.search(r"<title>(\d+)\+", html), re.search(r"href=(/tag:[^/ >]+/)2/", html)
+        if count and tag:
+            n = random.randint(1, -(-int(count.group(1)) // 36))
+            if n > 1:
+                names = names_on(f"{site}{tag.group(1)}{n}/")[1] or names
+        if not names:
+            raise LookupError(f"nothing on motionbgs for \"{search}\"")
+        fresh = [n for n in names if not (folder / f"motionbgs-{n}.mp4").exists()]
+        slug = random.choice(fresh or names)
+        links = dict(re.findall(r"/dl/(4k|hd)/(\d+)", get(f"{site}/{slug}").decode("utf-8", "replace")))
+        if not links:
+            raise LookupError(f"motionbgs has no download for {slug}")
+        # 4K runs several times HD's size (and decoding): HD unless asked, and HD when there's no 4K
+        size = "4k" if online.get("quality") == "4k" and "4k" in links else "hd" if "hd" in links else "4k"
+        url, name, ext = f"{site}/dl/{size}/{links[size]}/", f"motionbgs-{slug}", ".mp4"
+    elif source == "konachan":
         tags = " ".join(["rating:safe", "order:random", "width:>=1920", "height:>=1080"] + search.split())
         posts = json.loads(get(f"https://konachan.net/post.json?limit=1&tags={q(tags)}"))
         if not posts:
@@ -1552,13 +1587,14 @@ def fetch(s, source, search):
         if not found:
             raise LookupError(f"nothing on wallhaven for \"{search}\"")
         url, name = found[0]["path"], f"wallhaven-{found[0]['id']}"
-    ext = Path(urllib.parse.urlparse(url).path).suffix.lower()
-    folder = Path(os.path.expanduser(s.get("online", {}).get("folder") or "~/Pictures/Wallpapers"))
-    out = folder / (name + (ext if ext in IMAGES else ".jpg"))
+    if not ext:
+        ext = Path(urllib.parse.urlparse(url).path).suffix.lower()
+        ext = ext if ext in IMAGES else ".jpg"
+    out = folder / (name + ext)
     if not out.exists():
         folder.mkdir(parents=True, exist_ok=True)
         tmp = out.with_name(out.name + ".part")
-        tmp.write_bytes(get(url))
+        tmp.write_bytes(get(url, "video/" if ext in VIDEOS else ""))
         tmp.replace(out)
     return str(out)
 

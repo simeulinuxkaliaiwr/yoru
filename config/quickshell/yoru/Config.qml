@@ -65,12 +65,14 @@ Singleton {
                     property string night: ""
                 }
                 property list<string> dirs: ["~/Pictures/yoru", "~/Pictures/Wallpapers"]
-                // `yoru wall fetch`: a random safe-for-work picture from wallhaven or konachan,
-                // narrowed by search (words on wallhaven, tags on konachan), saved to folder
+                // `yoru wall fetch`: a random safe-for-work picture from wallhaven or konachan, or a
+                // live one (an mp4) from motionbgs, narrowed by search (words on wallhaven and
+                // motionbgs, tags on konachan), saved to folder
                 property JsonObject online: JsonObject {
-                    property string source: "wallhaven"
+                    property string source: "wallhaven"         // wallhaven, konachan or motionbgs
                     property string search: ""
                     property string folder: "~/Pictures/Wallpapers"
+                    property string quality: "hd"               // motionbgs: hd (1920x1080) or 4k, when it has one
                 }
                 // weather drawn over the wallpaper: weather (whatever it's doing outside, and an aurora
                 // on clear nights), snow, rain, aurora, fog, storm, or off
