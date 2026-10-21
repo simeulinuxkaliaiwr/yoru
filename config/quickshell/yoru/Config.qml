@@ -73,6 +73,9 @@ Singleton {
                     property string search: ""
                     property string folder: "~/Pictures/Wallpapers"
                     property string quality: "hd"               // motionbgs: hd (1920x1080) or 4k, when it has one
+                    // liked: a fetched one is only on trial, kept by Download (`yoru wall keep`) and
+                    // deleted when another wallpaper takes its place; all: every one stays
+                    property string keep: "liked"
                 }
                 // weather drawn over the wallpaper: weather (whatever it's doing outside, and an aurora
                 // on clear nights), snow, rain, aurora, fog, storm, or off

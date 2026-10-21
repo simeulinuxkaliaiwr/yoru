@@ -9,6 +9,20 @@ Column {
     readonly property var c: Config.o.wallpaper
     readonly property bool skwd: c.backend === "skwd"
 
+    // a fetched wallpaper on screen, still on trial (yoru.json's trial; Download keeps it)
+    property string trial: ""
+    FileView {
+        path: Quickshell.env("HOME") + "/.config/yoru/yoru.json"
+        watchChanges: true
+        printErrors: false
+        onFileChanged: reload()
+        onLoaded: {
+            let s;
+            try { s = JSON.parse(text()); } catch (e) { return; }
+            trial = s.trial && s.trial === s.wallpaper ? s.trial : "";
+        }
+    }
+
     // skwd-wall's own settings, as `yoru skwd get` reads them (null: skwd's default)
     property var k: ({})
     onSkwdChanged: if (skwd) skwdGet.running = true
@@ -248,22 +262,44 @@ Column {
             Field { width: 260; text: c.online.search; placeholder: "anything"; onEdited: t => c.online.search = t.trim() }
         }
         SetRow {
+            icon: "favorite"; label: "Keep"
+            hint: c.online.keep === "all" ? "Every one you get stays in the folder" : "Each one is only a try: Download keeps it, otherwise it's deleted when the wallpaper changes"
+            Choice {
+                width: 290
+                current: c.online.keep
+                options: [{ value: "liked", label: "What I download", icon: "favorite" }, { value: "all", label: "Everything", icon: "select_all" }]
+                onPicked: v => c.online.keep = v
+            }
+        }
+        SetRow {
             icon: "download"; label: "Save to"; hint: "Keep it among the folders below to see it in the picker"
             Field { width: 260; text: c.online.folder; placeholder: "~/Pictures/Wallpapers"; onEdited: t => c.online.folder = t.trim() }
         }
         SetRow {
             icon: "wallpaper"; label: "Get one"
-            hint: fetch.running ? "Downloading…" : fetch.error !== "" ? fetch.error : fetch.got !== "" ? "Saved as " + fetch.got.split("/").pop() : "Downloads it and makes it the wallpaper"
-            Btn {
-                icon: fetch.running ? "hourglass_top" : "download"
-                label: fetch.running ? "Fetching" : "Get wallpaper"
-                onClicked: {
-                    if (fetch.running)
-                        return;
-                    forceActiveFocus();   // a field still being typed in saves first
-                    fetch.error = "";
-                    fetch.got = "";
-                    fetch.running = true;
+            hint: fetch.running ? "Downloading…" : fetch.error !== "" ? fetch.error
+                : trial !== "" ? "Trying " + trial.split("/").pop() + ": Download keeps it"
+                : fetch.got !== "" ? "Saved as " + fetch.got.split("/").pop()
+                : c.online.keep === "all" ? "Downloads it and makes it the wallpaper" : "Shows you one; Download keeps it"
+            Row {
+                spacing: 8
+                Btn {
+                    icon: fetch.running ? "hourglass_top" : c.online.keep === "all" ? "download" : "casino"
+                    label: fetch.running ? "Fetching" : c.online.keep === "all" ? "Get wallpaper" : trial !== "" ? "Another" : "Try one"
+                    tonal: trial !== ""
+                    onClicked: {
+                        if (fetch.running)
+                            return;
+                        forceActiveFocus();   // a field still being typed in saves first
+                        fetch.error = "";
+                        fetch.got = "";
+                        fetch.running = true;
+                    }
+                }
+                Btn {
+                    visible: trial !== "" && !fetch.running
+                    icon: "download"; label: "Download"
+                    onClicked: keeper.running = true
                 }
             }
         }
@@ -276,6 +312,11 @@ Column {
             command: ["yoru", "wall", "fetch", c.online.source].concat(c.online.search.split(/\s+/).filter(w => w !== ""))
             stdout: StdioCollector { onStreamFinished: fetch.got = text.trim().split("\n")[0] }
             stderr: StdioCollector { onStreamFinished: if (text.trim() !== "") fetch.error = text.trim().replace(/^yoru: /, "Failed: ") }
+        }
+        Process {
+            id: keeper
+            command: ["yoru", "wall", "keep"]
+            stdout: StdioCollector { onStreamFinished: if (text.trim() !== "") fetch.got = text.trim() }
         }
     }
 

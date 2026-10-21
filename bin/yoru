@@ -9,7 +9,10 @@
                                  --keep leaves the current one if it already suits
     yoru wall fetch [SOURCE] [SEARCH]   a new one from the internet (wallhaven or konachan,
                                  safe-for-work only, or a live one from motionbgs), saved to
-                                 the download folder
+                                 the download folder. With wallpaper.online.keep "liked" (the
+                                 default) it's only on trial: deleted when another wallpaper
+                                 takes its place, unless `yoru wall keep` ran
+    yoru wall keep          keep the fetched wallpaper on trial (the settings' Download button)
     yoru walls              every wallpaper as JSON, with thumbnails (the picker reads this)
     yoru timeline FILE      a video's colours across its loop (yoru starts it itself)
     yoru art URL            a palette from album art, as JSON (the shell uses it while music plays)
@@ -172,8 +175,20 @@ def modes():
 
 
 def save_state(s):
+    # a fetched wallpaper nobody kept goes once another takes its place (a mode
+    # holding it in before_mode to come back to keeps it on trial)
+    old = s.get("trial")
+    if old and old not in (s["wallpaper"], s.get("before_mode")):
+        p = Path(old)
+        if p.is_file():
+            for cached in (CACHE / "thumbs" / (key(p) + ".jpg"), CACHE / "frames" / (key(p) + ".jpg")):
+                cached.unlink(missing_ok=True)
+            p.unlink()
+        s.pop("trial")
+    if s.get("fresh"):
+        s["trial"] = s.pop("fresh")
     keep = {"wallpaper": s["wallpaper"]}
-    for k in ("before_mode", "before_desk", "desks", "fastfetch_logo"):
+    for k in ("before_mode", "before_desk", "desks", "fastfetch_logo", "trial"):
         if s.get(k):
             keep[k] = s[k]
     write(STATE, json.dumps(keep, indent=2) + "\n")
@@ -1532,7 +1547,7 @@ def fetch(s, source, search):
     """a random safe-for-work wallpaper of at least 1920x1080 from wallhaven.cc or
     konachan.net (end-4's Konachan button), or a live one (an mp4) from motionbgs.com,
     saved under its site and id so a second pick of the same one isn't downloaded
-    twice. Returns the file."""
+    twice. Returns the file, and whether it's new (downloaded just now)."""
     import random
     import urllib.parse
     import urllib.request
@@ -1599,12 +1614,13 @@ def fetch(s, source, search):
         ext = Path(urllib.parse.urlparse(url).path).suffix.lower()
         ext = ext if ext in IMAGES else ".jpg"
     out = folder / (name + ext)
-    if not out.exists():
-        folder.mkdir(parents=True, exist_ok=True)
-        tmp = out.with_name(out.name + ".part")
-        tmp.write_bytes(get(url, "video/" if ext in VIDEOS else ""))
-        tmp.replace(out)
-    return str(out)
+    if out.exists():
+        return str(out), False
+    folder.mkdir(parents=True, exist_ok=True)
+    tmp = out.with_name(out.name + ".part")
+    tmp.write_bytes(get(url, "video/" if ext in VIDEOS else ""))
+    tmp.replace(out)
+    return str(out), True
 
 
 def main():
@@ -1613,11 +1629,19 @@ def main():
     cmd = args[0]
     if cmd == "apply":
         apply(s)
+    elif cmd == "wall" and args[1:2] == ["keep"]:
+        # the fetched one on trial stays: off the list of what goes
+        if not s.get("trial"):
+            print("yoru: no fetched wallpaper is waiting to be kept", file=sys.stderr)
+            return 1
+        print(s.pop("trial"))
+        save_state(s)
     elif cmd == "wall" and len(args) > 1:
         # from the shell, for what skwd applied itself: only the colours are left to do
         s["skwd_has"] = "--from-skwd" in args
         args = [a for a in args if a != "--from-skwd"]
         target = args[1]
+        trial = False
         if target == "time" and len(args) > 2:
             fits = walls_for(s, args[2])
             if not fits:
@@ -1631,13 +1655,15 @@ def main():
             source = args[2] if len(args) > 2 else o.get("source") or "wallhaven"
             search = " ".join(args[3:]) if len(args) > 3 else o.get("search") or ""
             try:
-                target = fetch(s, source, search)
+                target, fresh = fetch(s, source, search)
             except OSError as e:
                 print(f"yoru: couldn't reach {source} ({getattr(e, 'reason', e)})", file=sys.stderr)
                 return 1
             except Exception as e:
                 print(f"yoru: {e}", file=sys.stderr)
                 return 1
+            # one downloaded before was kept then (or is the one on trial already)
+            trial = fresh and o.get("keep", "liked") != "all"
             print(target)
         elif target in ("next", "prev", "random"):
             ws = walls(s)
@@ -1654,6 +1680,8 @@ def main():
             print(f"yoru: no such file: {target}", file=sys.stderr)
             return 1
         s["wallpaper"] = target
+        if trial:
+            s["fresh"] = target
         save_state(s)
         if s["backend"] == "skwd" and not s["skwd_has"]:
             skwd_apply(target, wait=False)
