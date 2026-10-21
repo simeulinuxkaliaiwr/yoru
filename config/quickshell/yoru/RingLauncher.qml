@@ -10,8 +10,10 @@ import qs.parts
 // the ring: your apps in a circle around the pointer. Point toward one and click,
 // or turn it with the arrows / Tab and press Enter (1–9 pick directly). A dot under
 // an app means it's open: picking it brings that window back instead of a second one.
-// Typing hands over to the island's launcher with what you typed; right-click takes
-// an app off the ring. Apps: launcher.ringApps, or the ones you open most.
+// Typing searches: the ring fills with the best matches (Backspace edits, Esc clears).
+// The list's own modes (":" emoji, "?" web, ">" a command, "=" maths) and a search with
+// no app hand over to the island's launcher. Right-click takes an app off the ring.
+// Apps: launcher.ringApps, or the ones you open most.
 // With launcher.ringMorph the island itself flies down and opens into the ring.
 Scope {
     id: ring
@@ -19,6 +21,7 @@ Scope {
     property bool alive: false              // still drawing: open, or animating closed
     property string output: ""
     property var apps: []
+    property string query: ""
     property var isle: null                 // the Island, to grow out of
     property var from: null                 // its pill on this screen: { x, y, w, h, r }
     property bool morph: false
@@ -28,6 +31,7 @@ Scope {
     function open() {
         store.reload();
         output = Wm.focusedOutput || (Quickshell.screens[0]?.name ?? "");
+        query = "";
         apps = pickApps();
         const p = isle?.pills?.[output];
         morph = Config.o.launcher.ringMorph && !!p && !p.gone;
@@ -82,6 +86,42 @@ Scope {
         for (const e of entries.slice().sort((a, b) => a.name.localeCompare(b.name)))
             if (out.length < 8 && !out.includes(e)) out.push(e);
         return out;
+    }
+
+    // the launcher's matching: consecutive letters and word starts score highest
+    function score(text, q) {
+        text = (text ?? "").toLowerCase();
+        if (text === "") return -1;
+        if (text.startsWith(q)) return 100 - text.length * 0.1;
+        const at = text.indexOf(q);
+        if (at >= 0) return 70 - at;
+        let ti = 0, s = 0, run = 0;
+        for (const ch of q) {
+            const found = text.indexOf(ch, ti);
+            if (found < 0) return -1;
+            run = found === ti ? run + 1 : 0;
+            s += 2 + run * 3 + (found === 0 || " -_.".includes(text[found - 1]) ? 6 : 0);
+            ti = found + 1;
+        }
+        return s / 2;
+    }
+    function search(text) {
+        query = text;
+        const q = text.trim().toLowerCase();
+        if (q === "") { apps = pickApps(); return; }
+        const used = e => Math.log2(1 + (counts[e.id] ?? 0)) * 6;
+        const out = [];
+        for (const e of entries) {
+            const sc = Math.max(score(e.name, q), score(e.genericName, q) - 20,
+                                score((e.keywords ?? []).join(" "), q) - 30, score(e.id, q) - 25);
+            if (sc > 0) out.push({ e: e, s: sc + used(e) });
+        }
+        apps = out.sort((a, b) => b.s - a.s).slice(0, 12).map(r => r.e);
+    }
+    // what the ring can't show goes to the island's list
+    function handOver() {
+        typed(query);
+        close();
     }
 
     function pick(e) {
@@ -204,19 +244,30 @@ Scope {
                 anchors.fill: parent
                 focus: true
                 Keys.onPressed: e => {
-                    const n = win.n;
-                    if (e.key === Qt.Key_Escape) ring.close();
-                    else if (e.key === Qt.Key_Right || e.key === Qt.Key_Down || e.key === Qt.Key_Tab)
+                    const n = ring.apps.length;
+                    const typing = ring.query !== "";
+                    // a new search starts on its best match
+                    const find = text => { ring.search(text); win.sel = ring.apps.length > 0 && text.trim() !== "" ? 0 : -1; };
+                    if (e.key === Qt.Key_Escape) {
+                        if (typing) find("");           // the first Esc clears the search
+                        else ring.close();
+                    } else if (e.key === Qt.Key_Backspace) {
+                        if (typing) find(e.modifiers & Qt.ControlModifier ? "" : ring.query.slice(0, -1));
+                    } else if (n > 0 && (e.key === Qt.Key_Right || e.key === Qt.Key_Down || e.key === Qt.Key_Tab))
                         win.sel = win.sel < 0 ? 0 : (win.sel + 1) % n;
-                    else if (e.key === Qt.Key_Left || e.key === Qt.Key_Up || e.key === Qt.Key_Backtab)
+                    else if (n > 0 && (e.key === Qt.Key_Left || e.key === Qt.Key_Up || e.key === Qt.Key_Backtab))
                         win.sel = win.sel < 0 ? n - 1 : (win.sel - 1 + n) % n;
-                    else if (e.key === Qt.Key_Return || e.key === Qt.Key_Enter)
-                        ring.pick(ring.apps[Math.max(0, win.sel)]);
-                    else if (e.key >= Qt.Key_1 && e.key <= Qt.Key_9 && e.key - Qt.Key_1 < n)
+                    else if (e.key === Qt.Key_Return || e.key === Qt.Key_Enter) {
+                        if (n > 0) ring.pick(ring.apps[Math.max(0, win.sel)]);
+                        else if (typing) ring.handOver();   // nothing here: the list may know (web, maths)
+                    } else if (!typing && e.key >= Qt.Key_1 && e.key <= Qt.Key_9 && e.key - Qt.Key_1 < n)
                         ring.pick(ring.apps[e.key - Qt.Key_1]);
-                    else if (e.text.length === 1 && e.text.trim() !== "" && !(e.modifiers & Qt.ControlModifier)) {
-                        ring.typed(e.text);         // over to the island's launcher
-                        ring.close();
+                    else if (e.text.length === 1 && (e.text.trim() !== "" || (e.text === " " && typing))) {
+                        if (e.modifiers & Qt.ControlModifier) return;
+                        const next = ring.query + e.text;
+                        // the list's own modes: emoji, the web, a command, maths
+                        if (!typing && ":?>=".includes(e.text)) { ring.query = next; ring.handOver(); }
+                        else find(next);
                     } else return;
                     e.accepted = true;
                 }
@@ -291,7 +342,7 @@ Scope {
                 // the highlight: a pill of light sliding round to the chosen app
                 Item {
                     anchors.fill: parent
-                    visible: win.sel >= 0
+                    visible: win.sel >= 0 && win.sel < ring.apps.length
                     opacity: win.appsT
                     rotation: win.sel * win.step
                     Behavior on rotation { RotationAnimation { direction: RotationAnimation.Shortest; duration: Theme.fast; easing.type: Easing.OutCubic } }
@@ -353,13 +404,32 @@ Scope {
                     anchors.centerIn: parent
                     spacing: 4
                     opacity: win.appsT
-                    readonly property var e: win.sel >= 0 ? ring.apps[win.sel] : null
+                    readonly property var e: win.sel >= 0 ? ring.apps[win.sel] ?? null : null
                     readonly property int count: e ? ring.windowsOf(e).length : 0
+                    // what you've typed, with a caret
+                    Rectangle {
+                        visible: ring.query !== ""
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        width: Math.min(win.inner * 1.5, typedText.implicitWidth + 28); height: 30
+                        radius: height / 2
+                        color: Theme.alpha(Theme.primary, 0.16)
+                        border.width: 1; border.color: Theme.alpha(Theme.primary, 0.35)
+                        Txt {
+                            id: typedText
+                            anchors.centerIn: parent
+                            width: Math.min(implicitWidth, parent.width - 20)
+                            elide: Text.ElideLeft
+                            text: ring.query + "▏"
+                            size: 15; weight: Font.Medium
+                            color: Theme.ink
+                        }
+                    }
                     Txt {
                         anchors.horizontalCenter: parent.horizontalCenter
                         width: Math.min(implicitWidth, win.inner * 1.6)
                         horizontalAlignment: Text.AlignHCenter
                         elide: Text.ElideRight
+                        visible: parent.e !== null || ring.query === ""
                         text: parent.e ? parent.e.name : Qt.formatTime(clock.date, Config.o.island.clock24 ? "HH:mm" : "h:mm")
                         size: parent.e ? 20 : 30
                         weight: Font.DemiBold
@@ -369,6 +439,7 @@ Scope {
                     Txt {
                         anchors.horizontalCenter: parent.horizontalCenter
                         text: parent.e ? (parent.count > 1 ? parent.count + " windows · brings the last" : parent.count === 1 ? "open · brings it back" : "opens it")
+                                       : ring.query !== "" ? (ring.apps.length ? "point, or Enter" : "no app · Enter searches the list")
                                        : "point, or type to search"
                         size: 12
                         color: Theme.inkDim
