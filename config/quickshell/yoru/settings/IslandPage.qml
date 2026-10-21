@@ -43,6 +43,11 @@ Column {
         }
         SetRow {
             visible: l.style === "ring"
+            icon: "flare"; label: "Glowing icons"; hint: "Each app glows in its own colours, brightest where you point"
+            Toggle { checked: l.ringGlow; onToggled: on => l.ringGlow = on }
+        }
+        SetRow {
+            visible: l.style === "ring"
             icon: "push_pin"; label: "Ring apps"
             hint: "Desktop ids, separated by commas; empty for the ones you open most. Right-click one on the ring to take it off"
             Field {

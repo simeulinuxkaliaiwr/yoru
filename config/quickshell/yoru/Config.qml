@@ -135,6 +135,7 @@ Singleton {
                 property string style: "list"                 // list, ring
                 property string ringAt: "pointer"             // pointer, island (just under it), center
                 property bool ringMorph: true                 // the island flies down and opens into the ring
+                property bool ringGlow: true                  // each app's icon glows in its own colours
                 property list<string> ringApps: []            // desktop ids; empty = the ones you open most
             }
 

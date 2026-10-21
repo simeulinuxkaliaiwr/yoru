@@ -3,6 +3,7 @@ import Quickshell.Io
 import Quickshell.Wayland
 import Quickshell.Widgets
 import QtQuick
+import QtQuick.Effects
 import QtQuick.Shapes
 import qs
 import qs.parts
@@ -15,6 +16,7 @@ import qs.parts
 // no app hand over to the island's launcher. Right-click takes an app off the ring.
 // Apps: launcher.ringApps, or the ones you open most.
 // With launcher.ringMorph the island itself flies down and opens into the ring.
+// With launcher.ringGlow each icon glows in its own colours, brightest where you point.
 Scope {
     id: ring
     property bool shown: false
@@ -397,7 +399,22 @@ Scope {
                         y: win.outer + dir.y * r - height / 2
                         opacity: k
 
+                        // the glow: the icon blurred into a halo of its own colours, behind it
+                        MultiEffect {
+                            visible: Config.o.launcher.ringGlow
+                            source: icon
+                            anchors.fill: icon
+                            autoPaddingEnabled: true
+                            blurEnabled: true; blurMax: 40; blur: 1
+                            // 0 → 1 as it's pointed at: brighter, wider, stronger
+                            property real lit: slot.on ? 1 : 0
+                            Behavior on lit { NumberAnimation { duration: Theme.fast; easing.type: Easing.OutCubic } }
+                            saturation: 0.35; brightness: 0.1 + 0.15 * lit
+                            scale: icon.scale * (1.22 + 0.13 * lit)
+                            opacity: 0.75 + 0.25 * lit
+                        }
                         IconImage {
+                            id: icon
                             anchors.centerIn: parent
                             implicitSize: 52
                             source: Quickshell.iconPath(slot.modelData.icon, "application-x-executable")
