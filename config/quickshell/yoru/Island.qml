@@ -79,6 +79,12 @@ Scope {
     }
     property bool hoverToast: false
 
+    // the ring launcher grows out of the island and folds back into it: it reads where
+    // each screen's pill is, and hides the pill on its screen meanwhile
+    property var pills: ({})
+    property string ringAway: ""
+    property bool ringQuick: false          // the hand-over happens under the ring's copy: be quick
+
     // volume changes from anywhere (keys, pavucontrol, a script) show the OSD
     property bool audioSettled: false
     Timer { interval: 1500; running: true; onTriggered: island.audioSettled = true }
@@ -106,6 +112,8 @@ Scope {
             readonly property string shown: openHere ? island.mode
                 : island.flash !== "" && here ? island.flash
                 : "idle"
+            readonly property var pill: ({ x: shape.x, y: shape.y, w: shape.width, h: shape.height, r: shape.radius, gone: win.gone })
+            onPillChanged: island.pills = Object.assign({}, island.pills, { [name]: pill })
 
             // While the island is open, a clear sheet covers the screen: a click
             // on it closes the island, and it holds the keyboard: aro focuses a layer
@@ -213,13 +221,13 @@ Scope {
                     border.width: Theme.border > 0 ? Theme.border : 1
                     border.color: Theme.border > 0 ? Theme.borderColour : Theme.alpha(Theme.outlineVariant, 0.45)
                     clip: true
-                    opacity: win.gone ? 0 : 1
+                    opacity: win.gone || island.ringAway === perScreen.name ? 0 : 1
 
                     Behavior on width { NumberAnimation { duration: Theme.slow; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.spatial } }
                     Behavior on height { NumberAnimation { duration: Theme.slow; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.spatial } }
                     Behavior on radius { NumberAnimation { duration: Theme.normal; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.standard } }
                     Behavior on y { NumberAnimation { duration: Theme.slow; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.emphasized } }
-                    Behavior on opacity { NumberAnimation { duration: Theme.normal } }
+                    Behavior on opacity { NumberAnimation { duration: island.ringQuick ? 90 : Theme.normal } }
 
                     // a view fades and settles in once the shape has room for it;
                     // the one leaving goes quickly

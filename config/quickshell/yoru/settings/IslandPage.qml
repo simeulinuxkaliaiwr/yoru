@@ -34,7 +34,12 @@ Column {
         SetRow {
             visible: l.style === "ring"
             icon: "my_location"; label: "Ring opens"
-            Choice { width: 240; current: l.ringAt; options: [{ value: "pointer", label: "At the pointer" }, { value: "center", label: "In the middle" }]; onPicked: v => l.ringAt = v }
+            Choice { width: 330; current: l.ringAt; options: [{ value: "pointer", label: "At the pointer" }, { value: "center", label: "In the middle" }]; onPicked: v => l.ringAt = v }
+        }
+        SetRow {
+            visible: l.style === "ring"
+            icon: "animation"; label: "Grow out of the island"; hint: "The island flies down and opens into the ring, and folds back up after"
+            Toggle { checked: l.ringMorph; onToggled: on => l.ringMorph = on }
         }
         SetRow {
             visible: l.style === "ring"

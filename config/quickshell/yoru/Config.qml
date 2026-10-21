@@ -134,6 +134,7 @@ Singleton {
             property JsonObject launcher: JsonObject {
                 property string style: "list"                 // list, ring
                 property string ringAt: "pointer"             // pointer, center
+                property bool ringMorph: true                 // the island flies down and opens into the ring
                 property list<string> ringApps: []            // desktop ids; empty = the ones you open most
             }
 

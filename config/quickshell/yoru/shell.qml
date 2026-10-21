@@ -55,7 +55,7 @@ ShellRoot {
     Editor {}
     FirefoxStart {}
     Island { id: island }
-    RingLauncher { id: ring; onTyped: text => island.search(text) }
+    RingLauncher { id: ring; isle: island; onTyped: text => island.search(text) }
     // the launcher key opens the ring instead, when the settings say so
     function openIsland(mode) {
         if (mode === "launcher" && Config.o.launcher.style === "ring") {

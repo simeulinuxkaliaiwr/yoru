@@ -12,12 +12,16 @@ import qs.parts
 // an app means it's open: picking it brings that window back instead of a second one.
 // Typing hands over to the island's launcher with what you typed; right-click takes
 // an app off the ring. Apps: launcher.ringApps, or the ones you open most.
+// With launcher.ringMorph the island itself flies down and opens into the ring.
 Scope {
     id: ring
     property bool shown: false
     property bool alive: false              // still drawing: open, or animating closed
     property string output: ""
     property var apps: []
+    property var isle: null                 // the Island, to grow out of
+    property var from: null                 // its pill on this screen: { x, y, w, h, r }
+    property bool morph: false
     signal typed(string text)
 
     function toggle() { shown ? close() : open(); }
@@ -25,10 +29,23 @@ Scope {
         store.reload();
         output = Wm.focusedOutput || (Quickshell.screens[0]?.name ?? "");
         apps = pickApps();
+        const p = isle?.pills?.[output];
+        morph = Config.o.launcher.ringMorph && !!p && !p.gone;
+        from = morph ? p : null;
+        if (morph) { isle.ringQuick = true; isle.ringAway = output; }
         alive = true;
         shown = true;
     }
-    function close() { shown = false; }
+    function close() {
+        // fold back into wherever the island is now (the launcher, if you typed)
+        const p = isle?.pills?.[output];
+        if (morph && p && !p.gone) from = p;
+        shown = false;
+    }
+    onAliveChanged: if (!alive && isle) {
+        if (isle.ringAway === output) isle.ringAway = "";
+        isle.ringQuick = false;
+    }
 
     // the launcher's counts: how often each app was opened
     property var counts: ({})
@@ -116,6 +133,18 @@ Scope {
             property bool placed: false
             property int sel: -1
             property real t: 0                  // 0 closed … 1 open
+            readonly property bool morph: ring.morph
+            function clamp01(x) { return Math.max(0, Math.min(1, x)); }
+            function outCubic(x) { return 1 - Math.pow(1 - x, 3); }
+            function inOutCubic(x) { return x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2; }
+            function lerp(a, b, k) { return a + (b - a) * k; }
+            // the morph: a copy of the pill appears on the island, then travels and
+            // swells, then the hole opens, then the apps come out
+            readonly property real m: morph ? inOutCubic(clamp01((t - 0.06) / 0.52)) : 1
+            readonly property real hole: morph ? outCubic(clamp01((t - 0.28) / 0.4)) : 1
+            readonly property real appsT: morph ? clamp01((t - 0.42) / 0.58) : t
+            // the island comes back as the ring nears it again
+            onTChanged: if (!ring.shown && morph && t < 0.25 && ring.isle) ring.isle.ringAway = ""
 
             // where it opens: at the pointer (kept whole on the screen) or in the middle
             function place(x, y) {
@@ -143,9 +172,9 @@ Scope {
 
             // the pointer may not move before it's wanted: open in the middle after a moment
             Timer { interval: 90; running: true; onTriggered: win.place(win.width / 2, win.height / 2) }
-            NumberAnimation { id: grow; target: win; property: "t"; to: 1; duration: Theme.normal * 1.2 }
+            NumberAnimation { id: grow; target: win; property: "t"; to: 1; duration: win.morph ? Theme.slow * 1.15 : Theme.normal * 1.2 }
             NumberAnimation {
-                id: shrink; target: win; property: "t"; to: 0; duration: Theme.fast * 0.8
+                id: shrink; target: win; property: "t"; to: 0; duration: win.morph ? Theme.normal * 1.2 : Theme.fast * 0.8
                 onFinished: ring.alive = false
             }
             Connections {
@@ -193,24 +222,55 @@ Scope {
                 }
             }
 
+            // the island on its way: its pill becoming the band, travelling as it swells
+            Shape {
+                id: travel
+                visible: win.morph
+                anchors.fill: parent
+                preferredRendererType: Shape.CurveRenderer
+                opacity: win.clamp01(win.t / 0.06)
+                readonly property var f: ring.from ?? { x: win.cx, y: win.cy, w: 0, h: 0, r: 0 }
+                readonly property real bw: win.lerp(f.w, win.outer * 2, win.m)
+                readonly property real bh: win.lerp(f.h, win.outer * 2, win.m)
+                readonly property real bx: win.lerp(f.x + f.w / 2, win.cx, win.m) - bw / 2
+                readonly property real by: win.lerp(f.y + f.h / 2, win.cy, win.m) - bh / 2
+                // the hole stays inside the shape: drawn outside it, even-odd would fill it in
+                readonly property real reach: Math.min(bw, bh) / 2 - Math.hypot(bx + bw / 2 - win.cx, by + bh / 2 - win.cy) - 2
+                readonly property real hr: Math.max(0, Math.min(win.inner * win.hole, reach))
+                ShapePath {
+                    fillRule: ShapePath.OddEvenFill
+                    fillColor: Theme.alpha(Theme.island, 1 - 0.08 * win.m)
+                    strokeColor: Theme.alpha(Theme.outlineVariant, 0.45)
+                    strokeWidth: 1
+                    PathRectangle { x: travel.bx; y: travel.by; width: travel.bw; height: travel.bh; radius: Math.min(win.lerp(travel.f.r, win.outer, win.m), travel.bw / 2, travel.bh / 2) }
+                    PathRectangle { x: win.cx - travel.hr; y: win.cy - travel.hr; width: Math.max(0.01, travel.hr * 2); height: Math.max(0.01, travel.hr * 2); radius: travel.hr }
+                }
+            }
+
             // the ring itself
             Item {
                 id: disc
                 x: win.cx - win.outer; y: win.cy - win.outer
                 width: win.outer * 2; height: win.outer * 2
                 readonly property real ease: 1 - Math.pow(1 - Math.min(1, win.t * 1.6), 3)
-                opacity: ease
-                scale: 0.86 + 0.14 * ease
+                opacity: win.morph ? 1 : ease
+                scale: win.morph ? 1 : 0.86 + 0.14 * ease
 
+                // a soft edge outside the band, like a shadow (once a morph has arrived)
                 Shape {
                     anchors.fill: parent
                     preferredRendererType: Shape.CurveRenderer
-                    // a soft edge outside the band, like a shadow
+                    opacity: win.morph ? win.clamp01((win.m - 0.85) / 0.15) * win.hole : 1
                     ShapePath {
                         strokeColor: Qt.rgba(0, 0, 0, 0.22); strokeWidth: win.outer - win.inner + 22
                         fillColor: "transparent"; capStyle: ShapePath.FlatCap
                         PathAngleArc { centerX: win.outer; centerY: win.outer; radiusX: win.mid; radiusY: win.mid; startAngle: 0; sweepAngle: 360 }
                     }
+                }
+                Shape {
+                    anchors.fill: parent
+                    preferredRendererType: Shape.CurveRenderer
+                    visible: !win.morph             // the morph's own shape is the band then
                     // the band: the island's dark glass
                     ShapePath {
                         strokeColor: Theme.alpha(Theme.island, 0.92); strokeWidth: win.outer - win.inner
@@ -232,6 +292,7 @@ Scope {
                 Item {
                     anchors.fill: parent
                     visible: win.sel >= 0
+                    opacity: win.appsT
                     rotation: win.sel * win.step
                     Behavior on rotation { RotationAnimation { direction: RotationAnimation.Shortest; duration: Theme.fast; easing.type: Easing.OutCubic } }
                     Shape {
@@ -260,7 +321,7 @@ Scope {
                         readonly property var wins: ring.windowsOf(modelData)
                         readonly property bool focused: wins.some(w => w.focused)
                         // each flies out a beat after the one before
-                        readonly property real k: Math.max(0, Math.min(1, win.t * (1 + win.n * 0.045) - index * 0.045))
+                        readonly property real k: Math.max(0, Math.min(1, win.appsT * (1 + win.n * 0.045) - index * 0.045))
                         readonly property real r: win.mid * (0.35 + 0.65 * win.backOut(k))
                         readonly property point dir: win.spot(index)
                         width: 64; height: 64
@@ -291,6 +352,7 @@ Scope {
                 Column {
                     anchors.centerIn: parent
                     spacing: 4
+                    opacity: win.appsT
                     readonly property var e: win.sel >= 0 ? ring.apps[win.sel] : null
                     readonly property int count: e ? ring.windowsOf(e).length : 0
                     Txt {
