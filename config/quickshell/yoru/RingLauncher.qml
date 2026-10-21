@@ -186,14 +186,26 @@ Scope {
             // the island comes back as the ring nears it again
             onTChanged: if (!ring.shown && morph && t < 0.25 && ring.isle) ring.isle.ringAway = ""
 
-            // where it opens: at the pointer (kept whole on the screen) or in the middle
+            // where it opens: at the pointer (kept whole on the screen), hanging just under
+            // the island, or in the middle
             function place(x, y) {
                 if (placed) return;
                 placed = true;
-                if (Config.o.launcher.ringAt === "pointer") {
-                    const m = outer + 20;
-                    cx = Math.max(m, Math.min(width - m, x));
-                    cy = Math.max(m, Math.min(height - m, y));
+                const at = Config.o.launcher.ringAt;
+                const m = outer + 20;
+                // the screen's size: the window may not have grown to it yet
+                const w = screen?.width ?? width, h = screen?.height ?? height;
+                if (at === "pointer") {
+                    cx = Math.max(m, Math.min(w - m, x));
+                    cy = Math.max(m, Math.min(h - m, y));
+                } else if (at === "island") {
+                    const p = ring.isle?.pills?.[ring.output];
+                    const shown = p && !p.gone;
+                    cx = shown ? Math.max(m, Math.min(w - m, p.x + p.w / 2)) : w / 2;
+                    cy = (shown ? p.y + p.h : 0) + 14 + outer;
+                } else {
+                    cx = w / 2;
+                    cy = h / 2;
                 }
                 grow.start();
             }
@@ -211,7 +223,12 @@ Scope {
             function backOut(x) { const c1 = 1.70158, c3 = c1 + 1; return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2); }
 
             // the pointer may not move before it's wanted: open in the middle after a moment
-            Timer { interval: 90; running: true; onTriggered: win.place(win.width / 2, win.height / 2) }
+            // (the other places don't wait for it)
+            Timer {
+                interval: Config.o.launcher.ringAt === "pointer" ? 90 : 0
+                running: true
+                onTriggered: win.place(win.width / 2, win.height / 2)
+            }
             NumberAnimation { id: grow; target: win; property: "t"; to: 1; duration: win.morph ? Theme.slow * 1.15 : Theme.normal * 1.2 }
             NumberAnimation {
                 id: shrink; target: win; property: "t"; to: 0; duration: win.morph ? Theme.normal * 1.2 : Theme.fast * 0.8

@@ -24,7 +24,7 @@ Column {
 
     Section {
         icon: "apps"; title: "Launcher"
-        SetRow { icon: "keyboard_command_key"; label: "mod+a opens"; hint: l.style === "ring" ? "Your apps in a ring around the pointer: point and click, or type to search" : "The island's list: type to search apps, emoji, the web" }
+        SetRow { icon: "keyboard_command_key"; label: "mod+a opens"; hint: l.style === "ring" ? "Your apps in a ring: point and click, or type to search" : "The island's list: type to search apps, emoji, the web" }
         Choice {
             x: 10
             current: l.style
@@ -34,7 +34,7 @@ Column {
         SetRow {
             visible: l.style === "ring"
             icon: "my_location"; label: "Ring opens"
-            Choice { width: 330; current: l.ringAt; options: [{ value: "pointer", label: "At the pointer" }, { value: "center", label: "In the middle" }]; onPicked: v => l.ringAt = v }
+            Choice { width: 480; current: l.ringAt; options: [{ value: "pointer", label: "At the pointer" }, { value: "island", label: "Under the island" }, { value: "center", label: "In the middle" }]; onPicked: v => l.ringAt = v }
         }
         SetRow {
             visible: l.style === "ring"
