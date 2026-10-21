@@ -140,6 +140,7 @@ Singleton {
                 property bool ringMorph: true                 // the island flies down and opens into the ring
                 property bool ringGlow: true                  // each app's icon glows in its own colours
                 property list<string> ringApps: []            // desktop ids; empty = the ones you open most
+                property string terminal: "foot"              // what terminal apps (nvim, yazi: Terminal=true) open in
             }
 
             property JsonObject focus: JsonObject {

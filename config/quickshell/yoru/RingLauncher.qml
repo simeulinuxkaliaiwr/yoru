@@ -143,7 +143,7 @@ Scope {
             c[e.id] = (c[e.id] ?? 0) + 1;
             counts = c;
             store.setText(JSON.stringify(c));
-            e.execute();
+            Apps.run(e);
         }
         close();
     }

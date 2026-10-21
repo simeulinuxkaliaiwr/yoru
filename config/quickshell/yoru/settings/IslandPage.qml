@@ -32,6 +32,10 @@ Column {
             onPicked: v => l.style = v
         }
         SetRow {
+            icon: "terminal"; label: "Terminal apps open in"; hint: "For apps like nvim, yazi and htop; foot also names the window after the app"
+            Field { width: 200; text: l.terminal; placeholder: "foot"; onEdited: t => l.terminal = t.trim() }
+        }
+        SetRow {
             visible: l.style === "ring"
             icon: "my_location"; label: "Ring opens"
             Choice { width: 480; current: l.ringAt; options: [{ value: "pointer", label: "At the pointer" }, { value: "island", label: "Under the island" }, { value: "center", label: "In the middle" }]; onPicked: v => l.ringAt = v }

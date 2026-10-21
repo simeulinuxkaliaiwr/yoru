@@ -58,7 +58,7 @@ Card {
                     anchors.fill: parent
                     hoverEnabled: true
                     cursorShape: Qt.PointingHandCursor
-                    onClicked: app.modelData.execute()
+                    onClicked: Apps.run(app.modelData)
                 }
             }
         }

@@ -58,7 +58,7 @@ Item {
             c[r.e.id] = (c[r.e.id] ?? 0) + 1;
             counts = c;
             store.setText(JSON.stringify(c));
-            r.e.execute();
+            Apps.run(r.e);
         }
         isle.close();
     }
