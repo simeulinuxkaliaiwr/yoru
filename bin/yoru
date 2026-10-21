@@ -1576,8 +1576,16 @@ def fetch(s, source, search):
         size = "4k" if online.get("quality") == "4k" and "4k" in links else "hd" if "hd" in links else "4k"
         url, name, ext = f"{site}/dl/{size}/{links[size]}/", f"motionbgs-{slug}", ".mp4"
     elif source == "konachan":
-        tags = " ".join(["rating:safe", "order:random", "width:>=1920", "height:>=1080"] + search.split())
-        posts = json.loads(get(f"https://konachan.net/post.json?limit=1&tags={q(tags)}"))
+        # Its words are tags, and a name is one tag with underscores ("kasane teto" finds
+        # nothing, kasane_teto does): words as one tag first, then each its own tag
+        # ("night sky"); commas split it into several (kasane teto, night).
+        parts = [p.split() for p in search.split(",") if p.split()]
+        tries = ([["_".join(p) for p in parts]] if any(len(p) > 1 for p in parts) else []) + [sum(parts, [])]
+        for words in tries:
+            tags = " ".join(["rating:safe", "order:random", "width:>=1920", "height:>=1080"] + words)
+            posts = json.loads(get(f"https://konachan.net/post.json?limit=1&tags={q(tags)}"))
+            if posts:
+                break
         if not posts:
             raise LookupError(f"nothing on konachan for \"{search}\"")
         url, name = posts[0]["file_url"], f"konachan-{posts[0]['id']}"

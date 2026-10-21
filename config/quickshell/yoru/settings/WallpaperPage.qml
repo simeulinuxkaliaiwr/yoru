@@ -244,7 +244,7 @@ Column {
             onPicked: v => c.online.quality = v
         }
         SetRow {
-            icon: "search"; label: "Search"; hint: c.online.source === "konachan" ? "Tags, like night sky (underscores join words)" : "Words, like night city; empty for anything"
+            icon: "search"; label: "Search"; hint: c.online.source === "konachan" ? "Tags or a name, like night sky or kasane teto; commas between several" : "Words, like night city; empty for anything"
             Field { width: 260; text: c.online.search; placeholder: "anything"; onEdited: t => c.online.search = t.trim() }
         }
         SetRow {
