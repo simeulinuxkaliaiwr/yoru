@@ -55,11 +55,31 @@ Singleton {
         netSoon.restart();
     }
 
-    // bluetooth
+    // bluetooth. Switched off by rfkill (a laptop's wireless key, `rfkill block`), the adapter
+    // can't power on until the block is lifted: lift it, then turn it on once it's free
     readonly property var adapter: Bluetooth.defaultAdapter
     readonly property bool btOn: adapter?.enabled ?? false
     readonly property var btConnected: (Bluetooth.devices?.values ?? []).filter(d => d.connected)
-    function toggleBt() { if (adapter) adapter.enabled = !adapter.enabled; }
+    property bool btWanted: false
+    function toggleBt() {
+        if (!adapter) return;
+        if (adapter.enabled) { adapter.enabled = false; return; }
+        if (adapter.state === BluetoothAdapterState.Blocked) {
+            btWanted = true;
+            btGiveUp.restart();
+            Quickshell.execDetached(["rfkill", "unblock", "bluetooth"]);
+        } else adapter.enabled = true;
+    }
+    Connections {
+        target: st.adapter
+        function onStateChanged() {
+            if (st.btWanted && st.adapter.state === BluetoothAdapterState.Disabled) {
+                st.btWanted = false;
+                st.adapter.enabled = true;
+            }
+        }
+    }
+    Timer { id: btGiveUp; interval: 5000; onTriggered: st.btWanted = false }
 
     // brightness
     property real brightness: 0
