@@ -1,5 +1,4 @@
 import Quickshell
-import Quickshell.Io
 import Quickshell.Wayland
 import Quickshell.Widgets
 import QtQuick
@@ -31,7 +30,6 @@ Scope {
 
     function toggle() { shown ? close() : open(); }
     function open() {
-        store.reload();
         output = Wm.focusedOutput || (Quickshell.screens[0]?.name ?? "");
         query = "";
         apps = pickApps();
@@ -53,72 +51,20 @@ Scope {
         isle.ringQuick = false;
     }
 
-    // the launcher's counts: how often each app was opened
-    property var counts: ({})
-    FileView {
-        id: store
-        path: Theme.cacheDir + "/launches.json"
-        printErrors: false
-        onLoaded: { try { ring.counts = JSON.parse(text()); } catch (e) {} }
-    }
-
-    readonly property var entries: DesktopEntries.applications.values.filter(e => !e.noDisplay)
-    function entry(id) {
-        const want = String(id).replace(/\.desktop$/, "");
-        return entries.find(e => e.id === want) ?? entries.find(e => e.id.toLowerCase() === want.toLowerCase()) ?? null;
-    }
-    // an app's windows: its app_id is the desktop id, its last part, or the WM class
-    function windowsOf(e) {
-        if (!e) return [];
-        const ids = [e.id, e.startupClass ?? ""].filter(s => s).map(s => s.toLowerCase());
-        const tail = ids.map(s => s.split(".").pop());
-        return Wm.windows.filter(w => {
-            const a = (w.app_id ?? "").toLowerCase();
-            return a !== "" && w.state !== "scratchpad" && (ids.includes(a) || tail.includes(a) || tail.includes(a.split(".").pop()));
-        });
-    }
     function pickApps() {
         const pinned = Config.o.launcher.ringApps ?? [];
-        if (pinned.length > 0) return pinned.map(entry).filter(e => e).slice(0, 12);
+        if (pinned.length > 0) return pinned.map(id => Apps.entry(id)).filter(e => e).slice(0, 12);
         // the ones you open most, then what's running, then a few by name so it's never bare
-        const out = entries.filter(e => (counts[e.id] ?? 0) > 0)
-                           .sort((a, b) => counts[b.id] - counts[a.id]).slice(0, 10);
-        for (const e of entries)
-            if (out.length < 12 && !out.includes(e) && windowsOf(e).length > 0) out.push(e);
-        for (const e of entries.slice().sort((a, b) => a.name.localeCompare(b.name)))
+        const out = Apps.most().slice(0, 10);
+        for (const e of Apps.entries)
+            if (out.length < 12 && !out.includes(e) && Apps.windowsOf(e).length > 0) out.push(e);
+        for (const e of Apps.entries.slice().sort((a, b) => a.name.localeCompare(b.name)))
             if (out.length < 8 && !out.includes(e)) out.push(e);
         return out;
     }
-
-    // the launcher's matching: consecutive letters and word starts score highest
-    function score(text, q) {
-        text = (text ?? "").toLowerCase();
-        if (text === "") return -1;
-        if (text.startsWith(q)) return 100 - text.length * 0.1;
-        const at = text.indexOf(q);
-        if (at >= 0) return 70 - at;
-        let ti = 0, s = 0, run = 0;
-        for (const ch of q) {
-            const found = text.indexOf(ch, ti);
-            if (found < 0) return -1;
-            run = found === ti ? run + 1 : 0;
-            s += 2 + run * 3 + (found === 0 || " -_.".includes(text[found - 1]) ? 6 : 0);
-            ti = found + 1;
-        }
-        return s / 2;
-    }
     function search(text) {
         query = text;
-        const q = text.trim().toLowerCase();
-        if (q === "") { apps = pickApps(); return; }
-        const used = e => Math.log2(1 + (counts[e.id] ?? 0)) * 6;
-        const out = [];
-        for (const e of entries) {
-            const sc = Math.max(score(e.name, q), score(e.genericName, q) - 20,
-                                score((e.keywords ?? []).join(" "), q) - 30, score(e.id, q) - 25);
-            if (sc > 0) out.push({ e: e, s: sc + used(e) });
-        }
-        apps = out.sort((a, b) => b.s - a.s).slice(0, 12).map(r => r.e);
+        apps = text.trim() === "" ? pickApps() : Apps.search(text, 12);
     }
     // what the ring can't show goes to the island's list
     function handOver() {
@@ -128,23 +74,8 @@ Scope {
 
     function pick(e) {
         if (!e) return;
-        const ws = windowsOf(e);
-        if (ws.length > 0) {
-            // the one you used last
-            const w = ws.slice().sort((a, b) => {
-                const ia = Wm.mru.indexOf(a.id), ib = Wm.mru.indexOf(b.id);
-                return (ia < 0 ? 1e9 : ia) - (ib < 0 ? 1e9 : ib);
-            })[0];
-            const t = Wm.toplevels.find(t => t.appId === w.app_id && t.title === w.title)
-                   ?? Wm.toplevels.find(t => t.appId === w.app_id);
-            if (t) t.activate();
-        } else {
-            const c = Object.assign({}, counts);
-            c[e.id] = (c[e.id] ?? 0) + 1;
-            counts = c;
-            store.setText(JSON.stringify(c));
-            Apps.run(e);
-        }
+        // an open one comes back (the window used last); otherwise it starts
+        if (!Apps.raise(e)) Apps.launch(e);
         close();
     }
     // right-click: off the ring (the rest become the pinned list)
@@ -388,7 +319,7 @@ Scope {
                         required property var modelData
                         required property int index
                         readonly property bool on: win.sel === index
-                        readonly property var wins: ring.windowsOf(modelData)
+                        readonly property var wins: Apps.windowsOf(modelData)
                         readonly property bool focused: wins.some(w => w.focused)
                         // each flies out a beat after the one before
                         readonly property real k: Math.max(0, Math.min(1, win.appsT * (1 + win.n * 0.045) - index * 0.045))
@@ -439,7 +370,7 @@ Scope {
                     spacing: 4
                     opacity: win.appsT
                     readonly property var e: win.sel >= 0 ? ring.apps[win.sel] ?? null : null
-                    readonly property int count: e ? ring.windowsOf(e).length : 0
+                    readonly property int count: e ? Apps.windowsOf(e).length : 0
                     // what you've typed, with a caret
                     Rectangle {
                         visible: ring.query !== ""

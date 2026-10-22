@@ -11,7 +11,6 @@ Item {
     required property var isle
     readonly property bool shown: isle?.mode === "launcher"
     property string query: ""
-    property var counts: ({})
     property string answer: ""
 
     implicitWidth: 620
@@ -37,13 +36,6 @@ Item {
         return false;
     }
 
-    // how often each app was opened
-    FileView {
-        id: store
-        path: Theme.cacheDir + "/launches.json"
-        printErrors: false
-        onLoaded: { try { v.counts = JSON.parse(text()); } catch (e) {} }
-    }
     // a row: { kind: app|emoji|web|run, name, sub, icon or glyph, e (the app), text }
     function launch(r, shift) {
         if (r.kind === "emoji") {
@@ -54,11 +46,7 @@ Item {
             // Shift keeps it in a terminal, to see what it says
             Quickshell.execDetached(shift ? ["foot", "--hold", "sh", "-c", r.text] : ["sh", "-c", r.text]);
         } else {
-            const c = Object.assign({}, counts);
-            c[r.e.id] = (c[r.e.id] ?? 0) + 1;
-            counts = c;
-            store.setText(JSON.stringify(c));
-            Apps.run(r.e);
+            Apps.launch(r.e);
         }
         isle.close();
     }
@@ -89,24 +77,7 @@ Item {
         onLoaded: { try { v.emoji = JSON.parse(text()); } catch (e) {} }
     }
 
-    // subsequence match: consecutive letters and word starts score highest
-    function score(text, q) {
-        text = text.toLowerCase();
-        if (text.startsWith(q)) return 100 - text.length * 0.1;
-        const at = text.indexOf(q);
-        if (at >= 0) return 70 - at;
-        let ti = 0, s = 0, run = 0;
-        for (const ch of q) {
-            const found = text.indexOf(ch, ti);
-            if (found < 0) return -1;
-            run = found === ti ? run + 1 : 0;
-            s += 2 + run * 3 + (found === 0 || " -_.".includes(text[found - 1]) ? 6 : 0);
-            ti = found + 1;
-        }
-        return s / 2;
-    }
-
-    readonly property var apps: DesktopEntries.applications.values.filter(e => !e.noDisplay)
+    readonly property var apps: Apps.entries
     function appRow(e) { return { kind: "app", e: e, name: e.name, sub: e.genericName || e.comment || "", image: e.icon }; }
     readonly property var results: {
         if (mode === "emoji") {
@@ -128,16 +99,10 @@ Item {
             return rest === "" ? [] : [{ kind: "run", icon: "terminal", name: rest, sub: "Enter runs it  ·  Shift+Enter in a terminal", text: rest }];
 
         const q = query.trim().toLowerCase();
-        const used = e => Math.log2(1 + (counts[e.id] ?? 0)) * 6;
+        const used = e => Math.log2(1 + (Apps.counts[e.id] ?? 0)) * 6;
         if (q === "")
             return apps.slice().sort((a, b) => used(b) - used(a) || a.name.localeCompare(b.name)).slice(0, 7).map(appRow);
-        const out = [];
-        for (const e of apps) {
-            const s = Math.max(score(e.name, q), score(e.genericName ?? "", q) - 20,
-                               score((e.keywords ?? []).join(" "), q) - 30, score(e.id, q) - 25);
-            if (s > 0) out.push({ e: e, s: s + used(e) });
-        }
-        const found = out.sort((a, b) => b.s - a.s).slice(0, 30).map(r => appRow(r.e));
+        const found = Apps.search(q, 30).map(appRow);
         // nothing installed by that name: offer the web instead
         return found.length || answer !== "" ? found : [webRow(query.trim())];
     }
