@@ -143,6 +143,39 @@ Singleton {
                 property string terminal: "foot"              // what terminal apps (nvim, yazi: Terminal=true) open in
             }
 
+            // the phone (mod+y, Phone.qml): apps, quick settings, the day and the music on pages
+            // that slide sideways, in a device that comes out of the island
+            property JsonObject phone: JsonObject {
+                // slab (a glass smartphone), flip (a folding keitai, its keypad's keys are
+                // shortcuts) or bare (the screen alone, floating)
+                property string skin: "slab"
+                property string side: "right"                 // where it stands: left, center, right
+                // how it comes: island (the island drops down and becomes it), rise (up from the
+                // bottom of the screen) or fade
+                property string from: "island"
+                property real size: 1.0                       // 0.8..1.2; it also shrinks to fit the screen
+                property bool tilt: true                      // leans toward the pointer, still while you use it
+                property bool dim: true                       // the screen behind darkens a little
+                // its own screen: wallpaper (yours, softened), colours (the palette as a glow) or plain
+                property string screen: "wallpaper"
+                // which pages, in this order: home, control, today, music
+                property list<string> pages: ["home", "control", "today", "music"]
+                property string start: "home"                 // the page it opens on, or last (where it was left)
+                // the home screen: a clock style (as the desktop's: thin, bold, stacked, outline, mono,
+                // split, words, kanji, serif, analog) or none
+                property string clock: "thin"
+                property list<string> apps: []                // desktop ids; empty: the ones you open most
+                property int columns: 4                       // icons in a row, 3..5
+                property bool labels: true                    // names under the icons
+                property bool dock: true                      // the first four apps on a shelf at the bottom
+                // the control page's tiles: wifi, bluetooth, night, caffeine, dnd, focus, record,
+                // screenshot, picker, wallpaper, next, mic, music, lock, settings, power
+                property list<string> tiles: ["wifi", "bluetooth", "night", "caffeine", "dnd", "focus", "record", "screenshot", "picker", "wallpaper"]
+                // flip: what the keys 1..9 do, from the same list
+                property list<string> keys: ["wifi", "bluetooth", "night", "screenshot", "record", "music", "caffeine", "dnd", "wallpaper"]
+                property bool lyrics: true                    // the music page sings along (lrclib.net)
+            }
+
             property JsonObject focus: JsonObject {
                 property int minutes: 25
                 property int breakMinutes: 5

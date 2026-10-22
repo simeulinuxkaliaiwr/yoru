@@ -30,6 +30,7 @@ ShellRoot {
             { id: "visualizer", icon: "graphic_eq", name: "Visualizer", about: "The music, rising off the bottom of the screen", group: "Look", words: "cava bars wave mirror dots audio" },
             { id: "start", icon: "tab", name: "Start page", about: "Firefox's new tab page", group: "Look", words: "firefox new tab browser search engine links greeting address bar focus cursor keyboard" },
             { id: "island", icon: "toolbar", name: "Island", about: "The bar that becomes everything", group: "Shell", words: "clock 24 hour battery workspaces notifications" },
+            { id: "phone", icon: "smartphone", name: "Phone", about: "Your apps, quick settings, the day and the music, in your hand", group: "Shell", words: "mobile slab flip keitai bare pages tiles quick settings dock keypad lyrics wifi bluetooth" },
             { id: "focus", icon: "timer", name: "Focus & quiet", about: "The focus timer and do not disturb", group: "Shell", words: "pomodoro break dnd quiet hours night" },
             { id: "lock", icon: "lock", name: "Lock screen", about: "What you see when you come back", group: "Shell", words: "blur dim idle password power characters shapes dots" },
             { id: "weather", icon: "partly_cloudy_day", name: "Weather", about: "Where the forecast is for", group: "More", words: "city fahrenheit location" },
@@ -37,7 +38,7 @@ ShellRoot {
         ]
         readonly property var comps: ({
             quick: quickC, wallpaper: wallC, clock: clockC, widgets: widgetsC, layouts: layoutsC, visualizer: visC, start: startC,
-            island: islandC, focus: focusC, lock: lockC, weather: weatherC, about: aboutC
+            island: islandC, phone: phoneC, focus: focusC, lock: lockC, weather: weatherC, about: aboutC
         })
         Component { id: quickC; QuickPage {} }
         Component { id: wallC; WallpaperPage {} }
@@ -47,6 +48,7 @@ ShellRoot {
         Component { id: visC; VisualizerPage {} }
         Component { id: startC; StartPage {} }
         Component { id: islandC; IslandPage {} }
+        Component { id: phoneC; PhonePage {} }
         Component { id: focusC; FocusPage {} }
         Component { id: lockC; LockPage {} }
         Component { id: weatherC; WeatherPage {} }

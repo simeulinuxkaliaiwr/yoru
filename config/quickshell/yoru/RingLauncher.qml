@@ -36,7 +36,7 @@ Scope {
         const p = isle?.pills?.[output];
         morph = Config.o.launcher.ringMorph && !!p && !p.gone;
         from = morph ? p : null;
-        if (morph) { isle.ringQuick = true; isle.ringAway = output; }
+        if (morph) { isle.awayQuick = true; isle.away = output; }
         alive = true;
         shown = true;
     }
@@ -47,8 +47,8 @@ Scope {
         shown = false;
     }
     onAliveChanged: if (!alive && isle) {
-        if (isle.ringAway === output) isle.ringAway = "";
-        isle.ringQuick = false;
+        if (isle.away === output) isle.away = "";
+        isle.awayQuick = false;
     }
 
     function pickApps() {
@@ -117,7 +117,7 @@ Scope {
             readonly property real hole: morph ? outCubic(clamp01((t - 0.28) / 0.4)) : 1
             readonly property real appsT: morph ? clamp01((t - 0.42) / 0.58) : t
             // the island comes back as the ring nears it again
-            onTChanged: if (!ring.shown && morph && t < 0.25 && ring.isle) ring.isle.ringAway = ""
+            onTChanged: if (!ring.shown && morph && t < 0.25 && ring.isle) ring.isle.away = ""
 
             // where it opens: at the pointer (kept whole on the screen), hanging just under
             // the island, or in the middle

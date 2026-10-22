@@ -110,6 +110,7 @@ bind = mod+v, spawn, qs -c yoru ipc call island toggle clip
 bind = mod+x, spawn, qs -c yoru ipc call island toggle control
 bind = mod+m, spawn, qs -c yoru ipc call island toggle media
 bind = mod+w, spawn, qs -c yoru ipc call island toggle walls
+bind = mod+y, spawn, qs -c yoru ipc call phone toggle
 bind = mod+shift+e, spawn, qs -c yoru ipc call island toggle power
 bind = mod+shift+w, spawn, yoru wall next
 bind = mod+i, spawn, qs -n -p ~/.config/quickshell/yoru/settings.qml

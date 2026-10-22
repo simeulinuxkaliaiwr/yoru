@@ -19,6 +19,25 @@ and power menu. Also in notifications pop-ups, brightness and volume. **Control 
 
 ![control center](docs/control_center.png)
 
+### The phone (mod+y)
+
+A phone that drops out of the island, holding your apps, quick settings, the day and the music
+on pages you swipe (or Tab) between:
+
+- **Home**: a clock in any of the desktop's styles, the weather, your apps and a dock. Type
+  anywhere and it searches them; what isn't an app (maths, the web, emoji) goes on to the
+  island's launcher.
+- **Control**: your battery, Wi-Fi and Bluetooth (with lists to join networks and pair
+  devices), tiles for night light, caffeine, do not disturb, focus, recording and more, what's
+  playing, brightness and volume, and how busy the computer is.
+- **Today**: the weather by the hour, the month, the focus timer and your notifications.
+- **Music**: the cover, the controls, and the words as they're sung.
+
+Under Settings → Phone, pick its body: a glass **slab** whose side buttons work, a **flip**
+phone that swings open on its hinge (its keypad's 1–9 are shortcuts you choose), or the
+**bare** screen. Also choose where it stands, how it comes, its screen, which pages and in what
+order, which tiles, and more. It follows your colours and modes like the rest of yoru.
+
 ### The wallpaper
 
 Drawn by the shell: it drifts with the workspaces (parallax, optional), plays videos

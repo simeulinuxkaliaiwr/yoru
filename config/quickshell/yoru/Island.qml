@@ -79,11 +79,11 @@ Scope {
     }
     property bool hoverToast: false
 
-    // the ring launcher grows out of the island and folds back into it: it reads where
-    // each screen's pill is, and hides the pill on its screen meanwhile
+    // the ring launcher and the phone grow out of the island and fold back into it: they
+    // read where each screen's pill is, and hide the pill on their screen meanwhile
     property var pills: ({})
-    property string ringAway: ""
-    property bool ringQuick: false          // the hand-over happens under the ring's copy: be quick
+    property string away: ""
+    property bool awayQuick: false          // the hand-over happens under their copy: be quick
 
     // volume changes from anywhere (keys, pavucontrol, a script) show the OSD
     property bool audioSettled: false
@@ -221,13 +221,13 @@ Scope {
                     border.width: Theme.border > 0 ? Theme.border : 1
                     border.color: Theme.border > 0 ? Theme.borderColour : Theme.alpha(Theme.outlineVariant, 0.45)
                     clip: true
-                    opacity: win.gone || island.ringAway === perScreen.name ? 0 : 1
+                    opacity: win.gone || island.away === perScreen.name ? 0 : 1
 
                     Behavior on width { NumberAnimation { duration: Theme.slow; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.spatial } }
                     Behavior on height { NumberAnimation { duration: Theme.slow; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.spatial } }
                     Behavior on radius { NumberAnimation { duration: Theme.normal; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.standard } }
                     Behavior on y { NumberAnimation { duration: Theme.slow; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.emphasized } }
-                    Behavior on opacity { NumberAnimation { duration: island.ringQuick ? 90 : Theme.normal } }
+                    Behavior on opacity { NumberAnimation { duration: island.awayQuick ? 90 : Theme.normal } }
 
                     // a view fades and settles in once the shape has room for it;
                     // the one leaving goes quickly

@@ -56,8 +56,10 @@ ShellRoot {
     FirefoxStart {}
     Island { id: island }
     RingLauncher { id: ring; isle: island; onTyped: text => island.search(text) }
+    Phone { id: phone; isle: island }
     // the launcher key opens the ring instead, when the settings say so
     function openIsland(mode) {
+        if (phone.shown) phone.close();
         if (mode === "launcher" && Config.o.launcher.style === "ring") {
             island.close();
             ring.toggle();
@@ -83,10 +85,24 @@ ShellRoot {
         target: Alerts
         function onRaised(t) { island.showToast(t); }
     }
+    // the phone takes the screen from the island and the ring
+    function openPhone(where) {
+        if (phone.shown && where === "") { phone.close(); return; }
+        island.close();
+        if (ring.shown) ring.close();
+        phone.open(where);
+    }
+    IpcHandler {
+        target: "phone"
+        function toggle(): void { root.openPhone(""); }
+        // on a page: home, control, today, music, or a panel: wifi, bluetooth
+        function open(page: string): void { root.openPhone(page === "" ? (phone.shown ? phone.page : "") : page); }
+        function close(): void { phone.close(); }
+    }
     IpcHandler {
         target: "ring"
-        function toggle(): void { ring.toggle(); }
-        function open(): void { ring.open(); }
+        function toggle(): void { if (phone.shown) phone.close(); ring.toggle(); }
+        function open(): void { if (phone.shown) phone.close(); ring.open(); }
         function close(): void { ring.close(); }
     }
     IpcHandler {

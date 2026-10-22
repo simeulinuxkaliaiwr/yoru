@@ -57,7 +57,7 @@ Item {
                 [/yoru-lock|aro-lock/, "System", "Lock the screen"],
                 [/yoru-shot full/, "Capture", "Screenshot"], [/yoru-shot area/, "Capture", "Screenshot an area"],
                 [/record toggle/, "Capture", "Record the screen"], [/record area/, "Capture", "Record an area"],
-                [/picker pick/, "Capture", "Pick a colour"], [/focus toggle/, "yoru", "Focus timer"],
+                [/picker pick/, "Capture", "Pick a colour"], [/focus toggle/, "yoru", "Focus timer"], [/phone toggle/, "yoru", "Phone"],
                 [/RaiseVolume|set-volume.*\+/, "Media keys", "Volume up"], [/set-volume.*-/, "Media keys", "Volume down"],
                 [/set-mute @DEFAULT_AUDIO_SINK/, "Media keys", "Mute"], [/AUDIO_SOURCE/, "Media keys", "Mute the microphone"],
                 [/brightnessctl.*\+/, "Media keys", "Brighter"], [/brightnessctl.*-/, "Media keys", "Dimmer"],

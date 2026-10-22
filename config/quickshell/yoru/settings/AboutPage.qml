@@ -26,7 +26,7 @@ Column {
         icon: "keyboard"; title: "Keys"
         Repeater {
             model: [
-                ["mod+a", "Launcher"], ["mod+v", "Clipboard"], ["mod+x", "Control centre"], ["mod+m", "Player"],
+                ["mod+a", "Launcher"], ["mod+v", "Clipboard"], ["mod+x", "Control centre"], ["mod+m", "Player"], ["mod+y", "Phone"],
                 ["mod+w", "Wallpapers"], ["mod+shift+w", "Next wallpaper"], ["mod+i", "Settings"],
                 ["mod+escape", "Lock"], ["mod+shift+e", "Power"], ["Print, mod+Print", "Screenshot, area"]
             ]
