@@ -24,11 +24,12 @@ ShellRoot {
 
         readonly property var pages: Pages.list
         readonly property var comps: ({
-            quick: quickC, wallpaper: wallC, clock: clockC, widgets: widgetsC, layouts: layoutsC, visualizer: visC, start: startC,
+            quick: quickC, wallpaper: wallC, themes: themesC, clock: clockC, widgets: widgetsC, layouts: layoutsC, visualizer: visC, start: startC,
             island: islandC, phone: phoneC, notifications: notifsC, focus: focusC, lock: lockC, screen: screenC, weather: weatherC, about: aboutC
         })
         Component { id: quickC; QuickPage {} }
         Component { id: wallC; WallpaperPage {} }
+        Component { id: themesC; ThemesPage {} }
         Component { id: clockC; ClockPage {} }
         Component { id: widgetsC; WidgetsPage {} }
         Component { id: layoutsC; LayoutsPage {} }

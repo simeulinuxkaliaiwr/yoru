@@ -85,6 +85,19 @@ Singleton {
                 property real skyAmount: 0.6                  // how much of it, 0..1
             }
 
+            // the apps' themes from templates (`yoru themes`, Settings → App themes): yoru's own
+            // for each app (written only where it's installed), and yours, in ~/.config/yoru/templates
+            property JsonObject themes: JsonObject {
+                property bool kitty: true
+                property bool alacritty: true
+                property bool ghostty: true
+                property bool yazi: true
+                property bool tmux: true
+                property bool nvim: true
+                property bool spicetify: true
+                property bool mine: true
+            }
+
             property JsonObject desktop: JsonObject {
                 property bool clock: true
                 // thin, bold, stacked, outline, mono, split, words, kanji, serif, analog
