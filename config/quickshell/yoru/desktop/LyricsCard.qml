@@ -43,9 +43,9 @@ Card {
     }
 
     Txt {
-        visible: c.state_ !== "" || (Lyrics.status === "ok" && Lyrics.index < 0 && c.layout === "line")
+        visible: c.state_ !== ""
         anchors.centerIn: lines
-        text: c.state_ || "♪"
+        text: c.state_
         size: 13; color: Theme.inkDim
     }
 
@@ -87,20 +87,27 @@ Card {
         }
     }
 
-    // line: the one being sung, the next one under it
+    // line: the one being sung, the next one under it. Before the first and between lines
+    // (an intro, a solo) what's playing, dimmer, rather than a lone note
     Column {
-        visible: c.layout === "line" && c.state_ === "" && Lyrics.index >= 0
+        visible: c.layout === "line" && c.state_ === ""
         anchors { left: parent.left; right: parent.right; leftMargin: 22; rightMargin: 22; verticalCenter: parent.verticalCenter }
         spacing: 4
+        readonly property bool singing: Lyrics.line.trim() !== ""
         Txt {
             width: parent.width
-            text: Lyrics.line || "♪"
-            size: 18; weight: Font.DemiBold
+            text: parent.singing ? Lyrics.line : "♪  " + Media.title + (Media.artist ? "  ·  " + Media.artist : "")
+            size: parent.singing ? 18 : 15; weight: parent.singing ? Font.DemiBold : Font.Medium
+            color: parent.singing ? Theme.ink : Theme.inkDim
             horizontalAlignment: Text.AlignHCenter
         }
         Txt {
             width: parent.width
-            text: Lyrics.index + 1 < Lyrics.lines.length ? Lyrics.lines[Lyrics.index + 1][1] : ""
+            // the next line with words in it
+            text: {
+                for (let i = Lyrics.index + 1; i < Lyrics.lines.length; i++) if (Lyrics.lines[i][1].trim() !== "") return Lyrics.lines[i][1];
+                return "";
+            }
             size: 12; color: Theme.inkDim
             horizontalAlignment: Text.AlignHCenter
         }
