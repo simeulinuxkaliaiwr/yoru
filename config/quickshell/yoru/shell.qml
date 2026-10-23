@@ -69,6 +69,13 @@ ShellRoot {
         island.open(mode, "");
     }
     Lock { id: lockScreen }
+    Idle { id: idleWarn; isle: island; locked: lockScreen.locked; Component.onCompleted: island.idle = idleWarn }
+    // yoru-idle's swayidle calls these a few seconds before it locks, and when you come back
+    IpcHandler {
+        target: "idle"
+        function warn(seconds: int): void { idleWarn.warn(seconds); }
+        function cancel(): void { idleWarn.cancel(); }
+    }
 
     // the compositor's binds call these
     Connections {

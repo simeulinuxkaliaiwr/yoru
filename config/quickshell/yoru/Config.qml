@@ -199,6 +199,9 @@ Singleton {
                 property string clockStyle: "thin"
                 property string chars: "shapes"               // the password as: shapes (Material, in turn) or dots
                 property int lockAfterMinutes: 10
+                // before it locks itself: the screens dim and the island counts down for this
+                // long (any input stays); 0: no warning
+                property int warnSeconds: 15
             }
 
             // Firefox's new tab page; the shell writes these to ~/startpages/yoru-start.js

@@ -1,6 +1,36 @@
 #!/bin/sh
-# yoru-idle: swayidle with yoru's lock screen, after the settings' idle time
+# yoru-idle: swayidle with yoru's lock screen, after the settings' idle time. A few seconds
+# before (lock.warnSeconds) the shell dims the screens and counts down; any input stays.
+# `yoru-idle --restart` swaps a running one of ours for one with the settings as they are
+# now, and does nothing if it already has them or none runs (the shell calls it when they
+# change: swayidle only reads its arguments once)
 PATH=$HOME/.local/bin:$PATH
-min=$(jq -r '.lock.lockAfterMinutes // 10' "$HOME/.config/yoru/config.json" 2>/dev/null)
+restart=false
+[ "${1:-}" = --restart ] && restart=true
+
+conf=$HOME/.config/yoru/config.json
+min=$(jq -r '.lock.lockAfterMinutes // 10' "$conf" 2>/dev/null)
+warn=$(jq -r '.lock.warnSeconds // 15' "$conf" 2>/dev/null)
 case $min in '' | *[!0-9]*) min=10 ;; esac
-exec swayidle -w timeout $((min * 60)) yoru-lock before-sleep yoru-lock
+case $warn in '' | *[!0-9]*) warn=15 ;; esac
+lock=$((min * 60))
+[ "$warn" -ge "$lock" ] && warn=0
+
+set -- timeout "$lock" yoru-lock before-sleep yoru-lock
+[ "$warn" -gt 0 ] && set -- timeout $((lock - warn)) "qs -c yoru ipc call idle warn $warn" \
+	resume "qs -c yoru ipc call idle cancel" "$@"
+
+$restart || exec swayidle -w "$@"
+
+# ours run yoru-lock; their command lines, arguments joined by spaces, say what they were given
+want="swayidle -w $*"
+found=false
+for p in $(pgrep -x swayidle); do
+	cmd=$(tr '\0' ' ' < "/proc/$p/cmdline" 2>/dev/null) || continue
+	case $cmd in *yoru-lock*) ;; *) continue ;; esac
+	[ "${cmd% }" = "$want" ] && exit 0
+	found=true
+	kill "$p"
+done
+$found || exit 0
+setsid -f swayidle -w "$@" >/dev/null 2>&1

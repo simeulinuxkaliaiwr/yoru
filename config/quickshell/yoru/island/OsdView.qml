@@ -7,9 +7,12 @@ Item {
     id: v
     required property var isle
     readonly property string kind: isle?.osdKind ?? "volume"
-    readonly property real value: kind === "brightness" ? Status.brightness : kind === "mic" ? (Audio.micMuted ? 0 : 1) : Audio.volume
+    readonly property var idle: isle?.idle ?? null
+    readonly property real value: kind === "brightness" ? Status.brightness : kind === "mic" ? (Audio.micMuted ? 0 : 1)
+        : kind === "idle" ? (idle && idle.secs > 0 ? idle.left / idle.secs : 0) : Audio.volume
     readonly property bool muted: kind === "volume" ? Audio.muted : kind === "mic" ? Audio.micMuted : false
-    readonly property string icon: kind === "brightness" ? Status.brightIcon : kind === "mic" ? (Audio.micMuted ? "mic_off" : "mic") : Audio.icon
+    readonly property string icon: kind === "brightness" ? Status.brightIcon : kind === "mic" ? (Audio.micMuted ? "mic_off" : "mic")
+        : kind === "idle" ? "lock_clock" : Audio.icon
 
     implicitWidth: 320
     implicitHeight: 44
@@ -37,7 +40,7 @@ Item {
             anchors.verticalCenter: parent.verticalCenter
             width: 30
             horizontalAlignment: Text.AlignRight
-            text: v.kind === "mic" ? (v.muted ? "off" : "on") : Math.round(v.value * 100)
+            text: v.kind === "mic" ? (v.muted ? "off" : "on") : v.kind === "idle" ? (v.idle?.left ?? 0) + "s" : Math.round(v.value * 100)
             size: 12; weight: Font.DemiBold
             color: Theme.inkDim
             font.features: { "tnum": 1 }

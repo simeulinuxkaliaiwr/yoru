@@ -53,6 +53,15 @@ Scope {
         osdTimer.restart();
     }
     Timer { id: osdTimer; interval: 1600; onTriggered: if (island.flash === "osd") island.flash = "" }
+    // the countdown before the screen locks itself (Idle.qml): it stays until it's over or called off
+    property var idle: null
+    function showIdle(on) {
+        if (on) {
+            osdKind = "idle";
+            if (flash !== "toast") flash = "osd";
+            osdTimer.stop();
+        } else if (flash === "osd" && osdKind === "idle") flash = "";
+    }
 
     function showToast(t) {
         if (flash === "toast") { queue = queue.concat([t]); return; }

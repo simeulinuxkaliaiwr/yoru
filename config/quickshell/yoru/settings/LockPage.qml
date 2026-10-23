@@ -28,8 +28,12 @@ Column {
         SetRow { icon: "album"; label: "Media controls"; Toggle { checked: c.media; onToggled: on => c.media = on } }
         SetRow { icon: "power_settings_new"; label: "Power buttons"; hint: "Sleep, restart and shut down from the lock screen"; Toggle { checked: c.power; onToggled: on => c.power = on } }
         SetRow {
-            icon: "hourglass"; label: "Lock when idle for"; hint: "Applies the next time you switch to yoru or log in"
+            icon: "hourglass"; label: "Lock when idle for"
             Range { value: c.lockAfterMinutes; from: 1; to: 60; step: 1; suffix: " min"; onMoved: v => c.lockAfterMinutes = v }
+        }
+        SetRow {
+            icon: "lock_clock"; label: "Warn before locking"; hint: c.warnSeconds > 0 ? "The screen dims and the island counts down; move or type to stay" : "Off: it locks without a warning"
+            Range { value: c.warnSeconds; from: 0; to: 60; step: 5; suffix: " s"; onMoved: v => c.warnSeconds = v }
         }
         SetRow {
             icon: "lock_clock"; label: "Try it"
