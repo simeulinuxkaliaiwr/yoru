@@ -143,6 +143,12 @@ Singleton {
                 property int toastSeconds: 5
             }
 
+            // the clipboard (mod+v): Enter pastes into the window you were in (with wtype; Shift+Enter
+            // only copies), or only copies
+            property JsonObject clip: JsonObject {
+                property bool paste: true
+            }
+
             // what mod+a opens: list (the island's launcher) or ring (RingLauncher.qml)
             property JsonObject launcher: JsonObject {
                 property string style: "list"                 // list, ring

@@ -10,6 +10,7 @@ ffmpeg
 cava
 cliphist
 wl-clipboard
+wtype
 grim
 slurp
 wl-screenrec

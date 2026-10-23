@@ -57,10 +57,10 @@ pkg() {
 aur() { case $1 in wl-screenrec) return 0 ;; *) return 1 ;; esac; }
 needs="qs matugen magick jq curl python3 bsdtar fc-cache"
 # and what only some features use: video wallpapers, the visualizer, clipboard history, copying,
-# screenshots, recording, the colour picker, brightness, volume, media keys, sums in the launcher,
-# Wi-Fi, night light, locking when idle, the fallback lock, the photo widget's picker,
-# restarting after edits, fallback notices
-wants="ffmpeg cava cliphist wl-copy grim slurp wl-screenrec hyprpicker brightnessctl wpctl playerctl qalc
+# pasting from the clipboard, screenshots, recording, the colour picker, brightness, volume, media
+# keys, sums in the launcher, Wi-Fi, night light, locking when idle, the fallback lock, the photo
+# widget's picker, restarting after edits, fallback notices
+wants="ffmpeg cava cliphist wl-copy wtype grim slurp wl-screenrec hyprpicker brightnessctl wpctl playerctl qalc
 	nmcli wlsunset swayidle swaylock zenity inotifywait notify-send"
 repo="" fromaur=""
 for c in $needs $wants; do

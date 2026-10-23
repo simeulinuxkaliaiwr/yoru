@@ -59,4 +59,13 @@ Column {
         }
         Item { width: 1; height: 8 }
     }
+
+    Section {
+        icon: "content_paste"; title: "Clipboard"
+        SetRow {
+            icon: "content_paste_go"; label: "Enter pastes into your window"
+            hint: Config.o.clip.paste ? "Into the window you were in (with wtype); Shift+Enter only copies" : "Enter only copies"
+            Toggle { checked: Config.o.clip.paste; onToggled: on => Config.o.clip.paste = on }
+        }
+    }
 }
