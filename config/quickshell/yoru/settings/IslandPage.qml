@@ -18,6 +18,10 @@ Column {
         }
         SetRow { icon: "battery_5_bar"; label: "Battery percentage"; Toggle { checked: c.batteryPercent; onToggled: on => c.batteryPercent = on } }
         SetRow {
+            icon: "pets"; label: "A cat on the island"; hint: "It sleeps, wakes for notifications, bobs to the music and curls up while you focus; click it"
+            Toggle { checked: c.pet === "cat"; onToggled: on => c.pet = on ? "cat" : "off" }
+        }
+        SetRow {
             icon: "view_week"; label: "Workspaces"
             Choice { width: 200; current: c.workspaces; options: [{ value: "pills", label: "Pills" }, { value: "numbers", label: "Numbers" }]; onPicked: v => c.workspaces = v }
         }

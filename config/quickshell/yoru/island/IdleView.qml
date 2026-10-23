@@ -23,6 +23,12 @@ Item {
         anchors.centerIn: parent
         spacing: 16
 
+        // the island's cat (island.pet)
+        Cat {
+            anchors.verticalCenter: parent.verticalCenter
+            visible: Config.o.island.pet === "cat"
+        }
+
         // workspaces: the current one stretches into a pill
         Item {
             implicitWidth: pills.implicitWidth

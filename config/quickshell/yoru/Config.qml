@@ -156,6 +156,7 @@ Singleton {
                 property bool clock24: true
                 property bool showMedia: true
                 property bool lyrics: true                    // what's playing shows the line being sung (lrclib.net)
+                property string pet: "cat"                    // cat (it lives at the island's left end) or off
                 property bool batteryPercent: true
                 property string workspaces: "pills"           // pills, numbers
                 property int toastSeconds: 5
