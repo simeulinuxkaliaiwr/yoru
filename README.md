@@ -7,15 +7,15 @@
 
 | | |
 |---|---|
-| ![Aurora mode](docs/island.png) | ![storm mode](docs/storm.png) |
-| ![Snow mode](docs/snow.png) | ![The island](docs/aurora.png) |
+| ![The control center](docs/island.png) | ![Storm](docs/storm.png) |
+| ![Snow](docs/snow.png) | ![Aurora](docs/aurora.png) |
 
 ### The island
 
 One dark shape at the top of the screen is the whole shell. At rest it shows
 the workspaces, what's playing, the time and the status. It morphs into the
 launcher, clipboard, control center, media player, calendar, wallpaper picker
-and power menu. Also in notifications pop-ups, brightness and volume. **Control center demonstration: **
+and power menu. It also shows notification pop-ups, brightness and volume. **Control center demonstration:**
 
 ![control center](docs/control_center.png)
 
@@ -54,23 +54,23 @@ Needs `skwd-wall-v2-bin` and `skwd-deck-bin` (AUR); `yoru backend yoru` goes bac
 
 ### Colors from the wallpaper
 
-When you set a wallpaper, yoru get its colors, and apply them to the shell, and to your apps. When it's a video wallpaper, the colors change live (the shell, not GTK apps and etc).
+When you set a wallpaper, yoru gets its colors and applies them to the shell and to your apps. When it's a video wallpaper, the colors change live (in the shell, not in GTK apps etc.).
 
 ### Wallpaper transitions
 
-Currently, there are 8 wallpaper transitions animations: ripple, fade, wipe, disc, stripes, zoom, honeycomb and pixelate (or a random
+Currently, there are 8 wallpaper transition animations: ripple, fade, wipe, disc, stripes, zoom, honeycomb and pixelate (or a random
 one each time), you can adjust its duration. **Stripe wallpaper transition animation demonstration:**
 
 https://github.com/user-attachments/assets/59dd98a2-d774-49e4-9f99-9d3c45c83046
 
 ### Wallpapers by time of day!
 
-Optional: your dark wallpaper are applied at night, your bright noes by day, and the softer ones by dawn/dusk! "How does yoru know if it's day or not?" Well, by your location! The default one uses your IP. You can choose a folder for each period of the day.
+Optional: your dark wallpapers are applied at night, your bright ones by day, and the softer ones by dawn/dusk! "How does yoru know if it's day or not?" Well, by your location! The default one uses your IP. You can choose a folder for each period of the day.
 
 ### Weather on the wallpaper
 
 Snow, rain, fog or a storm falls over the picture when it does outside
-(yoru uses [open-meteo api](https://open-meteo.com) to know the weather of where you live), and even an aurora when it's a clear night! Want to know how it looks like? Go see [docs/aurora.png], [docs/snow.png] and [docs/storm.png]!
+(yoru uses [open-meteo api](https://open-meteo.com) to know the weather of where you live), and even an aurora when it's a clear night! Want to know what it looks like? Go see the [aurora](docs/aurora.png), the [snow](docs/snow.png) and the [storm](docs/storm.png)!
 
 ### The desktop
 
@@ -93,7 +93,7 @@ Yoru has a rounded firefox theme! Take a look at it:
 
 ### Config window
 
-Yoru has a configuration window HEAVILY inspired by [end-4's](https://github.com/end-4/dots-hyprland), there is where you configure EVERYTHING, your wallpaper, the color pallete, the widget's styles, the startpage, the weather and more.
+Yoru has a configuration window HEAVILY inspired by [end-4's](https://github.com/end-4/dots-hyprland), that's where you configure EVERYTHING: your wallpaper, the color palette, the widget's styles, the startpage, the weather and more.
 
 ![config_window](docs/config_window.png)
 
@@ -129,9 +129,10 @@ If you want to install firefox's theme and the startpage, run `sudo install -m64
 | `mod+m` | Media player |
 | `mod+w` | Wallpaper selector |
 | `mod+shift+w` | Next wallpaper |
-| `mod+shift+e` | Open power menuu |
+| `mod+shift+e` | Open the power menu |
 | `mod+i` | Open config window |
 | `mod+e` | Open edit mode |
+| `mod+y` | Open the phone |
 | `mod+Tab` | window picker (type to filter) |
 | `mod+/` | Keybindings cheat-sheet |
 | `mod+p` | 25m timer to focus |
