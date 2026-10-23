@@ -210,6 +210,7 @@ Singleton {
                 // flip: what the keys 1..9 do, from the same list
                 property list<string> keys: ["wifi", "bluetooth", "night", "screenshot", "record", "music", "caffeine", "dnd", "wallpaper"]
                 property bool lyrics: true                    // the music page sings along (lrclib.net)
+                property bool kdeconnect: true                // your real phone on the control page, through KDE Connect
             }
 
             property JsonObject focus: JsonObject {

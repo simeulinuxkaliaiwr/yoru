@@ -119,6 +119,10 @@ Column {
             icon: "lyrics"; label: "Sing along"; hint: "The music page shows the words, a line at a time (from lrclib.net)"
             Toggle { checked: c.lyrics; onToggled: on => c.lyrics = on }
         }
+        SetRow {
+            icon: "smartphone"; label: "Your real phone"; hint: "With KDE Connect (kdeconnect) paired: its battery and notifications on the control page, and buttons to ring it, send it the clipboard or wave"
+            Toggle { checked: c.kdeconnect; onToggled: on => c.kdeconnect = on }
+        }
         Item { width: 1; height: 8 }
     }
 

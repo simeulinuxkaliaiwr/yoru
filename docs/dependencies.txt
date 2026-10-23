@@ -28,4 +28,5 @@ inotify-tools
 libnotify
 noto-fonts-emoji.
 
-optional: skwd-wall-v2-bin, skwd-deck-bin (skwd-wall v2 as the wallpaper backend)
+optional: skwd-wall-v2-bin, skwd-deck-bin (skwd-wall v2 as the wallpaper backend);
+kdeconnect (your real phone in the yoru phone)

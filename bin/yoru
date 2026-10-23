@@ -25,6 +25,9 @@
                                          (null when lrclib couldn't be reached: nothing cached, ask again)
     yoru restore            the palette back at login (the compositor's autostart runs it)
     yoru status             the current wallpaper
+    yoru kdeconnect [ring|ping|clipboard ID]   your phones through KDE Connect (in reach, paired),
+                            with battery and notifications, as JSON; or ring one, ping it,
+                            send it the clipboard
     yoru events             calendar.feeds' events (.ics links or files), a month back to two
                             ahead, repeats worked out, as JSON
     yoru themes [write|use APP]   the app themes from templates (config/templates and yours in
@@ -1247,6 +1250,58 @@ def events(s, back=31, ahead=62):
     return out
 
 
+# your phone through KDE Connect (kdeconnectd on the session bus, asked with busctl): the
+# phones that are paired and in reach, each with its battery and its notifications; and
+# ringing one, pinging it, or sending it the clipboard. Nothing at all when KDE Connect isn't
+# running. (Written from KDE Connect's D-Bus interfaces, not tried with a phone here)
+KDE = "org.kde.kdeconnect"
+
+
+def kde_bus(*args):
+    try:
+        r = subprocess.run(["busctl", "--user", "--json=short", *args], capture_output=True, text=True, timeout=4)
+        return json.loads(r.stdout) if r.returncode == 0 and r.stdout.strip() else None
+    except (OSError, ValueError, subprocess.TimeoutExpired):
+        return None
+
+
+def kde_prop(path, iface, name, fallback=None):
+    got = kde_bus("get-property", KDE, path, iface, name)
+    return got.get("data", fallback) if isinstance(got, dict) else fallback
+
+
+def kdeconnect():
+    if not shutil.which("busctl"):
+        return []
+    got = kde_bus("call", KDE, "/modules/kdeconnect", "org.kde.kdeconnect.daemon", "devices", "bb", "true", "true")
+    ids = got["data"][0] if isinstance(got, dict) and got.get("data") else []
+    out = []
+    for dev in ids:
+        path = f"/modules/kdeconnect/devices/{dev}"
+        notes = []
+        got = kde_bus("call", KDE, path + "/notifications", "org.kde.kdeconnect.device.notifications", "activeNotifications")
+        for nid in (got["data"][0] if isinstance(got, dict) and got.get("data") else [])[:8]:
+            np = f"{path}/notifications/{nid}"
+            iface = "org.kde.kdeconnect.device.notifications.notification"
+            notes.append({"id": nid, "app": kde_prop(np, iface, "appName", ""), "title": kde_prop(np, iface, "title", ""),
+                          "text": kde_prop(np, iface, "text", "")})
+        out.append({"id": dev, "name": kde_prop(path, "org.kde.kdeconnect.device", "name", dev),
+                    "battery": kde_prop(path + "/battery", "org.kde.kdeconnect.device.battery", "charge", -1),
+                    "charging": bool(kde_prop(path + "/battery", "org.kde.kdeconnect.device.battery", "isCharging", False)),
+                    "notifications": notes})
+    return out
+
+
+def kdeconnect_do(what, dev):
+    path = f"/modules/kdeconnect/devices/{dev}"
+    calls = {"ring": (path + "/findmyphone", "org.kde.kdeconnect.device.findmyphone", "ring"),
+             "ping": (path + "/ping", "org.kde.kdeconnect.device.ping", "sendPing"),
+             "clipboard": (path + "/clipboard", "org.kde.kdeconnect.device.clipboard", "sendClipboard")}
+    if what not in calls:
+        return 2
+    return 0 if kde_bus("call", KDE, *calls[what]) is not None else 1
+
+
 # app themes from templates: yoru's own, for apps it knows how to point at them (config/templates:
 # kitty, alacritty, ghostty, yazi, tmux, nvim, spicetify), and yours (~/.config/yoru/templates, any
 # file). A template is the file with {{role}} where each colour goes (matugen's roles; color0 to
@@ -2270,6 +2325,10 @@ def main():
             print(s["backend"])
         else:
             return set_backend(s, args[1])
+    elif cmd == "kdeconnect":
+        if len(args) > 2:
+            return kdeconnect_do(args[1], args[2])
+        print(json.dumps(kdeconnect()))
     elif cmd == "events":
         print(json.dumps(events(s)))
     elif cmd == "themes":
