@@ -322,7 +322,7 @@ Column {
 
     Section {
         icon: "weather_snowy"; title: "Sky"
-        SetRow { icon: "cloud"; label: "Over the wallpaper"; hint: "Weather follows the sky outside, with an aurora on clear nights" }
+        SetRow { icon: "cloud"; label: "Over the wallpaper"; hint: "Weather follows the sky outside: an aurora on clear nights, cloud shadows when it's overcast" }
         Choice {
             x: 10; width: parent.width - 20
             options: [
@@ -332,6 +332,10 @@ Column {
                 { value: "aurora", label: "Aurora", icon: "auto_awesome" },
                 { value: "fog", label: "Fog", icon: "foggy" },
                 { value: "storm", label: "Storm", icon: "thunderstorm" },
+                { value: "fireflies", label: "Fireflies", icon: "flare" },
+                { value: "petals", label: "Petals", icon: "local_florist" },
+                { value: "leaves", label: "Leaves", icon: "eco" },
+                { value: "clouds", label: "Clouds", icon: "cloud" },
                 { value: "off", label: "Off", icon: "block" }
             ]
             current: c.sky
@@ -340,6 +344,19 @@ Column {
         SetRow {
             icon: "grain"; label: "Amount"; hint: "A few flakes at 0, a blizzard at 1"
             Range { value: c.skyAmount; from: 0; to: 1; step: 0.05; decimals: 2; onMoved: v => c.skyAmount = v }
+        }
+        SetRow {
+            visible: c.sky === "weather"
+            icon: "local_florist"; label: "The seasons too"; hint: "On fair days: sakura in spring, leaves in autumn, fireflies on summer evenings (by your hemisphere)"
+            Toggle { checked: c.seasons; onToggled: on => c.seasons = on }
+        }
+        SetRow {
+            icon: "flare"; label: "Shooting stars"; hint: "Now and then with the aurora, more often on a meteor shower's nights"
+            Toggle { checked: c.meteors; onToggled: on => c.meteors = on }
+        }
+        SetRow {
+            icon: "graphic_eq"; label: "The aurora follows the music"; hint: "It swells and brightens with what's playing"
+            Toggle { checked: c.skyMusic; onToggled: on => c.skyMusic = on }
         }
         Item { width: 1; height: 8 }
     }

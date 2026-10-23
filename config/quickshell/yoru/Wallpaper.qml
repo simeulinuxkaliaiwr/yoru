@@ -1,6 +1,7 @@
 import Quickshell
 import Quickshell.Io
 import Quickshell.Wayland
+import Quickshell.Services.Pipewire
 import QtQuick
 import QtMultimedia
 
@@ -48,16 +49,32 @@ Scope {
 
     // the sky: weather drawn over the wallpaper (shaders/sky.frag). The kinds,
     // in the shader's order; "" is none
-    readonly property var skies: ["", "snow", "rain", "aurora", "fog", "storm"]
+    readonly property var skies: ["", "snow", "rain", "aurora", "fog", "storm", "fireflies", "petals", "leaves", "clouds"]
     property string trySky: ""          // from IPC, for trying one out
     onTrySkyChanged: if (trySky !== "") tryEnd.restart()
     Timer { id: tryEnd; interval: 120000; onTriggered: root.trySky = "" }
-    // what the weather outside looks like, from its WMO code
+    // the season where you are (it's the other way round south of the equator)
+    readonly property string season: {
+        const m = new Date().getMonth();
+        const north = ["winter", "winter", "spring", "spring", "spring", "summer", "summer", "summer", "autumn", "autumn", "autumn", "winter"][m];
+        return Night.south ? ({ winter: "summer", spring: "autumn", summer: "winter", autumn: "spring" })[north] : north;
+    }
+    // an evening: the two hours after sunset
+    function evening() {
+        if (Weather.sunset === "") return false;
+        const t = Date.now() - new Date(Weather.sunset).getTime();
+        return t > 0 && t < 2 * 3600000;
+    }
+    // what the weather outside looks like, from its WMO code; with wallpaper.seasons, the
+    // season's own on fair days: petals in spring, leaves in autumn, fireflies on summer evenings
     function outside() {
         if (!Weather.ready) return "";
-        const c = Weather.code;
+        const c = Weather.code, seasons = Config.o.wallpaper.seasons;
         // a clear night: an aurora (over a bright picture it brings its own dark sky)
-        if (c <= 1) return Weather.day ? "" : "aurora";
+        if (c <= 1 && !Weather.day) return seasons && season === "summer" && evening() ? "fireflies" : "aurora";
+        if (c <= 2 && Weather.day && seasons) return season === "spring" ? "petals" : season === "autumn" ? "leaves" : "";
+        if (c <= 2) return "";
+        if (c === 3) return Weather.day ? "clouds" : "";
         if (c === 45 || c === 48) return "fog";
         if ((c >= 51 && c <= 67) || (c >= 80 && c <= 82)) return "rain";
         if ((c >= 71 && c <= 77) || c === 85 || c === 86) return "snow";
@@ -87,6 +104,23 @@ Scope {
     // the wind slants rain and snow; a breeze when it isn't the real weather
     readonly property real skyWind: focusSky && trySky === "" ? 0.12 : trySky === "" && Config.o.wallpaper.sky === "weather"
         ? Math.min(0.8, Weather.wind * (Weather.fahrenheit ? 1.609 : 1) / 50) : 0.2
+    // shooting stars on clear nights (wallpaper.meteors): now and then, more often in a
+    // meteor shower's nights (Night.qml), or whenever the sky is the aurora by choice
+    readonly property real meteors: {
+        if (!Config.o.wallpaper.meteors || Status.saving || skyWant !== "aurora") return 0;
+        const s = Night.shower;
+        return Math.min(1, 0.12 + (s ? 0.25 + s.rate / 150 * 0.6 * Math.max(0, 1 - Math.abs(s.days) / 3) : 0));
+    }
+    // the music, for the aurora to swell with (wallpaper.skyMusic): the output's peaks,
+    // risen to at once and let down slowly
+    property real pulse: 0
+    PwNodePeakMonitor {
+        id: peaks
+        node: Pipewire.defaultAudioSink
+        enabled: Config.o.wallpaper.skyMusic && root.sky === 3 && Media.playing && !Status.saving
+    }
+    function beat() { pulse = peaks.enabled ? Math.max(Math.min(1, peaks.peak * 1.4), pulse * 0.88) : pulse * 0.9; }
+
     // one kind fades out before the next fades in
     property int sky: 0
     property real skyFade: 0
@@ -336,7 +370,10 @@ Scope {
                     interval: 33; repeat: true
                     running: skyBox.visible && !skyBox.hidden
                     // wrapped well before a float loses the fractions of a second
-                    onTriggered: skyFx.time = ((Date.now() - skyBox.t0) / 1000) % 20000
+                    onTriggered: {
+                        skyFx.time = ((Date.now() - skyBox.t0) / 1000) % 20000;
+                        if (sky.modelData === Quickshell.screens[0]) root.beat();
+                    }
                 }
                 ShaderEffect {
                     id: skyFx
@@ -346,6 +383,8 @@ Scope {
                     property real kind: root.sky
                     property real amount: root.skyAmount
                     property real wind: root.skyWind
+                    property real meteors: root.meteors
+                    property real pulse: root.pulse
                     // bright pictures get a night sky behind the aurora; dark ones already are one
                     property real veil: Math.max(0, Math.min(1, (Theme.bright - 0.25) / 0.4))
                     property color tint: Qt.tint("#ffffff", Theme.alpha(Theme.primary, 0.18))

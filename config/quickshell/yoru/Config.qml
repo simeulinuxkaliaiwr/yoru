@@ -81,9 +81,12 @@ Singleton {
                     property string keep: "liked"
                 }
                 // weather drawn over the wallpaper: weather (whatever it's doing outside, and an aurora
-                // on clear nights), snow, rain, aurora, fog, storm, or off
+                // on clear nights), snow, rain, aurora, fog, storm, fireflies, petals, leaves, clouds, or off
                 property string sky: "weather"
                 property real skyAmount: 0.6                  // how much of it, 0..1
+                property bool seasons: true                   // weather: petals in spring, leaves in autumn, fireflies on summer evenings, on fair days
+                property bool meteors: true                   // shooting stars with the aurora, more in a meteor shower's nights
+                property bool skyMusic: true                  // the aurora swells with the music
             }
 
             // the apps' themes from templates (`yoru themes`, Settings → App themes): yoru's own
