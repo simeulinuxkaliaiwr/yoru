@@ -24,9 +24,31 @@ Scope {
     readonly property bool locked: lock.locked
     signal shake()
 
+    // what came since it locked: only how many, nothing of what they say
+    property real lockedAt: 0
+    readonly property int waiting: lock.locked ? Notifs.history.filter(h => h.time > lockedAt).length : 0
+
+    // Caps Lock: the keyboard's light says at first (and after the key), then each letter
+    // typed (a capital without Shift, or the other way round)
+    property bool caps: false
+    Process {
+        id: capsRead
+        command: ["sh", "-c", "cat /sys/class/leds/*::capslock/brightness 2>/dev/null"]
+        stdout: StdioCollector { onStreamFinished: root.caps = this.text.split("\n").some(l => parseInt(l) > 0) }
+    }
+    Timer { id: capsSoon; interval: 120; onTriggered: capsRead.running = true }
+    function typed(e) {
+        if (e.key === Qt.Key_CapsLock) { capsSoon.restart(); return; }
+        const ch = e.text;
+        if (ch.length === 1 && ch.toLowerCase() !== ch.toUpperCase())
+            caps = (ch === ch.toUpperCase()) !== !!(e.modifiers & Qt.ShiftModifier);
+    }
+
     function lockNow() {
         if (lock.locked) return;
         findFace.running = true;
+        lockedAt = Date.now();
+        capsRead.running = true;
         pw = ""; failed = false; checking = false; leaving = false;
         lock.locked = true;
     }
@@ -113,6 +135,13 @@ Scope {
                 Row {
                     anchors { top: parent.top; right: parent.right; margins: 28 }
                     spacing: 14
+                    // notifications since it locked: how many, not what
+                    Row {
+                        visible: Config.o.lock.notifications && root.waiting > 0
+                        spacing: 4
+                        Icon { name: "notifications"; size: 20; fill: 1; color: Theme.ink }
+                        Txt { text: root.waiting; size: 14; weight: Font.Medium; anchors.verticalCenter: parent.verticalCenter }
+                    }
                     Icon { name: Status.netIcon; size: 20; fill: 1; color: Theme.ink }
                     Row {
                         visible: Status.hasBattery
@@ -130,6 +159,19 @@ Scope {
                     layer.enabled: true
                     layer.effect: MultiEffect { shadowEnabled: true; shadowColor: Qt.rgba(0, 0, 0, 0.6); shadowBlur: 0.9; shadowVerticalOffset: 2 }
                     ClockFace { style: Config.o.lock.clockStyle; centred: true; k: 1.05; anchors.horizontalCenter: parent.horizontalCenter }
+                    // the weather, under it
+                    Row {
+                        visible: Config.o.lock.weather && Weather.ready
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        topPadding: 14
+                        spacing: 8
+                        Icon { anchors.verticalCenter: parent.verticalCenter; name: Weather.icon(Weather.code, Weather.day); size: 22; fill: 1; color: Theme.ink }
+                        Txt {
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: Math.round(Weather.temp) + "°  ·  " + Weather.words(Weather.code)
+                            size: 16; weight: Font.Medium
+                        }
+                    }
                 }
 
                 // who, and the password
@@ -160,10 +202,10 @@ Scope {
                     }
                     Txt {
                         anchors.horizontalCenter: parent.horizontalCenter
-                        text: root.failed ? (root.fails > 2 ? "Still not it — caps lock?" : "That's not it")
-                            : root.checking ? "Checking…" : "Welcome back, " + Quickshell.env("USER")
+                        text: root.failed ? (root.caps ? "That's not it — Caps Lock is on" : root.fails > 2 ? "Still not it" : "That's not it")
+                            : root.checking ? "Checking…" : root.caps ? "Caps Lock is on" : "Welcome back, " + Quickshell.env("USER")
                         size: 15; weight: Font.Medium
-                        color: root.failed ? Theme.danger : Theme.ink
+                        color: root.failed ? Theme.danger : root.caps ? Theme.tertiary : Theme.ink
                     }
 
                     Rectangle {
@@ -184,6 +226,7 @@ Scope {
                             enabled: !root.checking
                             Component.onCompleted: forceActiveFocus()
                             onTextChanged: root.pw = text
+                            Keys.onPressed: e => { root.typed(e); e.accepted = false; }
                             Keys.onReturnPressed: root.submit()
                             Keys.onEnterPressed: root.submit()
                             Keys.onEscapePressed: text = ""

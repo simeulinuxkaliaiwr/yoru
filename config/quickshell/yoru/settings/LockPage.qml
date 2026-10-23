@@ -26,6 +26,8 @@ Column {
             Choice { width: 220; current: c.chars; options: [{ value: "shapes", label: "Shapes" }, { value: "dots", label: "Dots" }]; onPicked: v => c.chars = v }
         }
         SetRow { icon: "album"; label: "Media controls"; Toggle { checked: c.media; onToggled: on => c.media = on } }
+        SetRow { icon: "partly_cloudy_day"; label: "The weather"; hint: "Under the clock"; Toggle { checked: c.weather; onToggled: on => c.weather = on } }
+        SetRow { icon: "notifications"; label: "How many notifications came"; hint: "A count by the battery; never what they say"; Toggle { checked: c.notifications; onToggled: on => c.notifications = on } }
         SetRow { icon: "power_settings_new"; label: "Power buttons"; hint: "Sleep, restart and shut down from the lock screen"; Toggle { checked: c.power; onToggled: on => c.power = on } }
         SetRow {
             icon: "hourglass"; label: "Lock when idle for"

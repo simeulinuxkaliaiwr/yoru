@@ -225,6 +225,8 @@ Singleton {
                 property bool power: true
                 property string clockStyle: "thin"
                 property string chars: "shapes"               // the password as: shapes (Material, in turn) or dots
+                property bool weather: true                   // the weather under the clock
+                property bool notifications: true             // how many came since it locked (never what they say)
                 property int lockAfterMinutes: 10
                 // before it locks itself: the screens dim and the island counts down for this
                 // long (any input stays); 0: no warning
