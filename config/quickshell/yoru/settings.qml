@@ -4,10 +4,12 @@
 // YORU_SETTINGS_PAGE=clock opens on a page by its id.
 
 import Quickshell
+import Quickshell.Io
 import QtQuick
 import qs
 import qs.parts
 import qs.settings
+import "settings/pages.js" as Pages
 
 ShellRoot {
     settings.watchFiles: false
@@ -20,23 +22,7 @@ ShellRoot {
         color: Theme.surface
         onClosed: Qt.quit()
 
-        // id, icon, name, what it's for, group, words to find it by
-        readonly property var pages: [
-            { id: "quick", icon: "tune", name: "Quick", about: "The wallpaper, its colours and how fast things move", group: "Look", words: "scheme colour palette accent vivid main music speed animation" },
-            { id: "wallpaper", icon: "wallpaper", name: "Wallpaper", about: "Transitions, live wallpapers and where they come from", group: "Look", words: "transition fade wipe disc parallax video folders rotate shuffle backend skwd skwd-wall daemon" },
-            { id: "clock", icon: "schedule", name: "Clock", about: "The clock on the desktop", group: "Look", words: "time style kanji serif analog position" },
-            { id: "widgets", icon: "widgets", name: "Widgets", about: "Which widgets, what they sit on, and where", group: "Look", words: "weather calendar system media today arrangement column grid row free custom edit mode place move resize drag glass neon frosted blur gradient hud stack" },
-            { id: "layouts", icon: "dashboard_customize", name: "Widget layouts", about: "How each widget lays itself out", group: "Look", words: "hero pill week date cover chips bars rings graph split dots vinyl record sun sunrise sunset" },
-            { id: "visualizer", icon: "graphic_eq", name: "Visualizer", about: "The music, rising off the bottom of the screen", group: "Look", words: "cava bars wave mirror dots audio" },
-            { id: "start", icon: "tab", name: "Start page", about: "Firefox's new tab page", group: "Look", words: "firefox new tab browser search engine links greeting address bar focus cursor keyboard" },
-            { id: "island", icon: "toolbar", name: "Island", about: "The bar that becomes everything", group: "Shell", words: "clock 24 hour battery workspaces notifications" },
-            { id: "phone", icon: "smartphone", name: "Phone", about: "Your apps, quick settings, the day and the music, in your hand", group: "Shell", words: "mobile slab flip keitai bare pages tiles quick settings dock keypad lyrics wifi bluetooth" },
-            { id: "focus", icon: "timer", name: "Focus & quiet", about: "The focus timer and do not disturb", group: "Shell", words: "pomodoro break dnd quiet hours night" },
-            { id: "lock", icon: "lock", name: "Lock screen", about: "What you see when you come back", group: "Shell", words: "blur dim idle password power characters shapes dots warn warning countdown" },
-            { id: "screen", icon: "nightlight", name: "Night light", about: "A warmer screen at night, by hand or by itself", group: "Shell", words: "night light warm warmth kelvin temperature wlsunset sunset sunrise schedule hours blue" },
-            { id: "weather", icon: "partly_cloudy_day", name: "Weather", about: "Where the forecast is for", group: "More", words: "city fahrenheit location" },
-            { id: "about", icon: "info", name: "About", about: "yoru, its keys and its config", group: "More", words: "keys rice config" },
-        ]
+        readonly property var pages: Pages.list
         readonly property var comps: ({
             quick: quickC, wallpaper: wallC, clock: clockC, widgets: widgetsC, layouts: layoutsC, visualizer: visC, start: startC,
             island: islandC, phone: phoneC, focus: focusC, lock: lockC, screen: screenC, weather: weatherC, about: aboutC
@@ -63,6 +49,36 @@ ShellRoot {
         readonly property var page: pages.find(p => p.id === current)
         property string query: ""
         readonly property var found: pages.filter(p => query === "" || (p.name + " " + p.about + " " + p.words).toLowerCase().includes(query.toLowerCase()))
+        // single settings too, by their names: a click opens the page there and the row shines
+        readonly property var foundRows: query.trim().length < 2 ? [] : SettingsIndex.search(query, 8) ?? []
+        property string find: Quickshell.env("YORU_SETTINGS_FIND") || ""
+        function show(id, label) {
+            if (!pages.some(p => p.id === id)) return;
+            find = label ?? "";
+            if (current === id) seek();
+            else current = id;
+        }
+        // the row with that label in the page: scrolled to and lit up
+        function seek() {
+            if (find === "" || !loader.item) return;
+            const want = find;
+            find = "";
+            const walk = it => {
+                if (it.label === want && typeof it.flash === "function") return it;
+                for (const ch of it.children ?? []) { const r = walk(ch); if (r) return r; }
+                return null;
+            };
+            const row = walk(loader.item);
+            if (!row) return;
+            const y = row.mapToItem(holder, 0, 0).y;
+            scroll.contentY = Math.max(0, Math.min(scroll.contentHeight - scroll.height, y - scroll.height / 3));
+            row.flash();
+        }
+        // the launcher asking for a page while this window is open (not "show": that's qs ipc's own)
+        IpcHandler {
+            target: "settings"
+            function open(page: string, label: string): void { win.show(page, label); }
+        }
 
         // the sidebar
         Item {
@@ -95,8 +111,11 @@ ShellRoot {
                     anchors { left: glass.right; leftMargin: 8; right: parent.right; rightMargin: 12; verticalCenter: parent.verticalCenter }
                     color: Theme.ink
                     font { family: Theme.sans; pixelSize: 13 }
-                    onTextChanged: win.query = text
-                    Keys.onReturnPressed: if (win.found.length) win.current = win.found[0].id
+                    onTextChanged: { win.query = text; SettingsIndex.want(); }
+                    Keys.onReturnPressed: {
+                        if (win.found.length) win.current = win.found[0].id;
+                        else if (win.foundRows.length) win.show(win.foundRows[0].page, win.foundRows[0].label);
+                    }
                     Keys.onEscapePressed: text = ""
                     Txt { anchors.verticalCenter: parent.verticalCenter; visible: field.text === ""; text: "Find a setting"; size: 13; color: Theme.outline }
                 }
@@ -149,7 +168,34 @@ ShellRoot {
                             }
                         }
                     }
-                    Txt { visible: win.found.length === 0; x: 26; topPadding: 12; text: "Nothing matches"; size: 12; color: Theme.outline }
+                    // the single settings that match
+                    Column {
+                        visible: win.foundRows.length > 0
+                        width: list.width
+                        Txt { x: 26; topPadding: 12; bottomPadding: 6; text: "SETTINGS"; size: 10; weight: Font.Bold; color: Theme.outline; font.letterSpacing: 1.5 }
+                        Repeater {
+                            model: win.foundRows
+                            Item {
+                                id: hit
+                                required property var modelData
+                                width: list.width; height: 48
+                                Rectangle {
+                                    x: 12; width: parent.width - 24; height: 44
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    radius: Theme.r(20)
+                                    color: hitHover.containsMouse ? Theme.alpha(Theme.ink, 0.06) : "transparent"
+                                }
+                                Icon { x: 28; anchors.verticalCenter: parent.verticalCenter; name: hit.modelData.icon; size: 18; color: Theme.inkDim }
+                                Column {
+                                    x: 60; width: parent.width - 72; anchors.verticalCenter: parent.verticalCenter
+                                    Txt { width: parent.width; text: hit.modelData.label; size: 13 }
+                                    Txt { width: parent.width; text: hit.modelData.pageName + (hit.modelData.section && hit.modelData.section !== hit.modelData.pageName ? " › " + hit.modelData.section : ""); size: 11; color: Theme.inkDim }
+                                }
+                                MouseArea { id: hitHover; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: win.show(hit.modelData.page, hit.modelData.label) }
+                            }
+                        }
+                    }
+                    Txt { visible: win.found.length === 0 && win.foundRows.length === 0; x: 26; topPadding: 12; text: "Nothing matches"; size: 12; color: Theme.outline }
                 }
             }
         }
@@ -182,10 +228,12 @@ ShellRoot {
                         id: loader
                         width: parent.width
                         sourceComponent: win.comps[win.current]
-                        onLoaded: { item.width = Qt.binding(() => loader.width); scroll.contentY = 0; enter.restart(); }
+                        onLoaded: { item.width = Qt.binding(() => loader.width); scroll.contentY = 0; enter.restart(); seekSoon.restart(); }
                     }
                 }
             }
+            // once the page has laid itself out (and slid in): the row asked for
+            Timer { id: seekSoon; interval: Theme.slow; onTriggered: win.seek() }
             // each page slides up into place
             ParallelAnimation {
                 id: enter

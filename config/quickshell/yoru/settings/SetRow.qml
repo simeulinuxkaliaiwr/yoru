@@ -12,6 +12,22 @@ Item {
     width: parent ? parent.width : 500
     height: Math.max(56, text.implicitHeight + 20)
 
+    // found by a search: it shines twice
+    function flash() { shine.restart(); }
+    Rectangle {
+        id: glow
+        anchors { fill: parent; leftMargin: -4; rightMargin: -4 }
+        radius: Theme.r(18)
+        color: Theme.alpha(Theme.primary, 0.16)
+        opacity: 0
+        SequentialAnimation {
+            id: shine
+            loops: 2
+            NumberAnimation { target: glow; property: "opacity"; to: 1; duration: 260; easing.type: Easing.OutCubic }
+            NumberAnimation { target: glow; property: "opacity"; to: 0; duration: 520; easing.type: Easing.InOutSine }
+        }
+    }
+
     Icon { id: ic; x: 10; anchors.verticalCenter: parent.verticalCenter; name: row.icon; size: 20; color: Theme.inkDim; visible: row.icon !== "" }
     Column {
         id: text
