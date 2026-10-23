@@ -231,14 +231,17 @@ Column {
         icon: "travel_explore"; title: "From the internet"
         SetRow {
             icon: "public"; label: "Source"
-            hint: c.online.source === "motionbgs" ? "A random live wallpaper, a looping video" : "A random picture, safe for work, at least 1920x1080"
+            hint: c.online.source === "motionbgs" ? "A random live wallpaper, a looping video"
+                : c.online.source === "osu" ? "One of this season's osu! backgrounds, picked from its fan art contest"
+                : "A random picture, safe for work, at least 1920x1080; the picker's Online tab (mod+w) searches them all"
         }
         Choice {
             x: 10; width: parent.width - 20
             options: [
                 { value: "wallhaven", label: "Wallhaven", icon: "landscape" },
                 { value: "konachan", label: "Konachan", icon: "draw" },
-                { value: "motionbgs", label: "MotionBgs", icon: "animation" }
+                { value: "motionbgs", label: "MotionBgs", icon: "animation" },
+                { value: "osu", label: "osu! seasonal", icon: "radio_button_checked" }
             ]
             current: c.online.source
             onPicked: v => c.online.source = v
@@ -258,6 +261,7 @@ Column {
             onPicked: v => c.online.quality = v
         }
         SetRow {
+            visible: c.online.source !== "osu"
             icon: "search"; label: "Search"; hint: c.online.source === "konachan" ? "Tags or a name, like night sky or kasane teto; commas between several" : "Words, like night city; empty for anything"
             Field { width: 260; text: c.online.search; placeholder: "anything"; onEdited: t => c.online.search = t.trim() }
         }
@@ -309,7 +313,7 @@ Column {
             id: fetch
             property string error: ""
             property string got: ""
-            command: ["yoru", "wall", "fetch", c.online.source].concat(c.online.search.split(/\s+/).filter(w => w !== ""))
+            command: ["yoru", "wall", "fetch", c.online.source].concat(c.online.source === "osu" ? [] : c.online.search.split(/\s+/).filter(w => w !== ""))
             stdout: StdioCollector { onStreamFinished: fetch.got = text.trim().split("\n")[0] }
             stderr: StdioCollector { onStreamFinished: if (text.trim() !== "") fetch.error = text.trim().replace(/^yoru: /, "Failed: ") }
         }

@@ -68,11 +68,12 @@ Singleton {
                     property string night: ""
                 }
                 property list<string> dirs: ["~/Pictures/yoru", "~/Pictures/Wallpapers"]
-                // `yoru wall fetch`: a random safe-for-work picture from wallhaven or konachan, or a
-                // live one (an mp4) from motionbgs, narrowed by search (words on wallhaven and
-                // motionbgs, tags on konachan), saved to folder
+                // `yoru wall fetch`: a random safe-for-work picture from wallhaven or konachan, one of
+                // this season's osu! backgrounds, or a live one (an mp4) from motionbgs, narrowed by
+                // search (words on wallhaven and motionbgs, tags on konachan, none on osu!), saved to
+                // folder. The picker's Online tab searches the same sites (source is where it starts)
                 property JsonObject online: JsonObject {
-                    property string source: "wallhaven"         // wallhaven, konachan or motionbgs
+                    property string source: "wallhaven"         // wallhaven, konachan, motionbgs or osu
                     property string search: ""
                     property string folder: "~/Pictures/Wallpapers"
                     property string quality: "hd"               // motionbgs: hd (1920x1080) or 4k, when it has one

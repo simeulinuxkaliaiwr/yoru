@@ -90,6 +90,9 @@ fair days the seasons come too: sakura in spring, leaves in autumn, fireflies on
 
 In the picker (mod+w), a heart makes one a favourite (the rotation can keep to those), the eye
 hides one so it never comes up on its own, and `yoru wall back` brings back the one before.
+Its Online tab searches Wallhaven, Konachan, MotionBgs (live wallpapers) and this season's osu!
+backgrounds: Enter tries one, Keep (Ctrl+S) holds on to it, otherwise it goes when the next one
+comes. Settings → Wallpaper → From the internet gets a random one the same way.
 
 ### The desktop
 

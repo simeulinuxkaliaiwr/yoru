@@ -8,10 +8,14 @@
                                  period's folder if the settings give one, else by brightness;
                                  --keep leaves the current one if it already suits
     yoru wall fetch [SOURCE] [SEARCH]   a new one from the internet (wallhaven or konachan,
-                                 safe-for-work only, or a live one from motionbgs), saved to
-                                 the download folder. With wallpaper.online.keep "liked" (the
-                                 default) it's only on trial: deleted when another wallpaper
-                                 takes its place, unless `yoru wall keep` ran
+                                 safe-for-work only, this season's osu! backgrounds, or a live
+                                 one from motionbgs), saved to the download folder. With
+                                 wallpaper.online.keep "liked" (the default) it's only on trial:
+                                 deleted when another wallpaper takes its place, unless
+                                 `yoru wall keep` ran
+    yoru wall search [SOURCE] [WORDS] [--page N] [--order top|new|random] [--seed S]
+                                 a page of what a source has, as JSON (the picker's Online tab)
+    yoru wall get SOURCE ID      that one from a search, like fetch (on trial the same way)
     yoru wall keep          keep the fetched wallpaper on trial (the settings' Download button)
     yoru wall fav [FILE]    a favourite or not (a toggle; the current one without FILE); the
                             rotation can keep to them (wallpaper.rotateFrom), random --favourites too
@@ -2100,82 +2104,206 @@ def lyrics(title, artist, length):
     return lines
 
 
-def fetch(s, source, search):
-    """a random safe-for-work wallpaper of at least 1920x1080 from wallhaven.cc or
-    konachan.net (end-4's Konachan button), or a live one (an mp4) from motionbgs.com,
-    saved under its site and id so a second pick of the same one isn't downloaded
-    twice. Returns the file, and whether it's new (downloaded just now)."""
-    import random
+def web(url, want=""):
+    """a page or a file from the internet"""
     import urllib.parse
     import urllib.request
+    req = urllib.request.Request(url, headers={"User-Agent": "yoru (a quickshell rice)"})
+    with urllib.request.urlopen(req, timeout=20) as r:
+        # an error page served with 200 mustn't be saved as a wallpaper
+        if want and not r.headers.get("Content-Type", "").startswith(want):
+            raise LookupError(f"{urllib.parse.urlparse(url).netloc} sent no {want.rstrip('/')} for that one")
+        return r.read()
 
-    def get(url, want=""):
-        req = urllib.request.Request(url, headers={"User-Agent": "yoru (a quickshell rice)"})
-        with urllib.request.urlopen(req, timeout=20) as r:
-            # an error page served with 200 mustn't be saved as a wallpaper
-            if want and not r.headers.get("Content-Type", "").startswith(want):
-                raise LookupError(f"{urllib.parse.urlparse(url).netloc} sent no {want.rstrip('/')} for that one")
-            return r.read()
 
-    q = urllib.parse.quote
-    online = s.get("online", {})
-    folder = Path(os.path.expanduser(online.get("folder") or "~/Pictures/Wallpapers"))
-    ext = ""
+def online_folder(s):
+    return Path(os.path.expanduser(s.get("online", {}).get("folder") or "~/Pictures/Wallpapers"))
+
+
+def konachan_tries(search):
+    """Its words are tags, and a name is one tag with underscores ("kasane teto" finds
+    nothing, kasane_teto does): words as one tag first, then each its own tag
+    ("night sky"); commas split it into several (kasane teto, night)."""
+    parts = [p.split() for p in search.split(",") if p.split()]
+    return ([["_".join(p) for p in parts]] if any(len(p) > 1 for p in parts) else []) + [sum(parts, [])]
+
+
+def konachan_posts(words, order="", page=1, limit=1):
+    import urllib.parse
+    tags = " ".join(["rating:safe"] + ([f"order:{order}"] if order else []) + ["width:>=1920", "height:>=1080"] + words)
+    return json.loads(web(f"https://konachan.net/post.json?limit={limit}&page={page}&tags={urllib.parse.quote(tags)}"))
+
+
+def osu_seasonal():
+    """this season's osu! backgrounds (picked from its fan art contest): the API, or the
+    old client's list where Cloudflare turns the API away (it did from some networks)"""
+    try:
+        return [b["url"] for b in json.loads(web("https://osu.ppy.sh/api/v2/seasonal-backgrounds"))["backgrounds"]]
+    except Exception:
+        return json.loads(web("https://osu.ppy.sh/web/osu-getseasonal.php"))
+
+
+def osu_id(url):
+    # .../user-contest-entries/18703/<hash>_opt.jpg: the entry is the picture
+    m = re.search(r"/user-contest-entries/(\d+)/", url)
+    return m.group(1) if m else hashlib.sha1(url.encode()).hexdigest()[:10]
+
+
+def motionbgs_cards(html):
+    """a motionbgs listing's wallpapers: slug and thumbnail, in its order"""
+    out = {}
+    for slug, thumb in re.findall(r'live wallpaper" href=/([a-z0-9-]+)>.{0,900}?srcset=(/i/c/364x205/[^ >]+?\.jpg) ', html, re.S):
+        out.setdefault(slug, thumb)
+    return out
+
+
+def motionbgs_page(search, page):
+    """motionbgs has no API: its search page (its 36 best matches, or a tag's pages when a
+    word is one of its tags: "160+ Rain Live Wallpapers", 36 a page), or its listing pages
+    for anything (about 270 of them). Returns the cards and how many pages there are."""
+    import urllib.parse
+    site = "https://motionbgs.com"
+    if not search.strip():
+        return motionbgs_cards(web(f"{site}/{page}/").decode("utf-8", "replace")), 250
+    html = web(f"{site}/search?q={urllib.parse.quote(search)}").decode("utf-8", "replace")
+    count, tag = re.search(r"<title>(\d+)\+", html), re.search(r"href=(/tag:[^/ >]+/)2/", html)
+    pages = -(-int(count.group(1)) // 36) if count and tag else 1
+    if page > 1 and tag:
+        html = web(f"{site}{tag.group(1)}{page}/").decode("utf-8", "replace")
+    return motionbgs_cards(html), pages
+
+
+def fetch(s, source, search):
+    """a random safe-for-work wallpaper of at least 1920x1080 from wallhaven.cc or
+    konachan.net (end-4's Konachan button), one of this season's osu! backgrounds (end-4's
+    osu! button; no search there), or a live one (an mp4) from motionbgs.com, saved under
+    its site and id so a second pick of the same one isn't downloaded twice. Returns the
+    file, and whether it's new (downloaded just now)."""
+    import random
+    import urllib.parse
+
+    folder = online_folder(s)
     if source == "motionbgs":
-        # No API: its search page (its 36 best matches), or for anything one of its listing
-        # pages (about 270 of 26; new ones push the old ones further back, so 250 stays safe).
-        site = "https://motionbgs.com"
-        page = f"{site}/search?q={q(search)}" if search.strip() else f"{site}/{random.randint(1, 250)}/"
-        def names_on(url):
-            html = get(url).decode("utf-8", "replace")
-            return html, list(dict.fromkeys(re.findall(r'live wallpaper" href=/([a-z0-9-]+)', html)))
-        html, names = names_on(page)
-        # a word that's one of its tags lands on the tag's pages ("160+ Rain Live Wallpapers",
-        # 36 a page): any of them, not only the newest 36
-        count, tag = re.search(r"<title>(\d+)\+", html), re.search(r"href=(/tag:[^/ >]+/)2/", html)
-        if count and tag:
-            n = random.randint(1, -(-int(count.group(1)) // 36))
-            if n > 1:
-                names = names_on(f"{site}{tag.group(1)}{n}/")[1] or names
+        # any of the pages, not only the first 36 (new ones push the old ones back, so 250 stays safe)
+        names, pages = motionbgs_page(search, random.randint(1, 250) if not search.strip() else 1)
+        if pages > 1 and search.strip():
+            n = random.randint(1, pages)
+            names = (motionbgs_page(search, n)[0] if n > 1 else {}) or names
         if not names:
             raise LookupError(f"nothing on motionbgs for \"{search}\"")
         fresh = [n for n in names if not (folder / f"motionbgs-{n}.mp4").exists()]
-        slug = random.choice(fresh or names)
-        links = dict(re.findall(r"/dl/(4k|hd)/(\d+)", get(f"{site}/{slug}").decode("utf-8", "replace")))
-        if not links:
-            raise LookupError(f"motionbgs has no download for {slug}")
-        # 4K runs several times HD's size (and decoding): HD unless asked, and HD when there's no 4K
-        size = "4k" if online.get("quality") == "4k" and "4k" in links else "hd" if "hd" in links else "4k"
-        url, name, ext = f"{site}/dl/{size}/{links[size]}/", f"motionbgs-{slug}", ".mp4"
-    elif source == "konachan":
-        # Its words are tags, and a name is one tag with underscores ("kasane teto" finds
-        # nothing, kasane_teto does): words as one tag first, then each its own tag
-        # ("night sky"); commas split it into several (kasane teto, night).
-        parts = [p.split() for p in search.split(",") if p.split()]
-        tries = ([["_".join(p) for p in parts]] if any(len(p) > 1 for p in parts) else []) + [sum(parts, [])]
-        for words in tries:
-            tags = " ".join(["rating:safe", "order:random", "width:>=1920", "height:>=1080"] + words)
-            posts = json.loads(get(f"https://konachan.net/post.json?limit=1&tags={q(tags)}"))
+        return get_online(s, "motionbgs", random.choice(fresh or list(names)))
+    if source == "osu":
+        urls = osu_seasonal()
+        if not urls:
+            raise LookupError("osu! has no seasonal backgrounds right now")
+        fresh = [u for u in urls if not list(folder.glob(f"osu-{osu_id(u)}.*"))]
+        url = random.choice(fresh or urls)
+        return save_online(s, url, f"osu-{osu_id(url)}")
+    if source == "konachan":
+        for words in konachan_tries(search):
+            posts = konachan_posts(words, "random")
             if posts:
                 break
         if not posts:
             raise LookupError(f"nothing on konachan for \"{search}\"")
-        url, name = posts[0]["file_url"], f"konachan-{posts[0]['id']}"
+        return save_online(s, posts[0]["file_url"], f"konachan-{posts[0]['id']}")
+    found = json.loads(web("https://wallhaven.cc/api/v1/search?sorting=random&purity=100&categories=111"
+                           f"&atleast=1920x1080&ratios=16x9,16x10&q={urllib.parse.quote(search)}"))["data"]
+    if not found:
+        raise LookupError(f"nothing on wallhaven for \"{search}\"")
+    return save_online(s, found[0]["path"], f"wallhaven-{found[0]['id']}")
+
+
+def search_online(s, source, search, page=1, order="top", seed=""):
+    """one page of what a source has (the walls picker's Online tab): order top, new or
+    random (wallhaven and konachan; random pages need wallhaven's seed back). Each one:
+    its id for `yoru wall get`, a thumbnail URL, its size, and the file if it's here already."""
+    import urllib.parse
+    folder = online_folder(s)
+    out, more = [], False
+    if source == "wallhaven":
+        sorting = {"new": "date_added", "random": "random"}.get(order, "favorites")
+        d = json.loads(web("https://wallhaven.cc/api/v1/search?purity=100&categories=111&atleast=1920x1080"
+                           f"&ratios=16x9,16x10&sorting={sorting}&page={page}&seed={urllib.parse.quote(seed)}"
+                           f"&q={urllib.parse.quote(search)}"))
+        seed, more = d["meta"].get("seed") or "", d["meta"]["current_page"] < d["meta"]["last_page"]
+        for w in d["data"]:
+            width, _, height = w["resolution"].partition("x")
+            out.append({"id": w["id"], "name": f"wallhaven-{w['id']}", "thumb": w["thumbs"]["small"],
+                        "w": int(width), "h": int(height)})
+    elif source == "konachan":
+        for words in konachan_tries(search):
+            posts = konachan_posts(words, {"top": "score", "random": "random"}.get(order, ""), page, 24)
+            if posts:
+                break
+        more = len(posts) == 24
+        for p in posts:
+            out.append({"id": str(p["id"]), "name": f"konachan-{p['id']}", "thumb": p["preview_url"],
+                        "w": p["width"], "h": p["height"]})
+    elif source == "osu":
+        # one short list, the same for everyone this season: no search, no pages
+        for u in osu_seasonal():
+            out.append({"id": osu_id(u), "name": f"osu-{osu_id(u)}", "thumb": u})
+    elif source == "motionbgs":
+        cards, pages = motionbgs_page(search, page)
+        more = page < pages and bool(cards)
+        for slug, thumb in cards.items():
+            out.append({"id": slug, "name": f"motionbgs-{slug}", "thumb": "https://motionbgs.com" + thumb, "video": True})
     else:
-        found = json.loads(get("https://wallhaven.cc/api/v1/search?sorting=random&purity=100&categories=111"
-                               f"&atleast=1920x1080&ratios=16x9,16x10&q={q(search)}"))["data"]
-        if not found:
-            raise LookupError(f"nothing on wallhaven for \"{search}\"")
-        url, name = found[0]["path"], f"wallhaven-{found[0]['id']}"
+        raise LookupError(f"no such source: {source}")
+    for w in out:
+        here = [f for f in folder.glob(w["name"] + ".*") if not f.name.endswith(".part")]
+        w["have"] = str(here[0].resolve()) if here else ""
+    return {"source": source, "page": page, "more": more, "seed": seed, "items": out}
+
+
+def get_online(s, source, id):
+    """the one with this id from a source, downloaded (or found here already)"""
+    import urllib.parse
+    if source == "wallhaven":
+        return save_online(s, json.loads(web(f"https://wallhaven.cc/api/v1/w/{urllib.parse.quote(id)}"))["data"]["path"], f"wallhaven-{id}")
+    if source == "konachan":
+        posts = json.loads(web(f"https://konachan.net/post.json?limit=1&tags={urllib.parse.quote('rating:safe id:' + id)}"))
+        if not posts:
+            raise LookupError(f"konachan has no {id}")
+        return save_online(s, posts[0]["file_url"], f"konachan-{id}")
+    if source == "osu":
+        url = next((u for u in osu_seasonal() if osu_id(u) == id), None)
+        if not url:
+            raise LookupError(f"{id} isn't among osu!'s seasonal backgrounds any more")
+        return save_online(s, url, f"osu-{id}")
+    if source == "motionbgs":
+        out = online_folder(s) / f"motionbgs-{id}.mp4"
+        if out.exists():
+            return str(out), False
+        links = dict(re.findall(r"/dl/(4k|hd)/(\d+)", web(f"https://motionbgs.com/{urllib.parse.quote(id)}").decode("utf-8", "replace")))
+        if not links:
+            raise LookupError(f"motionbgs has no download for {id}")
+        # 4K runs several times HD's size (and decoding): HD unless asked, and HD when there's no 4K
+        size = "4k" if s.get("online", {}).get("quality") == "4k" and "4k" in links else "hd" if "hd" in links else "4k"
+        return save_online(s, f"https://motionbgs.com/dl/{size}/{links[size]}/", f"motionbgs-{id}", ".mp4")
+    raise LookupError(f"no such source: {source}")
+
+
+def save_online(s, url, name, ext=""):
+    """url saved to the download folder as name: returns the file, and whether it's new"""
+    import urllib.parse
     if not ext:
         ext = Path(urllib.parse.urlparse(url).path).suffix.lower()
         ext = ext if ext in IMAGES else ".jpg"
+    folder = online_folder(s)
+    here = [f for f in folder.glob(name + ".*") if not f.name.endswith(".part")]
+    if here:
+        return str(here[0]), False
+    data = web(url, "video/" if ext in VIDEOS else "")
+    # named by what it is: osu! serves some PNGs as .jpg
+    if ext in IMAGES:
+        ext = ".png" if data[:4] == b"\x89PNG" else ".webp" if data[8:12] == b"WEBP" else ".jpg" if data[:2] == b"\xff\xd8" else ext
     out = folder / (name + ext)
-    if out.exists():
-        return str(out), False
     folder.mkdir(parents=True, exist_ok=True)
     tmp = out.with_name(out.name + ".part")
-    tmp.write_bytes(get(url, "video/" if ext in VIDEOS else ""))
+    tmp.write_bytes(data)
     tmp.replace(out)
     return str(out), True
 
@@ -2197,12 +2325,15 @@ def wall_to(s, args, remember=True):
             return 0
         import random
         target = random.choice([w for w in fits if w != s["wallpaper"]] or fits)
-    elif target == "fetch":
+    elif target in ("fetch", "get"):
         o = s.get("online", {})
         source = args[2] if len(args) > 2 else o.get("source") or "wallhaven"
         search = " ".join(args[3:]) if len(args) > 3 else o.get("search") or ""
+        if target == "get" and not search:
+            print("yoru: yoru wall get SOURCE ID", file=sys.stderr)
+            return 1
         try:
-            target, fresh = fetch(s, source, search)
+            target, fresh = get_online(s, source, search) if target == "get" else fetch(s, source, search)
         except OSError as e:
             print(f"yoru: couldn't reach {source} ({getattr(e, 'reason', e)})", file=sys.stderr)
             return 1
@@ -2272,6 +2403,26 @@ def main():
             return 1
         s["history"] = past[1:]
         return wall_to(s, ["wall", past[0]], remember=False)
+    elif cmd == "wall" and args[1:2] == ["search"]:
+        # yoru wall search SOURCE [WORDS…] [--page N] [--order top|new|random] [--seed S]
+        rest, opts = [], {"--page": "1", "--order": "top", "--seed": ""}
+        it = iter(args[2:])
+        for a in it:
+            if a in opts:
+                opts[a] = next(it, "")
+            else:
+                rest.append(a)
+        source = rest[0] if rest else s.get("online", {}).get("source") or "wallhaven"
+        try:
+            found = search_online(s, source, " ".join(rest[1:]), max(1, int(opts["--page"] or 1)),
+                                  opts["--order"], opts["--seed"])
+        except OSError as e:
+            print(f"yoru: couldn't reach {source} ({getattr(e, 'reason', e)})", file=sys.stderr)
+            return 1
+        except Exception as e:
+            print(f"yoru: {e}", file=sys.stderr)
+            return 1
+        print(json.dumps(found))
     elif cmd == "wall" and args[1:2] == ["keep"]:
         # the fetched one on trial stays: off the list of what goes
         if not s.get("trial"):

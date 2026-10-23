@@ -4,7 +4,7 @@
 // file is settings/<Id>Page.qml
 var list = [
     { id: "quick", icon: "tune", name: "Quick", about: "The wallpaper, its colours and how fast things move", group: "Look", words: "scheme colour palette accent vivid main music speed animation" },
-    { id: "wallpaper", icon: "wallpaper", name: "Wallpaper", about: "Transitions, live wallpapers and where they come from", group: "Look", words: "transition fade wipe disc parallax video folders rotate shuffle backend skwd skwd-wall daemon" },
+    { id: "wallpaper", icon: "wallpaper", name: "Wallpaper", about: "Transitions, live wallpapers and where they come from", group: "Look", words: "transition fade wipe disc parallax video folders rotate shuffle backend skwd skwd-wall daemon internet online download fetch wallhaven konachan motionbgs osu seasonal" },
     { id: "clock", icon: "schedule", name: "Clock", about: "The clock on the desktop", group: "Look", words: "time style kanji serif analog position" },
     { id: "widgets", icon: "widgets", name: "Widgets", about: "Which widgets, what they sit on, and where", group: "Look", words: "weather calendar system media today arrangement column grid row free custom edit mode place move resize drag glass neon frosted blur gradient hud stack" },
     { id: "layouts", icon: "dashboard_customize", name: "Widget layouts", about: "How each widget lays itself out", group: "Look", words: "hero pill week date cover chips bars rings graph split dots vinyl record sun sunrise sunset" },
