@@ -12,6 +12,7 @@ var list = [
     { id: "start", icon: "tab", name: "Start page", about: "Firefox's new tab page", group: "Look", words: "firefox new tab browser search engine links greeting address bar focus cursor keyboard" },
     { id: "island", icon: "toolbar", name: "Island", about: "The bar that becomes everything", group: "Shell", words: "clock 24 hour battery workspaces notifications" },
     { id: "phone", icon: "smartphone", name: "Phone", about: "Your apps, quick settings, the day and the music, in your hand", group: "Shell", words: "mobile slab flip keitai bare pages tiles quick settings dock keypad lyrics wifi bluetooth" },
+    { id: "notifications", icon: "notifications", name: "Notifications", about: "What pops up, what's kept, and from which apps", group: "Shell", words: "notification pop-up toast sound history keep app mute quiet never block" },
     { id: "focus", icon: "timer", name: "Focus & quiet", about: "The focus timer and do not disturb", group: "Shell", words: "pomodoro break dnd quiet hours night" },
     { id: "lock", icon: "lock", name: "Lock screen", about: "What you see when you come back", group: "Shell", words: "blur dim idle password power characters shapes dots warn warning countdown" },
     { id: "screen", icon: "nightlight", name: "Night light", about: "A warmer screen at night, by hand or by itself", group: "Shell", words: "night light warm warmth kelvin temperature wlsunset sunset sunrise schedule hours blue" },

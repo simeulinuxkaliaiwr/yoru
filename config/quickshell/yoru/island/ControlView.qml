@@ -313,6 +313,7 @@ Item {
                         id: group
                         required property var modelData
                         readonly property bool all: notes.open[modelData.app] === true
+                        readonly property bool quiet: Notifs.rule(modelData.app) === "quiet"
                         readonly property var shown: all ? modelData.items : modelData.items.slice(0, 2)
                         width: groups.width
                         height: inner.implicitHeight + 16
@@ -338,11 +339,21 @@ Item {
                                 }
                                 Icon { x: 4; anchors.verticalCenter: parent.verticalCenter; visible: !gimg.visible; name: "notifications"; size: 18; color: Theme.inkDim }
                                 Txt {
-                                    anchors { left: parent.left; leftMargin: 32; verticalCenter: parent.verticalCenter }
+                                    anchors { left: parent.left; leftMargin: 32; right: quietBtn.left; rightMargin: 6; verticalCenter: parent.verticalCenter }
                                     text: group.modelData.app + (group.modelData.items.length > 1 ? "  ·  " + group.modelData.items.length : "")
+                                          + (group.quiet ? "  ·  quiet" : "")
                                     size: 12; weight: Font.DemiBold; color: Theme.inkDim
                                 }
+                                // quiet: this app's go straight here, without popping up
                                 IconButton {
+                                    id: quietBtn
+                                    anchors { right: clearBtn.left; verticalCenter: parent.verticalCenter }
+                                    icon: "notifications_paused"; size: 28
+                                    active: group.quiet
+                                    onClicked: Notifs.setRule(group.modelData.app, group.quiet ? "show" : "quiet")
+                                }
+                                IconButton {
+                                    id: clearBtn
                                     anchors { right: parent.right; verticalCenter: parent.verticalCenter }
                                     icon: "clear_all"; size: 28
                                     onClicked: Notifs.forgetApp(group.modelData.app)

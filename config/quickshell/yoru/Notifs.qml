@@ -7,8 +7,10 @@ import QtQuick
 
 // the notification daemon (instead of mako while yoru runs): new ones drop
 // out of the island, the rest wait in the control centre. Each is also kept
-// in a history (~/.cache/yoru/notifications.json, the last 100), grouped by app
-// there, so one that came during do not disturb or a restart isn't lost
+// in a history (~/.cache/yoru/notifications.json, the last notifications.keep), grouped
+// by app there, so one that came during do not disturb or a restart isn't lost. Each app
+// can be shown, kept quietly (no pop-up) or never kept (notifications.apps); a sound can
+// come with them
 Singleton {
     id: notifs
 
@@ -60,7 +62,7 @@ Singleton {
         };
         const l = Object.assign({}, live); l[key] = n; live = l;
         n.closed.connect(() => { const m = Object.assign({}, notifs.live); delete m[key]; notifs.live = m; });
-        history = [rec].concat(history).slice(0, 100);
+        history = [rec].concat(history).slice(0, Math.max(10, Config.o.notifications.keep));
         save();
         unseen++;
     }
@@ -90,6 +92,14 @@ Singleton {
         history = history.filter(h => h.app !== app);
         save();
     }
+    // what an app's notifications do: show, quiet (kept, no pop-up) or never (not kept)
+    function rule(app) { return Config.o.notifications.apps[app] ?? "show"; }
+    function setRule(app, r) {
+        const a = Object.assign({}, Config.o.notifications.apps);
+        if (r === "show") delete a[app]; else a[app] = r;
+        Config.o.notifications.apps = a;
+    }
+
     // [{ app, icon, items }], the app with the newest one first
     readonly property var groups: {
         const by = {}, order = [];
@@ -110,9 +120,15 @@ Singleton {
         bodyHyperlinksSupported: false
         persistenceSupported: true
         onNotification: n => {
+            const rule = notifs.rule(n.appName || n.desktopEntry || "");
+            if (rule === "never") return;              // not tracked: it's gone
             n.tracked = true;
             notifs.remember(n);
-            if (!notifs.dnd || n.urgency === NotificationUrgency.Critical) notifs.arrived(n);
+            const critical = n.urgency === NotificationUrgency.Critical;
+            if ((notifs.dnd || rule === "quiet") && !critical) return;
+            notifs.arrived(n);
+            if (Config.o.notifications.sound)
+                Quickshell.execDetached(["pw-play", "/usr/share/sounds/freedesktop/stereo/" + (critical ? "dialog-warning.oga" : "message-new-instant.oga")]);
         }
     }
 

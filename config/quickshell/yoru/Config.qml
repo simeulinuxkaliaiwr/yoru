@@ -127,6 +127,14 @@ Singleton {
                 }
             }
 
+            property JsonObject notifications: JsonObject {
+                property bool sound: false                    // a sound as one pops up (a warning's for critical ones)
+                property int keep: 100                        // how many the history keeps, 10..500
+                // by app name: quiet (kept in the history, no pop-up) or never (not kept at all);
+                // apps not here show as usual. Critical ones always pop up
+                property var apps: ({})
+            }
+
             property JsonObject island: JsonObject {
                 property bool clock24: true
                 property bool showMedia: true
