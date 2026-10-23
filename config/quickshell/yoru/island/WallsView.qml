@@ -549,13 +549,14 @@ Item {
                 }
                 // downloading: the card dims under a spinner
                 Rectangle {
+                    id: busy
                     visible: card.far && v.getting === v.ident(card.modelData)
                     anchors.fill: parent
                     color: Theme.alpha(Theme.island, 0.55)
                     Icon {
                         anchors.centerIn: parent
                         name: "progress_activity"; size: 32; color: Theme.primary
-                        RotationAnimation on rotation { running: parent.visible; from: 0; to: 360; duration: 900; loops: Animation.Infinite }
+                        RotationAnimation on rotation { running: busy.visible; from: 0; to: 360; duration: 900; loops: Animation.Infinite }
                     }
                 }
                 // the name, on the one you're on
