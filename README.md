@@ -15,7 +15,16 @@
 One dark shape at the top of the screen is the whole shell. At rest it shows
 the workspaces, what's playing, the time and the status. It morphs into the
 launcher, clipboard, control center, media player, calendar, wallpaper picker
-and power menu. It also shows notification pop-ups, brightness and volume. **Control center demonstration:**
+and power menu. It also shows notification pop-ups, brightness and volume, and sings along with
+what's playing. A little cat lives at its left end: it sleeps, wakes for notifications, bobs to
+the music, curls up while you focus, and purrs when you click it.
+
+The control center has pages behind its tiles: the **sound** (where it plays, the mic, and each
+app's own volume), **Wi-Fi** and **Bluetooth** lists, and the **night light** (how warm, and
+whether it comes on by itself from sunset to sunrise). The launcher finds apps (Enter on one
+that's open goes to it, → shows its own actions), sums, emoji, the web, things yoru does
+("restart", "next wallpaper") and any setting by name. The clipboard pastes straight into your
+window and keeps pins. **Control center demonstration:**
 
 ![control center](docs/control_center.png)
 
@@ -72,9 +81,24 @@ Optional: your dark wallpapers are applied at night, your bright ones by day, an
 Snow, rain, fog or a storm falls over the picture when it does outside
 (yoru uses [open-meteo api](https://open-meteo.com) to know the weather of where you live), and even an aurora when it's a clear night! Want to know what it looks like? Go see the [aurora](docs/aurora.png), the [snow](docs/snow.png) and the [storm](docs/storm.png)!
 
+Shooting stars cross the aurora now and then, more often on a meteor shower's nights; the
+aurora swells with your music; cloud shadows drift over the picture when it's overcast; and on
+fair days the seasons come too: sakura in spring, leaves in autumn, fireflies on summer evenings
+(by your hemisphere). While you focus, a soft rain falls.
+
+### Your wallpapers
+
+In the picker (mod+w), a heart makes one a favourite (the rotation can keep to those), the eye
+hides one so it never comes up on its own, and `yoru wall back` brings back the one before.
+
 ### The desktop
 
 Yoru has many widgets, a clock with several styles, a weather widget, a calendar widget, a system usage widget and more! See the edit mode "add" section to see all of them!
+Among them: **Tonight** (the moon as it really is, sunset to sunrise, whether you'll see stars),
+**Fetch** (your system as a fetch tool prints it, the distro's logo in your colors), **Focus
+history** (a heatmap of your focus rounds, or your streak) and **Next up** (your calendar).
+Right-click the bare desktop for a menu: a new wallpaper, a note right there, edit mode.
+Text on a bright wallpaper gets a deeper shadow where it needs one.
 
 ### Edit mode (mod+e)
 
@@ -84,7 +108,28 @@ Yoru has an edit mode, HEAVILY inspired by [noctalia's](https://github.com/nocta
 
 ### Notifications
 
-Yoru keeps your last 100 notifications, even when you restart your pc! You can find them on the control center.
+Yoru keeps your last notifications (100 by default), even when you restart your pc! You can find
+them on the control center, click one to open it, or quiet an app with the bell by its name. Under
+Settings → Notifications each app's can show, come quietly or never, with a sound if you like.
+After you unlock, the island says what came while you were away.
+
+### Your calendar
+
+Add your calendars' .ics links (Google, Proton, Nextcloud, Outlook all have one) or files under
+Settings → Calendar: their events show in the island's calendar, in the Next up widget, and the
+island reminds you a few minutes before each.
+
+### Your apps' colors
+
+kitty, Alacritty, Ghostty, Yazi, tmux, Neovim and Spotify (spicetify) get themes from the
+wallpaper too: Settings → App themes writes them and, with one click, points each app at its
+theme (keeping a copy of its config). Any other app: put a template in `~/.config/yoru/templates`
+with `{{primary}}` where each color goes and a first line `yoru: out ~/path/to/its/colors`.
+
+### Your phone
+
+With KDE Connect, your real phone shows on the yoru phone's control page: its battery, its
+notifications, and buttons to ring it or send it your clipboard.
 
 ### Firefox theme
 
