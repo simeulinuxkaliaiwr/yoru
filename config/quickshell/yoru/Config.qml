@@ -138,6 +138,7 @@ Singleton {
             property JsonObject island: JsonObject {
                 property bool clock24: true
                 property bool showMedia: true
+                property bool lyrics: true                    // what's playing shows the line being sung (lrclib.net)
                 property bool batteryPercent: true
                 property string workspaces: "pills"           // pills, numbers
                 property int toastSeconds: 5

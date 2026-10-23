@@ -62,10 +62,16 @@ Item {
             }
         }
 
-        // now playing: a live activity that grows the island
+        // now playing: a live activity that grows the island; while it plays, the line being
+        // sung instead of the title (island.lyrics; lrclib.net, as the lyrics widget)
         Item {
             id: mediaSeg
             readonly property bool on: Config.o.island.showMedia && !!Media.player && Media.title !== ""
+            readonly property bool singing: Config.o.island.lyrics && Media.playing && Lyrics.line !== ""
+            readonly property bool wants: on && Config.o.island.lyrics
+            onWantsChanged: Lyrics.users += wants ? 1 : -1
+            Component.onCompleted: if (wants) Lyrics.users++
+            Component.onDestruction: if (wants) Lyrics.users--
             visible: width > 1
             implicitWidth: on ? mediaRow.implicitWidth : 0
             implicitHeight: 36
@@ -92,11 +98,16 @@ Item {
                     Icon { anchors.centerIn: parent; name: "music_note"; size: 14; visible: Media.art === ""; color: Theme.inkDim }
                 }
                 Txt {
-                    width: Math.min(implicitWidth, 190)
+                    id: line
+                    width: Math.min(implicitWidth, mediaSeg.singing ? 300 : 190)
                     anchors.verticalCenter: parent.verticalCenter
-                    text: Media.title
+                    text: mediaSeg.singing ? Lyrics.line : Media.title
                     size: 12
-                    color: Theme.inkDim
+                    color: mediaSeg.singing ? Theme.ink : Theme.inkDim
+                    font.italic: mediaSeg.singing
+                    // each new line rises in
+                    onTextChanged: if (mediaSeg.singing) rise.restart()
+                    NumberAnimation { id: rise; target: line; property: "anchors.verticalCenterOffset"; from: 6; to: 0; duration: 260; easing.type: Easing.OutCubic }
                 }
                 Icon {
                     anchors.verticalCenter: parent.verticalCenter

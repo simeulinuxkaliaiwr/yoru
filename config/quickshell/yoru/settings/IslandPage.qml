@@ -11,6 +11,11 @@ Column {
         icon: "toolbar"; title: "The island"
         SetRow { icon: "schedule"; label: "24-hour clock"; Toggle { checked: c.clock24; onToggled: on => c.clock24 = on } }
         SetRow { icon: "music_note"; label: "Now playing"; hint: "The island grows to show the track"; Toggle { checked: c.showMedia; onToggled: on => c.showMedia = on } }
+        SetRow {
+            visible: c.showMedia
+            icon: "lyrics"; label: "Sing along"; hint: "While it plays, the line being sung instead of the title (from lrclib.net)"
+            Toggle { checked: c.lyrics; onToggled: on => c.lyrics = on }
+        }
         SetRow { icon: "battery_5_bar"; label: "Battery percentage"; Toggle { checked: c.batteryPercent; onToggled: on => c.batteryPercent = on } }
         SetRow {
             icon: "view_week"; label: "Workspaces"
