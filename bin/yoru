@@ -13,6 +13,11 @@
                                  default) it's only on trial: deleted when another wallpaper
                                  takes its place, unless `yoru wall keep` ran
     yoru wall keep          keep the fetched wallpaper on trial (the settings' Download button)
+    yoru wall fav [FILE]    a favourite or not (a toggle; the current one without FILE); the
+                            rotation can keep to them (wallpaper.rotateFrom), random --favourites too
+    yoru wall hide [FILE]   never again in next, prev, random or by time (a toggle; the picker
+                            still shows it under Hidden); hiding the current one moves on
+    yoru wall back          the wallpaper before (yoru.json keeps the last 30)
     yoru walls              every wallpaper as JSON, with thumbnails (the picker reads this)
     yoru timeline FILE      a video's colours across its loop (yoru starts it itself)
     yoru art URL            a palette from album art, as JSON (the shell uses it while music plays)
@@ -192,7 +197,7 @@ def save_state(s):
     if s.get("fresh"):
         s["trial"] = s.pop("fresh")
     keep = {"wallpaper": s["wallpaper"]}
-    for k in ("before_mode", "before_desk", "desks", "fastfetch_logo", "trial"):
+    for k in ("before_mode", "before_desk", "desks", "fastfetch_logo", "trial", "favs", "hidden", "history"):
         if s.get(k):
             keep[k] = s[k]
     write(STATE, json.dumps(keep, indent=2) + "\n")
@@ -295,7 +300,8 @@ def walls_json(s):
     for f, folder in walls_tree(s):
         t = thumb(f)
         out.append(dict(colours(t, cache), path=f, thumb=t, video=is_video(f), name=Path(f).stem,
-                        added=int(Path(f).stat().st_mtime), dir=folder))
+                        added=int(Path(f).stat().st_mtime), dir=folder,
+                        fav=f in s.get("favs", []), hidden=f in s.get("hidden", [])))
     write(path, json.dumps(cache))
     return out
 
@@ -334,15 +340,17 @@ def walls_tree(s, depth=4):
     return found
 
 
-def walls(s):
+def walls(s, hidden_too=False):
     found = []
+    hidden = set(s.get("hidden", [])) if not hidden_too else set()
     for d in s["dirs"]:
         d = Path(os.path.expanduser(d))
         if not d.is_dir():
             continue
         for f in sorted(d.iterdir(), key=lambda p: p.name.lower()):
             # a mode's folder may hold links to pictures kept elsewhere
-            if f.is_file() and f.suffix.lower() in IMAGES | VIDEOS and str(f.resolve()) not in found:
+            if f.is_file() and f.suffix.lower() in IMAGES | VIDEOS and str(f.resolve()) not in found \
+                    and str(f.resolve()) not in hidden:
                 found.append(str(f.resolve()))
     return found
 
@@ -1856,12 +1864,98 @@ def fetch(s, source, search):
     return str(out), True
 
 
+def wall_to(s, args, remember=True):
+    """yoru wall FILE|next|prev|random|time|fetch (args as given); remember: the one it was goes
+    into the history, for `yoru wall back`"""
+    was = s["wallpaper"]
+    # from the shell, for what skwd applied itself: only the colours are left to do
+    s["skwd_has"] = "--from-skwd" in args
+    args = [a for a in args if a != "--from-skwd"]
+    target = args[1]
+    trial = False
+    if target == "time" and len(args) > 2:
+        fits = walls_for(s, args[2])
+        if not fits:
+            return 1
+        if "--keep" in args and s["wallpaper"] in fits:
+            return 0
+        import random
+        target = random.choice([w for w in fits if w != s["wallpaper"]] or fits)
+    elif target == "fetch":
+        o = s.get("online", {})
+        source = args[2] if len(args) > 2 else o.get("source") or "wallhaven"
+        search = " ".join(args[3:]) if len(args) > 3 else o.get("search") or ""
+        try:
+            target, fresh = fetch(s, source, search)
+        except OSError as e:
+            print(f"yoru: couldn't reach {source} ({getattr(e, 'reason', e)})", file=sys.stderr)
+            return 1
+        except Exception as e:
+            print(f"yoru: {e}", file=sys.stderr)
+            return 1
+        # one downloaded before was kept then (or is the one on trial already)
+        trial = fresh and o.get("keep", "liked") != "all"
+        print(target)
+    elif target in ("next", "prev", "random"):
+        ws = walls(s)
+        # the rotation can keep to the favourites
+        if "--favourites" in args:
+            ws = [w for w in ws if w in s.get("favs", [])] or ws
+        if not ws:
+            return 1
+        i = ws.index(s["wallpaper"]) if s["wallpaper"] in ws else -1
+        if target == "random":
+            import random
+            target = random.choice([w for w in ws if w != s["wallpaper"]] or ws)
+        else:
+            target = ws[(i + (1 if target == "next" else -1)) % len(ws)]
+    target = str(Path(os.path.expanduser(target)).resolve())
+    if not Path(target).is_file():
+        print(f"yoru: no such file: {target}", file=sys.stderr)
+        return 1
+    if remember and target != was:
+        s["history"] = ([was] + [w for w in s.get("history", []) if w not in (was, target)])[:30]
+    s["wallpaper"] = target
+    if trial:
+        s["fresh"] = target
+    save_state(s)
+    if s["backend"] == "skwd" and not s["skwd_has"]:
+        skwd_apply(target, wait=False)
+        s["skwd_has"] = True
+    apply(s)
+    return 0
+
+
 def main():
     args = sys.argv[1:] or ["apply"]
     s = state()
     cmd = args[0]
     if cmd == "apply":
         apply(s)
+    elif cmd == "wall" and args[1:2] in (["fav"], ["hide"]):
+        # a favourite (rotation can keep to those), or one never to come up again; a toggle
+        which = "favs" if args[1] == "fav" else "hidden"
+        f = str(Path(os.path.expanduser(args[2])).resolve()) if len(args) > 2 else s["wallpaper"]
+        group = s.get(which, [])
+        on = f not in group
+        s[which] = [x for x in group if x != f] + ([f] if on else [])
+        save_state(s)
+        print("on" if on else "off")
+        # hiding the one you have: on to another
+        if which == "hidden" and on and f == s["wallpaper"]:
+            ws = walls(s)
+            if ws:
+                import random
+                args = ["wall", random.choice(ws)]
+                return wall_to(s, args)
+    elif cmd == "wall" and args[1:2] == ["back"]:
+        # the one before (yoru.json's history, newest first): back and back again walks further
+        past = [w for w in s.get("history", []) if Path(w).is_file() and w != s["wallpaper"]]
+        if not past:
+            print("yoru: no wallpaper before this one", file=sys.stderr)
+            return 1
+        s["history"] = past[1:]
+        return wall_to(s, ["wall", past[0]], remember=False)
     elif cmd == "wall" and args[1:2] == ["keep"]:
         # the fetched one on trial stays: off the list of what goes
         if not s.get("trial"):
@@ -1870,56 +1964,7 @@ def main():
         print(s.pop("trial"))
         save_state(s)
     elif cmd == "wall" and len(args) > 1:
-        # from the shell, for what skwd applied itself: only the colours are left to do
-        s["skwd_has"] = "--from-skwd" in args
-        args = [a for a in args if a != "--from-skwd"]
-        target = args[1]
-        trial = False
-        if target == "time" and len(args) > 2:
-            fits = walls_for(s, args[2])
-            if not fits:
-                return 1
-            if "--keep" in args and s["wallpaper"] in fits:
-                return 0
-            import random
-            target = random.choice([w for w in fits if w != s["wallpaper"]] or fits)
-        elif target == "fetch":
-            o = s.get("online", {})
-            source = args[2] if len(args) > 2 else o.get("source") or "wallhaven"
-            search = " ".join(args[3:]) if len(args) > 3 else o.get("search") or ""
-            try:
-                target, fresh = fetch(s, source, search)
-            except OSError as e:
-                print(f"yoru: couldn't reach {source} ({getattr(e, 'reason', e)})", file=sys.stderr)
-                return 1
-            except Exception as e:
-                print(f"yoru: {e}", file=sys.stderr)
-                return 1
-            # one downloaded before was kept then (or is the one on trial already)
-            trial = fresh and o.get("keep", "liked") != "all"
-            print(target)
-        elif target in ("next", "prev", "random"):
-            ws = walls(s)
-            if not ws:
-                return 1
-            i = ws.index(s["wallpaper"]) if s["wallpaper"] in ws else -1
-            if target == "random":
-                import random
-                target = random.choice([w for w in ws if w != s["wallpaper"]] or ws)
-            else:
-                target = ws[(i + (1 if target == "next" else -1)) % len(ws)]
-        target = str(Path(os.path.expanduser(target)).resolve())
-        if not Path(target).is_file():
-            print(f"yoru: no such file: {target}", file=sys.stderr)
-            return 1
-        s["wallpaper"] = target
-        if trial:
-            s["fresh"] = target
-        save_state(s)
-        if s["backend"] == "skwd" and not s["skwd_has"]:
-            skwd_apply(target, wait=False)
-            s["skwd_has"] = True
-        apply(s)
+        return wall_to(s, args)
     elif cmd == "walls":
         print(json.dumps(walls_json(s)))
     elif cmd == "timeline" and len(args) > 1:
@@ -1951,6 +1996,7 @@ def main():
             # one yoru sent there itself comes back as an event too: already done
             if str(Path(f).resolve()) == s["wallpaper"]:
                 return 0
+            s["history"] = ([s["wallpaper"]] + [w for w in s.get("history", []) if w != s["wallpaper"]])[:30]
             s["wallpaper"] = str(Path(f).resolve())
             s["skwd_has"] = True
             save_state(s)

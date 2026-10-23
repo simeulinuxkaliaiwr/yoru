@@ -10,7 +10,8 @@ import qs.parts
 // called wallhaven-xxxxxx, so colour is what finds one); the chips do the same.
 // Folders inside the wallpaper folders come first as cards: open one to see
 // what's in it, Backspace (or the arrow) to go back up. A search looks in the
-// open folder and every folder below it.
+// open folder and every folder below it. A heart makes one a favourite (Ctrl+F), the eye
+// keeps one from ever coming up again (Ctrl+H; it waits under Hidden).
 Item {
     id: v
     required property var isle
@@ -19,7 +20,7 @@ Item {
     property var walls: []
     property bool loading: false
     property string query: ""
-    property string kind: "all"        // all | still | live
+    property string kind: "all"        // all | still | live | fav | hidden
     property string colour: ""         // one of hues' names, dark, light, or ""
     property string sort: "name"       // name | new | light
     property string folder: ""         // the open folder, relative ("" the top)
@@ -50,7 +51,8 @@ Item {
     readonly property var items: {
         const terms = query.trim().toLowerCase().split(/\s+/).filter(t => t !== "");
         const found = walls.filter(w => (filtering ? inside(w) : w.dir === folder)
-            && (kind === "all" || (kind === "live") === w.video)
+            && (kind === "hidden") === !!w.hidden
+            && (kind === "all" || kind === "hidden" || (kind === "fav" ? !!w.fav : (kind === "live") === w.video))
             && (colour === "" || fits(w, colour))
             && terms.every(t => words(w).includes(t)));
         if (sort === "new") found.sort((a, b) => b.added - a.added);
@@ -109,8 +111,11 @@ Item {
         if (e.key === Qt.Key_PageDown) { step(cols * rows); return true; }
         if (e.key === Qt.Key_Home && (e.modifiers & Qt.ControlModifier)) { step(-n); return true; }
         if (e.key === Qt.Key_End && (e.modifiers & Qt.ControlModifier)) { step(n); return true; }
-        if (e.key === Qt.Key_Tab) { kind = ({ all: "still", still: "live", live: "all" })[kind]; return true; }
-        if (e.key === Qt.Key_Backtab) { kind = ({ all: "live", live: "still", still: "all" })[kind]; return true; }
+        if (e.key === Qt.Key_Tab) { kind = ({ all: "still", still: "live", live: "fav", fav: "all", hidden: "all" })[kind]; return true; }
+        if (e.key === Qt.Key_Backtab) { kind = ({ all: "fav", fav: "live", live: "still", still: "all", hidden: "all" })[kind]; return true; }
+        const ctrl = e.modifiers & Qt.ControlModifier, here = entries[grid.currentIndex];
+        if (ctrl && e.key === Qt.Key_F) { if (here && !here.isFolder) mark(here, "fav"); return true; }
+        if (ctrl && e.key === Qt.Key_H) { if (here && !here.isFolder) mark(here, "hidden"); return true; }
         if (e.key === Qt.Key_R && (e.modifiers & Qt.ControlModifier)) { shuffle(); return true; }
         if (e.key === Qt.Key_Return || e.key === Qt.Key_Enter) {
             if (n > 0) choose(entries[grid.currentIndex]);
@@ -148,6 +153,11 @@ Item {
         glide.start();
     }
     function choose(e) { if (e.isFolder) open(e.rel); else apply(e); }
+    // a favourite, or hidden: yoru keeps it in yoru.json; the grid shows it at once
+    function mark(w, what) {
+        Quickshell.execDetached(["yoru", "wall", what === "fav" ? "fav" : "hide", w.path]);
+        walls = walls.map(x => x.path === w.path ? Object.assign({}, x, { [what]: !x[what] }) : x);
+    }
     function apply(w) {
         picked = w.path;
         Quickshell.execDetached(["yoru", "wall", w.path]);
@@ -177,10 +187,11 @@ Item {
         x: 26; y: 44
         readonly property int here: v.walls.filter(w => v.inside(w)).length
         text: v.loading ? "Making thumbnails…"
+            : v.kind === "hidden" ? v.items.length + " hidden: they never come up on their own  ·  Ctrl+H brings one back"
             : v.filtering ? v.items.length + " of " + here + "  ·  Ctrl+R picks one of these"
             : v.folder !== "" ? here + " nights  ·  Backspace to go back"
             : v.items.length + " nights" + (v.folders.length ? " and " + v.folders.length + (v.folders.length === 1 ? " folder" : " folders") : "")
-              + "  ·  type to search, Tab for live ones, Enter to pick"
+              + "  ·  type to search, Tab for live ones, Ctrl+F a favourite"
         size: 12; color: Theme.inkDim
     }
     Row {
@@ -239,7 +250,8 @@ Item {
         spacing: 6
         Repeater {
             model: [{ id: "all", icon: "photo_library", label: "All" }, { id: "still", icon: "image", label: "Pictures" },
-                    { id: "live", icon: "play_circle", label: "Live" }]
+                    { id: "live", icon: "play_circle", label: "Live" }, { id: "fav", icon: "favorite", label: "Favourites" },
+                    { id: "hidden", icon: "visibility_off", label: "Hidden" }]
             Pill {
                 required property var modelData
                 height: 32
@@ -280,7 +292,13 @@ Item {
         visible: !v.loading && grid.count === 0
         spacing: 4
         Icon { anchors.horizontalCenter: parent.horizontalCenter; name: "bedtime"; size: 26; color: Theme.outline }
-        Txt { text: v.walls.length ? "No wallpaper matches" : "No wallpapers in wallpaper.dirs"; size: 12; color: Theme.outline }
+        Txt {
+            text: !v.walls.length ? "No wallpapers in wallpaper.dirs"
+                : v.kind === "fav" && !v.walls.some(w => w.fav) ? "No favourites yet: a heart on one (Ctrl+F) brings it here"
+                : v.kind === "hidden" && !v.walls.some(w => w.hidden) ? "Nothing hidden: the eye on one (Ctrl+H) keeps it from coming up"
+                : "No wallpaper matches"
+            size: 12; color: Theme.outline
+        }
     }
 
     GridView {
@@ -385,7 +403,8 @@ Item {
                         GradientStop { position: 1; color: Theme.alpha(Theme.island, 0.85) }
                     }
                     Txt {
-                        anchors { left: parent.left; right: parent.right; bottom: parent.bottom; margins: 10; bottomMargin: 7 }
+                        // clear of the heart and the eye
+                        anchors { left: parent.left; right: parent.right; bottom: parent.bottom; margins: 10; bottomMargin: 7; rightMargin: 70 }
                         text: card.modelData.name
                         size: 11; weight: Font.Medium
                     }
@@ -408,6 +427,14 @@ Item {
                     color: Theme.primary
                     Icon { anchors.centerIn: parent; name: "check"; size: 16; weight: 700; color: Theme.inkPrimary }
                 }
+                // a favourite wears a heart
+                Rectangle {
+                    visible: !card.isFolder && !!card.modelData.fav && !(card.sel || hover.containsMouse)
+                    anchors { right: parent.right; bottom: parent.bottom; margins: 8 }
+                    width: 24; height: 24; radius: Theme.r(12)
+                    color: Theme.alpha(Theme.island, 0.8)
+                    Icon { anchors.centerIn: parent; name: "favorite"; size: 15; fill: 1; color: Theme.primary }
+                }
             }
             MouseArea {
                 id: hover
@@ -415,6 +442,22 @@ Item {
                 hoverEnabled: true
                 cursorShape: Qt.PointingHandCursor
                 onClicked: { grid.currentIndex = card.index; v.choose(card.modelData); }
+            }
+            // on the one you're on: a heart, and never again
+            Row {
+                visible: !card.isFolder && (card.sel || hover.containsMouse)
+                anchors { right: frame.right; bottom: frame.bottom; margins: 6 }
+                spacing: 2
+                IconButton {
+                    size: 28; icon: "favorite"; active: !!card.modelData.fav
+                    tone: card.modelData.fav ? Theme.primary : Theme.alpha(Theme.island, 0.8)
+                    onClicked: v.mark(card.modelData, "fav")
+                }
+                IconButton {
+                    size: 28; icon: card.modelData.hidden ? "visibility" : "visibility_off"
+                    tone: Theme.alpha(Theme.island, 0.8)
+                    onClicked: v.mark(card.modelData, "hidden")
+                }
             }
         }
     }

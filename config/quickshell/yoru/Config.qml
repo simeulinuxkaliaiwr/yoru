@@ -57,6 +57,7 @@ Singleton {
                 property bool liveColours: true               // the shell follows a video wallpaper's colours as it plays
                 property int rotateMinutes: 0                 // 0: never change on its own
                 property bool shuffle: true
+                property string rotateFrom: "all"             // all, or favourites (the picker's hearts)
                 // a wallpaper for the time of day (dawn, day, evening, night, by the real sun):
                 // from that period's folder in timeDirs, or by brightness from the folders
                 property bool byTime: false

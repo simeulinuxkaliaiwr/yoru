@@ -379,6 +379,10 @@ Column {
             Toggle { checked: c.shuffle; onToggled: on => c.shuffle = on }
         }
         SetRow {
+            icon: "favorite"; label: "Only favourites"; hint: "When it changes on its own: the ones with a heart in the picker (all of them while there are none)"
+            Toggle { checked: c.rotateFrom === "favourites"; onToggled: on => c.rotateFrom = on ? "favourites" : "all" }
+        }
+        SetRow {
             icon: "routine"; label: "By time of day"; hint: "Dark wallpapers at night, bright ones by day, softer ones at dawn and dusk, by your city's sunrise and sunset"
             Toggle { checked: c.byTime; onToggled: on => c.byTime = on }
         }

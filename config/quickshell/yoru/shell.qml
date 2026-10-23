@@ -21,7 +21,7 @@ ShellRoot {
         repeat: true
         onTriggered: Quickshell.execDetached(Config.o.wallpaper.byTime
             ? ["yoru", "wall", "time", root.period]
-            : ["yoru", "wall", Config.o.wallpaper.shuffle ? "random" : "next"])
+            : ["yoru", "wall", Config.o.wallpaper.shuffle ? "random" : "next"].concat(Config.o.wallpaper.rotateFrom === "favourites" ? ["--favourites"] : []))
     }
 
     // the time of day, by the real sun once the weather knows it: dawn and the
