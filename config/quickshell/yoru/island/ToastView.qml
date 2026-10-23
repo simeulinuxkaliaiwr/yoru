@@ -88,7 +88,27 @@ Item {
         }
     }
 
-    // a click opens it (the default action), a swipe up or right-click puts it away
+    // a swipe up or sideways puts it away: it follows the finger, and goes if it went far enough
+    transform: Translate {
+        x: swipe.active ? swipe.activeTranslation.x * 0.7 : 0
+        y: swipe.active ? Math.min(0, swipe.activeTranslation.y) * 0.7 : 0
+        Behavior on x { enabled: !swipe.active; NumberAnimation { duration: Theme.fast; easing.type: Easing.OutCubic } }
+        Behavior on y { enabled: !swipe.active; NumberAnimation { duration: Theme.fast; easing.type: Easing.OutCubic } }
+    }
+    opacity: swipe.active ? Math.max(0.2, 1 - Math.max(Math.abs(swipe.activeTranslation.x) / 220, -swipe.activeTranslation.y / 90)) : 1
+    DragHandler {
+        id: swipe
+        target: null
+        // how far it went, kept: the handler's own is gone by the time it lets go
+        property vector2d last
+        onActiveTranslationChanged: if (active) last = activeTranslation
+        onActiveChanged: {
+            if (active) last = Qt.vector2d(0, 0);
+            else if (last.y < -36 || Math.abs(last.x) > 90) v.isle.dropToast();
+        }
+    }
+
+    // a click opens it (the default action), a right-click puts it away
     TapHandler {
         acceptedButtons: Qt.LeftButton | Qt.RightButton
         onTapped: (p, button) => {
