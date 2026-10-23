@@ -357,6 +357,25 @@ def brightness(f, cache):
     return cache[k]
 
 
+# how bright each part of it is, as a 16x9 grid over the screen (cropped to fill, as it's
+# shown): text on the desktop takes a deeper shadow where it's bright. Cached by file
+def bright_map(f):
+    path = CACHE / "brightmap.json"
+    try:
+        cache = json.loads(path.read_text())
+    except (OSError, ValueError):
+        cache = {}
+    k = key(f)
+    if k not in cache:
+        src = still(f)
+        out = subprocess.run(["magick", src + "[0]", "-resize", "16x9^", "-gravity", "center", "-extent", "16x9",
+                              "-colorspace", "gray", "-depth", "8", "txt:-"], capture_output=True, text=True).stdout if src else ""
+        cells = [round(int(m) / 255, 3) for m in re.findall(r"^\d+,\d+: \((\d+)", out, re.M)]
+        cache[k] = cells if len(cells) == 144 else []
+        write(path, json.dumps(cache))
+    return cache[k]
+
+
 # the wallpapers that suit a time of day: that period's own folder, or else
 # the darkest ones at night, the brightest by day, the middle ones at dawn
 # and in the evening (the bands overlap, so each has a choice)
@@ -579,7 +598,7 @@ def shell(s, c):
     """the palette the quickshell config watches; a video's colour timeline goes
     with it once worked out (in the background the first time: `yoru timeline`)"""
     f = s["wallpaper"]
-    data = dict(c, wallpaper=f, still=still(f), video=is_video(f), bright=wall_brightness(f))
+    data = dict(c, wallpaper=f, still=still(f), video=is_video(f), bright=wall_brightness(f), bright_map=bright_map(f))
     m = mode(s)
     if m:
         data["mode"] = dict(m.get("yoru", {}), name=Path(m["dir"]).name, light=light(c))

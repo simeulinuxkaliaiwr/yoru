@@ -20,6 +20,9 @@ Item {
     readonly property bool shown: !!card && live
     width: baseWidth * k
     height: baseHeight * k
+    // how bright the wallpaper is under it (its screen is its parent's size)
+    readonly property real under: parent && parent.width > 0
+        ? Theme.brightAt(x / parent.width, y / parent.height, width / parent.width, height / parent.height) : Theme.bright
 
     Loader {
         id: loader
@@ -28,12 +31,12 @@ Item {
         sourceComponent: ({ day: dayC, weather: weatherC, calendar: calC, system: sysC, media: mediaC,
                             clock: clockC, world: worldC, lyrics: lyricsC, photo: photoC, notes: notesC, todo: todoC,
                             timers: timersC, quote: quoteC, user: userC, apps: appsC, countdown: countC })[v.item?.type] ?? null
-        // with no card under it, the text needs a shadow to read
+        // with no card under it, the text needs a shadow to read, wider where it's bright
         layer.enabled: v.look === "minimal" && !v.kind.bare
         layer.effect: MultiEffect {
             shadowEnabled: true
             shadowColor: Qt.rgba(0, 0, 0, 0.9)
-            shadowBlur: 0.35
+            shadowBlur: 0.35 + 0.4 * Theme.shade(v.under)
             shadowVerticalOffset: 1
         }
     }
@@ -46,7 +49,7 @@ Item {
     // the newer ones keep their own settings (Desk.settingsOf) and know their id, to save state
     readonly property var settings: Desk.settingsOf(v.item)
     readonly property string itemId: v.item?.id ?? ""
-    Component { id: clockC; ClockCard { layout: v.layout; settings: v.settings; itemId: v.itemId } }
+    Component { id: clockC; ClockCard { layout: v.layout; settings: v.settings; itemId: v.itemId; under: v.under } }
     Component { id: worldC; WorldCard { layout: v.layout; look: v.look; settings: v.settings; itemId: v.itemId } }
     Component { id: lyricsC; LyricsCard { layout: v.layout; look: v.look; settings: v.settings; itemId: v.itemId } }
     Component { id: photoC; PhotoCard { layout: v.layout; settings: v.settings; itemId: v.itemId } }

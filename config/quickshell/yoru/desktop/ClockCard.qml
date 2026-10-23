@@ -18,6 +18,16 @@ Item {
 
     SystemClock { id: clock; precision: SystemClock.Minutes }
 
+    // where the wallpaper is bright, a soft dark patch behind the digits
+    Rectangle {
+        visible: c.layout !== "cookie" && c.deep > 0.05
+        x: -48; y: -28; width: c.width + 96; height: c.height + 56
+        radius: height / 2
+        color: "black"
+        opacity: 0.3 * c.deep
+        layer.enabled: visible
+        layer.effect: MultiEffect { blurEnabled: true; blur: 1; blurMax: 64 }
+    }
     ClockFace {
         id: face
         visible: c.layout !== "cookie"
@@ -97,12 +107,17 @@ Item {
         }
     }
 
-    // the desktop clock's shadow, so it reads on any wallpaper
+    // the desktop clock's shadow, so it reads on any wallpaper: deeper and wider where the
+    // wallpaper under it is bright (Placed tells it how bright)
+    property real under: Theme.bright
+    readonly property real deep: Theme.shade(under)
     layer.enabled: true
     layer.effect: MultiEffect {
         shadowEnabled: true
-        shadowColor: Qt.rgba(0, 0, 0, c.layout === "cookie" ? 0.4 : 0.55)
-        shadowBlur: 0.8
+        shadowColor: Qt.rgba(0, 0, 0, (c.layout === "cookie" ? 0.4 : 0.55) + 0.35 * c.deep)
+        shadowBlur: 0.8 + 0.2 * c.deep
+        blurMax: 32 + Math.round(24 * c.deep)
+        shadowScale: 1 + 0.02 * c.deep
         shadowVerticalOffset: 2
     }
 }

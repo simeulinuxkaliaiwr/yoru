@@ -36,6 +36,19 @@ Singleton {
     property string still: ""           // the wallpaper as an image (a video's frame)
     property bool video: false
     property real bright: 0.5           // how bright the wallpaper is, 0..1
+    // and each part of it, a 16x9 grid over the screen (`yoru` measures it): text on the
+    // desktop takes a deeper shadow where it's bright
+    property var brightMap: []
+    function brightAt(x, y, w, h) {             // a part of the screen, in fractions of it
+        if (brightMap.length !== 144) return bright;
+        const c0 = Math.max(0, Math.floor(x * 16)), c1 = Math.min(15, Math.floor((x + w) * 16 - 1e-6));
+        const r0 = Math.max(0, Math.floor(y * 9)), r1 = Math.min(8, Math.floor((y + h) * 9 - 1e-6));
+        let sum = 0, n = 0;
+        for (let r = r0; r <= r1; r++) for (let c = c0; c <= c1; c++) { sum += brightMap[r * 16 + c]; n++; }
+        return n ? sum / n : bright;
+    }
+    // how much more shadow text wants there: 0 on a dark part, 1 on a bright one
+    function shade(under) { return Math.max(0, Math.min(1, (under - 0.35) / 0.4)); }
 
     // a mode (`yoru mode NAME`, appearance.mode): a whole look from a folder. Its
     // palette comes in as the colours above; the rest of what it draws with is here.
@@ -199,6 +212,7 @@ Singleton {
             try { p = JSON.parse(text()); } catch (e) { return; }
             theme.wallpaper = p.wallpaper ?? "";
             theme.bright = p.bright ?? 0.5;
+            theme.brightMap = p.bright_map ?? [];
             theme.still = p.still ?? "";
             theme.video = !!p.video;
             theme.timeline = p.timeline ?? [];

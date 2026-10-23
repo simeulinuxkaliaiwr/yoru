@@ -49,6 +49,17 @@ Scope {
                     WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
                     mask: Region {}
 
+                    // where the wallpaper is bright, a soft dark patch behind it as well
+                    Rectangle {
+                        visible: face.visible && face.deep > 0.05
+                        x: face.x - 48; y: face.y - 28
+                        width: face.width + 96; height: face.height + 56
+                        radius: height / 2
+                        color: "black"
+                        opacity: 0.3 * face.deep
+                        layer.enabled: visible
+                        layer.effect: MultiEffect { blurEnabled: true; blur: 1; blurMax: 64 }
+                    }
                     ClockFace {
                         id: face
                         // so the first edit (Desk.snapshot) starts from where it is
@@ -63,11 +74,16 @@ Scope {
                          : clockWin.pos === "top-left" ? 70 + (desk.c.widgets && desk.c.arrangement === "row" ? 130 : 0)
                          : parent.height - height - 56 - (scr.visOn && !scr.busy ? 110 : 0)
                         Behavior on y { NumberAnimation { duration: Theme.slow; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.spatial } }
+                        // a deeper, wider shadow where the wallpaper under it is bright
+                        readonly property real deep: parent && parent.width > 0
+                            ? Theme.shade(Theme.brightAt(x / parent.width, y / parent.height, width / parent.width, height / parent.height)) : 0
                         layer.enabled: true
                         layer.effect: MultiEffect {
                             shadowEnabled: true
-                            shadowColor: Qt.rgba(0, 0, 0, 0.55)
-                            shadowBlur: 0.8
+                            shadowColor: Qt.rgba(0, 0, 0, 0.55 + 0.35 * face.deep)
+                            shadowBlur: 0.8 + 0.2 * face.deep
+                            blurMax: 32 + Math.round(24 * face.deep)
+                            shadowScale: 1 + 0.02 * face.deep
                             shadowVerticalOffset: 2
                         }
                     }
