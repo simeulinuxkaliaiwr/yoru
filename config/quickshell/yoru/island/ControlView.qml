@@ -3,16 +3,43 @@ import QtQuick
 import Quickshell.Widgets
 import qs
 import qs.parts
+import qs.phone
 
-// the control centre: sliders, toggles, what's playing and the notifications
+// the control centre: sliders, toggles, what's playing and the notifications. A tile's
+// arrow, or the one by the volume, opens a page over it: the sound, Wi-Fi, Bluetooth
 Item {
     id: v
     required property var isle
     readonly property bool shown: isle?.mode === "control"
+    property string page: "main"            // or a page over it: sound, wifi, bluetooth
+    property string query: ""               // typed, for a Wi-Fi password
     implicitWidth: 440
-    implicitHeight: col.implicitHeight + 36
+    implicitHeight: (page === "main" ? col.implicitHeight : pageHolder.height) + 36
 
-    onShownChanged: if (shown) { Status.readBrightness(); Status.readUptime(); Notifs.unseen = 0; }
+    onShownChanged: {
+        if (shown) { Status.readBrightness(); Status.readUptime(); Notifs.unseen = 0; }
+        else page = "main";
+    }
+    onPageChanged: query = ""
+    function openPage(p) { pageHost.panel = p; page = p; }
+
+    // the phone's Wi-Fi and Bluetooth panels, borrowed: they ask their host whether it's
+    // showing, go back by clearing `panel`, and close it before running something
+    QtObject {
+        id: pageHost
+        readonly property bool shown: v.shown
+        property string panel: ""
+        onPanelChanged: if (panel === "") v.page = "main"
+        function afterwards(f) { v.isle.close(); f(); }
+    }
+    // a page takes the keys while it's open (the Wi-Fi password's Enter); Escape goes back
+    function key(e) {
+        if (page === "main") return false;
+        const p = pageLoader.item;
+        if (p && typeof p.key === "function" && p.key(e)) return true;
+        if (e.key === Qt.Key_Escape || e.key === Qt.Key_Backspace && query === "") { pageHost.panel = ""; page = "main"; return true; }
+        return false;
+    }
     SystemClock { id: clock; precision: SystemClock.Minutes }
 
     readonly property string greeting: {
@@ -27,7 +54,9 @@ Item {
         property string label
         property string sub: ""
         property bool on: false
+        property bool more: false           // an arrow at its end opens its page
         signal clicked()
+        signal opened()
         width: (col.width - 8) / 2
         height: 62
         radius: on ? 20 : 31
@@ -43,11 +72,27 @@ Item {
             Icon { anchors.centerIn: parent; name: tile.icon; size: 21; fill: tile.on ? 1 : 0; color: tile.on ? Theme.inkPrimary : Theme.ink }
         }
         Column {
-            anchors { left: bubble.right; leftMargin: 10; right: parent.right; rightMargin: 12; verticalCenter: parent.verticalCenter }
+            anchors { left: bubble.right; leftMargin: 10; right: parent.right; rightMargin: tile.more ? 34 : 12; verticalCenter: parent.verticalCenter }
             Txt { width: parent.width; text: tile.label; size: 13; weight: Font.DemiBold; color: tile.on ? Theme.inkPrimaryContainer : Theme.ink }
             Txt { width: parent.width; visible: text !== ""; text: tile.sub; size: 11; color: tile.on ? Theme.inkPrimaryContainer : Theme.inkDim; opacity: 0.85 }
         }
         StateLayer { tint: tile.on ? Theme.inkPrimaryContainer : Theme.ink; onClicked: tile.clicked() }
+        Item {
+            visible: tile.more
+            anchors { right: parent.right; top: parent.top; bottom: parent.bottom }
+            width: 38
+            Rectangle {
+                anchors { left: parent.left; verticalCenter: parent.verticalCenter }
+                width: 1; height: 26
+                color: tile.on ? Theme.alpha(Theme.inkPrimaryContainer, 0.25) : Theme.alpha(Theme.ink, 0.12)
+            }
+            Icon {
+                anchors.centerIn: parent
+                name: "chevron_right"; size: 20
+                color: tile.on ? Theme.inkPrimaryContainer : Theme.inkDim
+            }
+            StateLayer { tint: tile.on ? Theme.inkPrimaryContainer : Theme.ink; onClicked: tile.opened() }
+        }
     }
 
     Column {
@@ -55,6 +100,9 @@ Item {
         x: 18; y: 18
         width: parent.width - 36
         spacing: 14
+        opacity: v.page === "main" ? 1 : 0
+        visible: opacity > 0.01
+        Behavior on opacity { NumberAnimation { duration: Theme.fast } }
 
         // hello
         Item {
@@ -75,12 +123,20 @@ Item {
             }
         }
 
-        // sliders
-        Slider {
-            width: parent.width
-            value: Audio.volume; muted: Audio.muted; icon: Audio.icon
-            onMoved: x => Audio.setVolume(x)
-            onIconClicked: Audio.toggleMute()
+        // sliders; by the volume, the sound page (where it plays, the mic, each app)
+        Item {
+            width: parent.width; height: 40
+            Slider {
+                width: parent.width - 48
+                value: Audio.volume; muted: Audio.muted; icon: Audio.icon
+                onMoved: x => Audio.setVolume(x)
+                onIconClicked: Audio.toggleMute()
+            }
+            IconButton {
+                anchors { right: parent.right; verticalCenter: parent.verticalCenter }
+                icon: "tune"; size: 40; filled: true
+                onClicked: v.openPage("sound")
+            }
         }
         Slider {
             width: parent.width
@@ -96,13 +152,17 @@ Item {
             Tile {
                 icon: Status.netIcon; label: "Wi-Fi"; sub: Status.netName
                 on: Status.wifiOn && (Status.signal >= 0 || Status.ethernet)
+                more: true
                 onClicked: Status.toggleWifi()
+                onOpened: v.openPage("wifi")
             }
             Tile {
                 icon: Status.btOn ? "bluetooth" : "bluetooth_disabled"; label: "Bluetooth"
                 sub: !Status.btOn ? "Off" : Status.btConnected.length > 0 ? Status.btConnected[0].name : "On"
                 on: Status.btOn
+                more: true
                 onClicked: Status.toggleBt()
+                onOpened: v.openPage("bluetooth")
             }
             Tile {
                 icon: "nightlight"; label: "Night light"; sub: Status.night ? "4000K" : "Off"
@@ -359,5 +419,32 @@ Item {
                 }
             }
         }
+    }
+
+    // a page over the main one
+    Item {
+        id: pageHolder
+        x: 18; y: 18
+        width: parent.width - 36
+        height: v.page === "sound" ? (pageLoader.item?.implicitHeight ?? 0) : 540
+        opacity: v.page === "main" ? 0 : 1
+        visible: opacity > 0.01
+        Behavior on opacity { NumberAnimation { duration: Theme.normal } }
+        Loader {
+            id: pageLoader
+            anchors.fill: parent
+            active: v.page !== "main"
+            sourceComponent: ({ sound: soundC, wifi: wifiC, bluetooth: btC })[v.page] ?? null
+        }
+        Component { id: soundC; SoundPage { host: pageHost } }
+        Component {
+            id: wifiC
+            WifiPanel {
+                phone: pageHost; compact: true
+                external: true; typed: v.query
+                onTypedUsed: v.query = ""
+            }
+        }
+        Component { id: btC; BluetoothPanel { phone: pageHost; compact: true } }
     }
 }

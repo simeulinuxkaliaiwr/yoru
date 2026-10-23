@@ -9,6 +9,7 @@ Item {
     property string title
     property bool on: false
     property bool busy: false               // a line sweeps under it while it searches
+    property bool switchable: true          // false: no switch (the control centre's sound)
     property bool compact: false
     signal toggled()
     width: parent ? parent.width : 300
@@ -29,6 +30,7 @@ Item {
     // a switch, as the settings window's
     Rectangle {
         id: sw
+        visible: h.switchable
         anchors { right: parent.right; rightMargin: h.compact ? 10 : 16; verticalCenter: parent.verticalCenter }
         width: 48; height: 28; radius: Theme.r(14)
         color: h.on ? Theme.primary : Theme.surfaceHighest

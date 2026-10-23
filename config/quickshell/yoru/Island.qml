@@ -155,10 +155,11 @@ Scope {
                             const v = win.current;
                             if (v && v.query !== undefined) v.query = text;
                         }
+                        // the view first: one can take Escape to go back a step (the control centre's pages)
                         Keys.onPressed: e => {
-                            if (e.key === Qt.Key_Escape) { island.close(); e.accepted = true; return; }
                             const v = win.current;
-                            if (v && typeof v.key === "function" && v.key(e)) e.accepted = true;
+                            if (v && typeof v.key === "function" && v.key(e)) { e.accepted = true; return; }
+                            if (e.key === Qt.Key_Escape) { island.close(); e.accepted = true; }
                         }
                         Connections {
                             target: island

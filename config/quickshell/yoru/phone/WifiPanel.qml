@@ -12,6 +12,11 @@ Item {
     id: wp
     required property var phone
     property bool compact: false
+    // in the island, which has no keyboard of its own: what's typed arrives here, Enter as key()
+    property bool external: false
+    property string typed: ""
+    signal typedUsed()                      // the host can clear what was typed
+    property var asking: null               // the row waiting for a password
     property string opened: ""              // the network whose row is open
     property string failed: ""              // why joining it didn't work
     readonly property var dev: Networking.devices.values.find(d => d.type === DeviceType.Wifi) ?? null
@@ -69,6 +74,7 @@ Item {
     onOpenedChanged: if (opened === "") wp.forceActiveFocus()
 
     function key(e) {
+        if (external && asking && (e.key === Qt.Key_Return || e.key === Qt.Key_Enter)) { asking.submit(); return true; }
         if (e.key === Qt.Key_Down || e.key === Qt.Key_Up) {
             const to = list.contentY + (e.key === Qt.Key_Down ? 80 : -80);
             list.contentY = Math.max(0, Math.min(Math.max(0, list.contentHeight - list.height), to));
@@ -116,6 +122,9 @@ Item {
             readonly property var n: modelData
             readonly property bool open: wp.opened === n.name
             readonly property bool asks: open && !n.connected && wp.personal(n) && (!n.known || wp.failed !== "")
+            onAsksChanged: if (asks) wp.asking = row; else if (wp.asking === row) wp.asking = null
+            Component.onDestruction: if (wp.asking === row) wp.asking = null
+            function submit() { join.go(); }
             width: list.width
             height: line.height + (open ? drawer.implicitHeight + 10 : 0)
             radius: Theme.r(open ? 22 : 26)
@@ -186,6 +195,7 @@ Item {
                     border.color: Theme.primary
                     TextInput {
                         id: pw
+                        visible: !wp.external
                         anchors { left: parent.left; leftMargin: 14; right: eye.left; rightMargin: 4; verticalCenter: parent.verticalCenter }
                         color: Theme.ink
                         font { family: Theme.sans; pixelSize: 13 }
@@ -198,6 +208,14 @@ Item {
                             else if (e.key === Qt.Key_Escape) { wp.opened = ""; e.accepted = true; }
                         }
                         Txt { anchors.verticalCenter: parent.verticalCenter; visible: pw.text === ""; text: "Password"; size: 13; color: Theme.outline }
+                    }
+                    // typed in the island: the same field, drawn from what arrives
+                    Txt {
+                        visible: wp.external
+                        anchors { left: parent.left; leftMargin: 14; right: eye.left; rightMargin: 4; verticalCenter: parent.verticalCenter }
+                        text: wp.typed === "" ? "Type the password" : eye.on ? wp.typed : "•".repeat(wp.typed.length)
+                        size: 13; color: wp.typed === "" ? Theme.outline : Theme.ink
+                        elide: Text.ElideLeft
                     }
                     Connections {
                         target: row
@@ -226,8 +244,9 @@ Item {
                         visible: row.asks
                         primary: true
                         icon: "login"; label: "Join"
-                        enabled: pw.text.length >= 8
-                        function go() { if (enabled) { wp.failed = ""; wp.act(row.n, "password", pw.text); pw.text = ""; } }
+                        readonly property string secret: wp.external ? wp.typed : pw.text
+                        enabled: secret.length >= 8
+                        function go() { if (enabled) { wp.failed = ""; wp.act(row.n, "password", secret); pw.text = ""; wp.typedUsed(); } }
                         onClicked: go()
                     }
                     Pill {
