@@ -12,7 +12,7 @@ ShellRoot {
     // hot reload crashes quickshell 0.3.1 in QWindow::setScreen; restart instead
     settings.watchFiles: false
 
-    Wallpaper { id: wallpaper }
+    Wallpaper { id: wallpaper; onMenu: (scr, x, y) => deskMenu.show(scr, x, y) }
 
     // a new wallpaper every so often, if the settings ask for it
     Timer {
@@ -69,6 +69,7 @@ ShellRoot {
         island.open(mode, "");
     }
     Lock { id: lockScreen }
+    DesktopMenu { id: deskMenu; isle: island }
     // what came while the screen was locked, said once you're back
     property real lockedAt: 0
     Connections {

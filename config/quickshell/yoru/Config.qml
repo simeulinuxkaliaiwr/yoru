@@ -126,6 +126,7 @@ Singleton {
                 // custom: [{ id, type, output, x, y, scale, layout, look }], see Desk.qml
                 property var items: []
                 property bool snapGrid: true                  // edit mode's grid (G)
+                property bool menu: true                      // a right-click on the bare desktop opens its menu
                 // the big clock became a placed Clock widget (on the first edit in custom mode)
                 property bool clockPlaced: false
                 // each widget's look

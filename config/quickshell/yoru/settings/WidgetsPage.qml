@@ -74,6 +74,10 @@ Column {
     Section {
         icon: "widgets"; title: "Widgets"
         SetRow { icon: "dashboard"; label: "Show widgets"; Toggle { checked: c.widgets; onToggled: on => c.widgets = on } }
+        SetRow {
+            icon: "right_click"; label: "Right-click the desktop for a menu"; hint: "New wallpaper, a note there, edit mode, settings; the wheel over it changes workspace"
+            Toggle { checked: c.menu; onToggled: on => c.menu = on }
+        }
         SetRow { icon: "style"; label: "Style"; hint: "What the widgets sit on" }
         Choice {
             x: 10; current: c.widgetStyle

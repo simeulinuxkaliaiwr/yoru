@@ -14,6 +14,8 @@ Scope {
     id: root
 
     readonly property var names: ["ripple", "fade", "wipe", "disc", "stripes", "zoom", "honeycomb", "pixelate"]
+    // a right-click on the bare desktop (desktop.menu): shell.qml opens DesktopMenu there
+    signal menu(var screen, real x, real y)
 
     // the next transition: its kind, where it starts and which way it runs.
     // Every screen uses the same one, so a change looks like one event.
@@ -349,7 +351,29 @@ Scope {
             WlrLayershell.layer: WlrLayer.Bottom
             WlrLayershell.namespace: "yoru-sky"
             WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
-            mask: Region {}
+            // under every window and widget, so what reaches it is the bare desktop: a right-click
+            // there is the desktop's menu, the wheel walks the workspaces (as on the island)
+            mask: Config.o.desktop.menu ? null : noInput
+            Region { id: noInput }
+            MouseArea {
+                anchors.fill: parent
+                enabled: Config.o.desktop.menu
+                acceptedButtons: Qt.RightButton
+                onClicked: e => root.menu(sky.modelData, e.x, e.y)
+            }
+            WheelHandler {
+                enabled: Config.o.desktop.menu
+                acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
+                property real acc: 0
+                onWheel: e => {
+                    acc += e.angleDelta.y;
+                    if (Math.abs(acc) < 100) return;
+                    const cur = Wm.current(sky.modelData.name);
+                    const n = Math.max(1, Math.min(32, cur + (acc > 0 ? -1 : 1)));
+                    acc = 0;
+                    if (n !== cur) Wm.focusWorkspace(n);
+                }
+            }
 
             // the sky over the picture, drawn at half size and 30 frames a second
             // (it's soft anyway; full size at 60 kept the GPU 30% busy), and

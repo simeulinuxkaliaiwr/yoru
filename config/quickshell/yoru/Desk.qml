@@ -108,6 +108,15 @@ Singleton {
         return list;
     }
 
+    // a new widget where you right-clicked the desktop (its menu), then edit mode to fill it in
+    function addAt(type, output, x, y) {
+        if (!custom) edit();
+        const kind = desk.kind(type);
+        save(items.concat([{ id: nextId(items, type), type: type, output: output, x: Math.round(x), y: Math.round(y),
+                             scale: 1, layout: "", look: "", settings: JSON.parse(JSON.stringify(kind.defaults ?? {})) }]));
+        editing = true;
+    }
+
     function edit() {
         const d = Config.o.desktop;
         if (!custom) {
