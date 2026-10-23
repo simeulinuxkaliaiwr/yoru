@@ -176,6 +176,16 @@ ShellRoot {
             Quickshell.execDetached(["sh", "-c", "pw-play /usr/share/sounds/freedesktop/stereo/complete.oga 2>/dev/null"]);
         }
     }
+    // a calendar's event, a few minutes before (calendar.remind)
+    Connections {
+        target: Events
+        function onDue(e) {
+            const mins = Math.max(1, Math.round((Events.when(e.start) - Date.now()) / 60000));
+            island.showToast({ icon: "event_upcoming", app: "Calendar" + (e.cal ? "  ·  " + e.cal : ""), title: e.title,
+                               body: "In " + mins + (mins === 1 ? " minute" : " minutes") + (e.where ? "  ·  " + e.where : ""), open: "calendar" });
+            if (Config.o.notifications.sound) Quickshell.execDetached(["pw-play", "/usr/share/sounds/freedesktop/stereo/bell.oga"]);
+        }
+    }
     Connections {
         target: Timers
         function onRang(minutes) {

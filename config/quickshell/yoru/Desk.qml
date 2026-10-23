@@ -22,6 +22,7 @@ Singleton {
           layouts: [["rings", "Rings"], ["bars", "Bars"], ["chips", "Chips"], ["graph", "Graph"]] },
         { type: "media", group: "Music", name: "Now playing", icon: "album", key: "mediaStyle",
           layouts: [["card", "Card"], ["cover", "Cover"], ["pill", "Pill"], ["vinyl", "Vinyl"]] },
+        { type: "agenda", group: "Today", name: "Next up", icon: "event_upcoming", layouts: [["next", "Next"], ["list", "List"]] },
         { type: "tonight", group: "Today", name: "Tonight", icon: "bedtime", layouts: [["moon", "Moon"], ["card", "Card"]] },
         { type: "day", group: "Today", name: "Today", icon: "hourglass_bottom", key: "dayStyle",
           layouts: [["bars", "Bars"], ["rings", "Rings"], ["sun", "Sun"]] },

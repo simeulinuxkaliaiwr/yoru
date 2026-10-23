@@ -25,6 +25,8 @@
                                          (null when lrclib couldn't be reached: nothing cached, ask again)
     yoru restore            the palette back at login (the compositor's autostart runs it)
     yoru status             the current wallpaper
+    yoru events             calendar.feeds' events (.ics links or files), a month back to two
+                            ahead, repeats worked out, as JSON
     yoru themes [write|use APP]   the app themes from templates (config/templates and yours in
                             ~/.config/yoru/templates), as JSON; write them now; or point APP
                             (kitty, alacritty, ghostty, yazi, tmux, spicetify) at yoru's
@@ -140,6 +142,7 @@ def state():
         s["mode"] = cfg.get("appearance", {}).get("mode") or ""
         s["backend"] = cfg.get("wallpaper", {}).get("backend") or "yoru"
         s["themes"] = cfg.get("themes") or {}
+        s["calendar"] = cfg.get("calendar") or {}
     except (OSError, ValueError):
         pass
     m = mode(s)
@@ -984,6 +987,264 @@ def fastfetch(c, s=None, m=None):
 HERE = Path(__file__).resolve().parent.parent
 STARTPAGES = HOME / "startpages"
 WAL = HOME / ".cache/wal/colors.json"
+
+
+# calendar events from .ics feeds (config.json's calendar.feeds: links, https:// or webcal://,
+# fetched at most every 15 minutes and kept for when the network isn't there, or files, or
+# folders of them as vdirsyncer keeps them): every event from a month back to two ahead, with
+# its repeats worked out (RRULE's DAILY, WEEKLY, MONTHLY and YEARLY, with INTERVAL, COUNT,
+# UNTIL, BYDAY, BYMONTHDAY and BYMONTH; EXDATE; an edited instance, RECURRENCE-ID, in place of
+# its own), each in its own time zone, then in yours
+CALS = CACHE / "calendars"
+WEEKDAYS = ["MO", "TU", "WE", "TH", "FR", "SA", "SU"]
+
+
+def ics_lines(text):
+    out = []
+    for raw in text.replace("\r\n", "\n").replace("\r", "\n").split("\n"):
+        if raw[:1] in (" ", "\t") and out:
+            out[-1] += raw[1:]
+        elif raw:
+            out.append(raw)
+    return out
+
+
+def ics_prop(line):
+    """NAME;PARAM=V…:VALUE as (NAME, {PARAM: V}, VALUE)"""
+    i, quoted = 0, False
+    while i < len(line) and (line[i] != ":" or quoted):
+        quoted ^= line[i] == '"'
+        i += 1
+    parts = line[:i].split(";")
+    params = {}
+    for x in parts[1:]:
+        if "=" in x:
+            k, v = x.split("=", 1)
+            params[k.upper()] = v.strip('"')
+    return parts[0].upper(), params, line[i + 1:]
+
+
+def ics_text(v):
+    return re.sub(r"\\(.)", lambda m: "\n" if m.group(1) in "nN" else m.group(1), v)
+
+
+def ics_when(value, params):
+    """(naive time on the event's own clock, its zone or None, all-day)"""
+    from datetime import datetime, timezone
+    from zoneinfo import ZoneInfo
+    v = value.strip()
+    if params.get("VALUE") == "DATE" or re.fullmatch(r"\d{8}", v):
+        return datetime.strptime(v[:8], "%Y%m%d"), None, True
+    dt = datetime.strptime(v.rstrip("Z")[:15], "%Y%m%dT%H%M%S")
+    if v.endswith("Z"):
+        return dt, timezone.utc, False
+    try:
+        return dt, ZoneInfo(params["TZID"]) if params.get("TZID") else None, False
+    except Exception:
+        return dt, None, False
+
+
+def local(dt, tz):
+    """an event's own clock time as yours"""
+    return dt.replace(tzinfo=tz).astimezone().replace(tzinfo=None) if tz else dt
+
+
+def ics_duration(v):
+    from datetime import timedelta
+    m = re.fullmatch(r"([+-])?P(?:(\d+)W)?(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?)?", v.strip())
+    if not m:
+        return None
+    sign = -1 if m.group(1) == "-" else 1
+    w, d, h, mi, s = (int(x or 0) for x in m.groups()[1:])
+    return sign * timedelta(weeks=w, days=d, hours=h, minutes=mi, seconds=s)
+
+
+def repeats(start, rule, until_cap):
+    """the starts an RRULE gives, on the event's own clock, up to until_cap"""
+    import calendar
+    from datetime import timedelta
+    freq = rule.get("FREQ", "")
+    every = max(1, int(rule.get("INTERVAL") or 1))
+    count = int(rule["COUNT"]) if rule.get("COUNT", "").isdigit() else None
+    until = None
+    if rule.get("UNTIL"):
+        u = rule["UNTIL"]
+        try:
+            until, tz, _ = ics_when(u, {})
+            if tz is not None and start.tzinfo is None:
+                until = until    # compared on the event's clock: near enough for a limit
+        except ValueError:
+            until = None
+    byday = [d.strip() for d in rule.get("BYDAY", "").split(",") if d.strip()]
+    bymonthday = [int(x) for x in rule.get("BYMONTHDAY", "").split(",") if re.fullmatch(r"-?\d+", x.strip())]
+    bymonth = [int(x) for x in rule.get("BYMONTH", "").split(",") if x.strip().isdigit()]
+    n, guard = 0, 0
+
+    def take(cands):
+        nonlocal n
+        for c in sorted(cands):
+            if c < start:
+                continue
+            if (until and c > until) or c > until_cap or (count and n >= count):
+                return False
+            n += 1
+            yield_list.append(c)
+        return True
+
+    def nth(year, month, spec):
+        m = re.fullmatch(r"([+-]?\d+)?(MO|TU|WE|TH|FR|SA|SU)", spec)
+        if not m:
+            return []
+        wd = WEEKDAYS.index(m.group(2))
+        days = [d for d in range(1, calendar.monthrange(year, month)[1] + 1) if calendar.weekday(year, month, d) == wd]
+        if m.group(1):
+            k = int(m.group(1))
+            return [days[k - 1]] if 0 < k <= len(days) else [days[k]] if -len(days) <= k < 0 else []
+        return days
+
+    yield_list = []
+    if freq == "DAILY":
+        cur = start
+        while guard < 4000:
+            guard += 1
+            ok = (not bymonth or cur.month in bymonth) and (not byday or WEEKDAYS[cur.weekday()] in [d[-2:] for d in byday])
+            if ok and not take([cur]):
+                break
+            if cur > until_cap:
+                break
+            cur += timedelta(days=every)
+    elif freq == "WEEKLY":
+        days = sorted({WEEKDAYS.index(d[-2:]) for d in byday if d[-2:] in WEEKDAYS} or {start.weekday()})
+        monday = start - timedelta(days=start.weekday())
+        w = 0
+        while guard < 2000:
+            guard += 1
+            base = monday + timedelta(weeks=w * every)
+            if not take([base + timedelta(days=d) for d in days]) or base > until_cap:
+                break
+            w += 1
+    elif freq == "MONTHLY":
+        m = 0
+        while guard < 1000:
+            guard += 1
+            y, mo = divmod(start.month - 1 + m * every, 12)
+            y, mo = y + start.year, mo + 1
+            last = calendar.monthrange(y, mo)[1]
+            if bymonthday:
+                days = [d if d > 0 else last + d + 1 for d in bymonthday]
+            elif byday:
+                days = [d for spec in byday for d in nth(y, mo, spec)]
+            else:
+                days = [start.day]
+            cands = [start.replace(year=y, month=mo, day=d) for d in days if 1 <= d <= last]
+            if not take(cands) or start.replace(year=y, month=mo, day=1) > until_cap:
+                break
+            m += 1
+    elif freq == "YEARLY":
+        k = 0
+        while guard < 200:
+            guard += 1
+            y = start.year + k * every
+            cands = []
+            for mo in bymonth or [start.month]:
+                days = ([d for spec in byday for d in nth(y, mo, spec)] if byday else bymonthday or [start.day])
+                for d in days:
+                    try:
+                        cands.append(start.replace(year=y, month=mo, day=d))
+                    except ValueError:
+                        pass            # the 29th of February in a short year
+            if not take(cands) or y > until_cap.year:
+                break
+            k += 1
+    else:
+        yield_list.append(start)
+    return yield_list
+
+
+def feed_text(feed):
+    """a feed's .ics text: a link (fetched, kept a quarter of an hour), a file, or a folder of them"""
+    import time
+    import urllib.request
+    f = feed.strip()
+    if re.match(r"^(https?|webcal)://", f):
+        url = re.sub(r"^webcal://", "https://", f)
+        kept = CALS / (hashlib.sha1(url.encode()).hexdigest()[:16] + ".ics")
+        if not kept.exists() or time.time() - kept.stat().st_mtime > 900:
+            try:
+                req = urllib.request.Request(url, headers={"User-Agent": "yoru (a quickshell rice)"})
+                with urllib.request.urlopen(req, timeout=10) as r:
+                    data = r.read()
+                if b"BEGIN:VCALENDAR" in data[:2000]:
+                    kept.parent.mkdir(parents=True, exist_ok=True)
+                    kept.write_bytes(data)
+            except OSError:
+                pass            # what was kept, while the network isn't there
+        return [read(kept)] if kept.exists() else []
+    path = Path(os.path.expanduser(f))
+    if path.is_dir():
+        return [read(p) for p in sorted(path.rglob("*.ics"))]
+    return [read(path)] if path.is_file() else []
+
+
+def events(s, back=31, ahead=62):
+    from datetime import datetime, timedelta
+    now = datetime.now()
+    lo = datetime(now.year, now.month, now.day) - timedelta(days=back)
+    hi = now + timedelta(days=ahead)
+    out = []
+    for feed in s.get("calendar", {}).get("feeds", []):
+        for text in feed_text(feed):
+            lines = ics_lines(text)
+            cal = next((ics_text(ics_prop(l)[2]) for l in lines if l.upper().startswith("X-WR-CALNAME")), "") \
+                or re.sub(r"^\w+://", "", feed).split("/")[0].removesuffix(".ics")
+            evs, cur = [], None
+            for l in lines:
+                u = l.upper()
+                if u == "BEGIN:VEVENT":
+                    cur = {"ex": []}
+                elif u == "END:VEVENT" and cur is not None:
+                    evs.append(cur)
+                    cur = None
+                elif cur is not None:
+                    name, params, value = ics_prop(l)
+                    if name == "EXDATE":
+                        cur["ex"] += [(v, params) for v in value.split(",")]
+                    elif name in ("DTSTART", "DTEND", "RECURRENCE-ID"):
+                        cur[name] = (value, params)
+                    else:
+                        cur[name] = value
+            moved = {}          # an edited instance: (uid, its original start) → the event
+            for e in evs:
+                if "RECURRENCE-ID" in e and "DTSTART" in e:
+                    rid = ics_when(*e["RECURRENCE-ID"])
+                    moved[(e.get("UID", ""), local(rid[0], rid[1]))] = e
+            for e in evs:
+                if "DTSTART" not in e or e.get("STATUS", "").upper() == "CANCELLED":
+                    continue
+                start, tz, allday = ics_when(*e["DTSTART"])
+                if "DTEND" in e:
+                    end = ics_when(*e["DTEND"])[0]
+                    length = end - start
+                else:
+                    length = ics_duration(e.get("DURATION", "")) or (timedelta(days=1) if allday else timedelta(0))
+                starts = [start]
+                if "RRULE" in e and "RECURRENCE-ID" not in e:
+                    rule = dict(x.split("=", 1) for x in e["RRULE"].split(";") if "=" in x)
+                    starts = repeats(start, {k.upper(): v for k, v in rule.items()}, hi + timedelta(days=1))
+                skip = {local(*ics_when(v, p)[:2]) for v, p in e["ex"]}
+                for st in starts:
+                    at = local(st, tz)
+                    if "RECURRENCE-ID" not in e and ((e.get("UID", ""), at) in moved or at in skip):
+                        continue
+                    stop = local(st + length, tz)
+                    if stop < lo or at > hi:
+                        continue
+                    fmt = "%Y-%m-%d" if allday else "%Y-%m-%dT%H:%M"
+                    out.append({"title": ics_text(e.get("SUMMARY", "")).strip() or "(no title)", "start": at.strftime(fmt),
+                                "end": stop.strftime(fmt), "allDay": allday, "where": ics_text(e.get("LOCATION", "")).strip(),
+                                "cal": cal})
+    out.sort(key=lambda x: (x["start"], x["title"]))
+    return out
 
 
 # app themes from templates: yoru's own, for apps it knows how to point at them (config/templates:
@@ -2009,6 +2270,8 @@ def main():
             print(s["backend"])
         else:
             return set_backend(s, args[1])
+    elif cmd == "events":
+        print(json.dumps(events(s)))
     elif cmd == "themes":
         if args[1:2] == ["use"] and len(args) > 2:
             return use_theme(s, args[2])

@@ -25,7 +25,7 @@ ShellRoot {
         readonly property var pages: Pages.list
         readonly property var comps: ({
             quick: quickC, wallpaper: wallC, themes: themesC, clock: clockC, widgets: widgetsC, layouts: layoutsC, visualizer: visC, start: startC,
-            island: islandC, phone: phoneC, notifications: notifsC, focus: focusC, lock: lockC, screen: screenC, weather: weatherC, about: aboutC
+            island: islandC, phone: phoneC, notifications: notifsC, focus: focusC, lock: lockC, screen: screenC, calendar: calendarC, weather: weatherC, about: aboutC
         })
         Component { id: quickC; QuickPage {} }
         Component { id: wallC; WallpaperPage {} }
@@ -41,6 +41,7 @@ ShellRoot {
         Component { id: focusC; FocusPage {} }
         Component { id: lockC; LockPage {} }
         Component { id: screenC; ScreenPage {} }
+        Component { id: calendarC; CalendarPage {} }
         Component { id: weatherC; WeatherPage {} }
         Component { id: aboutC; AboutPage {} }
 

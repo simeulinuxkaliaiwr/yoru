@@ -283,6 +283,14 @@ Singleton {
                 property string focus: "search"               // where new tabs type: search (the page) or address (Firefox's bar)
             }
 
+            // your calendars (`yoru events`): .ics links (https:// or webcal://, as Google, Proton or
+            // Nextcloud give them) or files and folders of them; a word this many minutes before
+            // each event (0: none)
+            property JsonObject calendar: JsonObject {
+                property list<string> feeds: []
+                property int remind: 10
+            }
+
             property JsonObject weather: JsonObject {
                 property string city: ""                      // empty: from your IP (ipinfo.io)
                 property bool fahrenheit: false

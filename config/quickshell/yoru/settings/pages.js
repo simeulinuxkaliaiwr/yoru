@@ -17,6 +17,7 @@ var list = [
     { id: "focus", icon: "timer", name: "Focus & quiet", about: "The focus timer and do not disturb", group: "Shell", words: "pomodoro break dnd quiet hours night" },
     { id: "lock", icon: "lock", name: "Lock screen", about: "What you see when you come back", group: "Shell", words: "blur dim idle password power characters shapes dots warn warning countdown" },
     { id: "screen", icon: "nightlight", name: "Night & battery", about: "A warmer screen at night, and resting on battery", group: "Shell", words: "night light warm warmth kelvin temperature wlsunset sunset sunrise schedule hours blue battery saver power charge charging plug laptop" },
+    { id: "calendar", icon: "calendar_month", name: "Calendar", about: "Your calendars' events, and reminders", group: "More", words: "calendar ics ical webcal google proton nextcloud outlook events agenda reminder next up vdirsyncer" },
     { id: "weather", icon: "partly_cloudy_day", name: "Weather", about: "Where the forecast is for", group: "More", words: "city fahrenheit location" },
     { id: "about", icon: "info", name: "About", about: "yoru, its keys and its config", group: "More", words: "keys rice config" },
 ];
