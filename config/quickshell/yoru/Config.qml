@@ -213,6 +213,8 @@ Singleton {
                 property bool quiet: true                     // no notifications while focusing
                 property bool music: true                     // pause the music for breaks, play it again after
                 property bool rounds: false                   // after a break, focus again, until stopped
+                // while focusing, the sky over the wallpaper: rain or snow (soft), or off (as outside)
+                property string sky: "rain"
             }
 
             // the night light (the control centre's tile): how warm, and when it comes on by itself

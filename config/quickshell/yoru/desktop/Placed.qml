@@ -30,7 +30,7 @@ Item {
         transformOrigin: Item.TopLeft
         sourceComponent: ({ day: dayC, weather: weatherC, calendar: calC, system: sysC, media: mediaC,
                             clock: clockC, world: worldC, lyrics: lyricsC, photo: photoC, notes: notesC, todo: todoC,
-                            timers: timersC, quote: quoteC, user: userC, apps: appsC, countdown: countC })[v.item?.type] ?? null
+                            timers: timersC, quote: quoteC, user: userC, apps: appsC, countdown: countC, focuslog: focusC })[v.item?.type] ?? null
         // with no card under it, the text needs a shadow to read, wider where it's bright
         layer.enabled: v.look === "minimal" && !v.kind.bare
         layer.effect: MultiEffect {
@@ -60,4 +60,5 @@ Item {
     Component { id: userC; UserCard { layout: v.layout; look: v.look; settings: v.settings; itemId: v.itemId } }
     Component { id: appsC; AppsCard { layout: v.layout; look: v.look; settings: v.settings; itemId: v.itemId } }
     Component { id: countC; CountdownCard { layout: v.layout; look: v.look; settings: v.settings; itemId: v.itemId } }
+    Component { id: focusC; FocusCard { layout: v.layout; look: v.look; settings: v.settings; itemId: v.itemId } }
 }

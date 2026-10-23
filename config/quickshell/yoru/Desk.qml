@@ -39,6 +39,7 @@ Singleton {
         { type: "todo", group: "Yours", name: "To-do", icon: "checklist", layouts: [["list", "List"], ["checks", "Checklist"], ["progress", "Progress"]],
           defaults: { title: "To-do", items: [{ text: "Add things in edit mode", done: false }, { text: "Tick them off here", done: false }] } },
         { type: "timers", group: "Time", name: "Timers", icon: "timer", layouts: [["trio", "Trio"], ["focus", "Focus"]] },
+        { type: "focuslog", group: "Time", name: "Focus history", icon: "local_fire_department", layouts: [["heatmap", "Heatmap"], ["streak", "Streak"]] },
         { type: "quote", group: "Yours", name: "Quote", icon: "format_quote", layouts: [["bubble", "Bubble"], ["serif", "Serif"], ["plain", "Plain"]],
           defaults: { text: "", author: "", daily: true } },
         { type: "user", group: "System", name: "User", icon: "account_circle", layouts: [["card", "Card"], ["compact", "Compact"]] },

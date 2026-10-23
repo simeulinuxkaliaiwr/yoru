@@ -67,12 +67,16 @@ Scope {
     readonly property string skyWant: {
         if (trySky !== "") return trySky;
         if (Status.saving) return "";           // battery saver: it rests
+        // focusing: a gentle rain (or snow) to work under, whatever it's doing outside (focus.sky)
+        if (focusSky) return Config.o.focus.sky;
         const s = Config.o.wallpaper.sky;
         return s === "weather" ? outside() : skies.includes(s) ? s : "";
     }
-    // drizzle and showers are lighter, heavy rain and snow heavier
+    readonly property bool focusSky: Focus.phase === "focus" && ["rain", "snow"].includes(Config.o.focus.sky)
+    // drizzle and showers are lighter, heavy rain and snow heavier; the focus sky is soft
     readonly property real skyAmount: {
         let a = Config.o.wallpaper.skyAmount;
+        if (trySky === "" && focusSky) return Math.max(0.25, a * 0.55);   // soft, but there
         if (trySky === "" && Config.o.wallpaper.sky === "weather") {
             const c = Weather.code;
             if ([51, 53, 56, 61, 71, 80, 85].includes(c)) a *= 0.6;
@@ -81,7 +85,7 @@ Scope {
         return a;
     }
     // the wind slants rain and snow; a breeze when it isn't the real weather
-    readonly property real skyWind: trySky === "" && Config.o.wallpaper.sky === "weather"
+    readonly property real skyWind: focusSky && trySky === "" ? 0.12 : trySky === "" && Config.o.wallpaper.sky === "weather"
         ? Math.min(0.8, Weather.wind * (Weather.fahrenheit ? 1.609 : 1) / 50) : 0.2
     // one kind fades out before the next fades in
     property int sky: 0

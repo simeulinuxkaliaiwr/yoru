@@ -13,6 +13,10 @@ Column {
         SetRow { icon: "notifications_paused"; label: "Hold notifications while focusing"; Toggle { checked: Config.o.focus.quiet; onToggled: on => Config.o.focus.quiet = on } }
         SetRow { icon: "music_off"; label: "Pause the music for breaks"; hint: "It plays again when the break ends"; Toggle { checked: Config.o.focus.music; onToggled: on => Config.o.focus.music = on } }
         SetRow { icon: "repeat"; label: "Keep going in rounds"; hint: "Focus again after each break, until you stop it"; Toggle { checked: Config.o.focus.rounds; onToggled: on => Config.o.focus.rounds = on } }
+        SetRow {
+            icon: "rainy_light"; label: "While you focus, the sky"; hint: "Over the wallpaper, softly, whatever it's doing outside"
+            Choice { width: 300; current: Config.o.focus.sky; options: [{ value: "rain", label: "Rains" }, { value: "snow", label: "Snows" }, { value: "off", label: "As outside" }]; onPicked: v => Config.o.focus.sky = v }
+        }
     }
 
     Section {
