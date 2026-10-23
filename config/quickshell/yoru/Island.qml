@@ -38,6 +38,7 @@ Scope {
         mode = m;
     }
     function close() { mode = "idle"; }
+    property int powerPick: -1          // the power menu opens on this one (from the launcher)
     // opens the launcher with something already typed (`island search ":snow"`)
     property string typed: ""
     function search(text) {

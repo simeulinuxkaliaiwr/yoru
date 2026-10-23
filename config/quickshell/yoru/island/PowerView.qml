@@ -19,7 +19,8 @@ Item {
         { icon: "restart_alt", label: "Restart", cmd: ["systemctl", "reboot"] },
         { icon: "power_settings_new", label: "Shut down", cmd: ["systemctl", "poweroff"] },
     ]
-    onShownChanged: if (shown) sel = 0
+    // the launcher can open it on one ("restart" typed there)
+    onShownChanged: if (shown) { sel = isle.powerPick >= 0 ? isle.powerPick : 0; isle.powerPick = -1; }
     function run(i) {
         isle.close();
         if (actions[i].cmd.length) Quickshell.execDetached(actions[i].cmd);

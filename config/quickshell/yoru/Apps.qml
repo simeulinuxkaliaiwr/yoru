@@ -43,11 +43,15 @@ Singleton {
     // run it, and count it
     function launch(e) {
         if (!e) return;
+        count(e);
+        run(e);
+    }
+    // going back to an open one counts too
+    function count(e) {
         const c = Object.assign({}, counts);
         c[e.id] = (c[e.id] ?? 0) + 1;
         counts = c;
         store.setText(JSON.stringify(c));
-        run(e);
     }
     // a command in the terminal; other terminals than foot get the usual -e
     function inTerminal(cmd, id) {
