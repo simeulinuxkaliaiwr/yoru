@@ -101,7 +101,7 @@ Scope {
         switch (id) {
         case "wifi": return Status.netName;
         case "bluetooth": return Status.btWanted ? "Turning on…" : !Status.btOn ? "Off" : Status.btConnected.length > 0 ? Status.btConnected[0].name : "On";
-        case "night": return Status.night ? "4000K" : "Off";
+        case "night": return Status.night ? Status.warmth + "K" : "Off";
         case "caffeine": return Status.caffeine ? "Awake" : "Off";
         case "dnd": return !Notifs.dnd ? "Off" : Notifs.quietHours ? "Quiet hours" : Focus.active && !Notifs.manualDnd ? "Focusing" : "On";
         case "focus": return Focus.active ? (Focus.phase === "break" ? "Break " : "") + Focus.clock(Focus.left) : Config.o.focus.minutes + " min";
@@ -126,7 +126,7 @@ Scope {
         switch (id) {
         case "wifi": Status.toggleWifi(); break;
         case "bluetooth": Status.toggleBt(); break;
-        case "night": Status.night = !Status.night; break;
+        case "night": Status.toggleNight(); break;
         case "caffeine": Status.caffeine = !Status.caffeine; break;
         case "dnd": Notifs.toggleDnd(); break;
         case "focus": Focus.toggle(); break;

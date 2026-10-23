@@ -11,6 +11,7 @@ Singleton {
     id: config
     readonly property alias o: adapter
     readonly property string path: Quickshell.env("HOME") + "/.config/yoru/config.json"
+    property bool loaded: false             // the file has been read (or there was none)
 
     FileView {
         path: config.path
@@ -18,8 +19,9 @@ Singleton {
         printErrors: false
         onFileChanged: reload()
         onAdapterUpdated: writeAdapter()
+        onLoaded: config.loaded = true
         // the first run: write the defaults out so there's a file to edit
-        onLoadFailed: err => { if (err === FileViewError.FileNotFound) writeAdapter(); }
+        onLoadFailed: err => { if (err === FileViewError.FileNotFound) writeAdapter(); config.loaded = true; }
 
         JsonAdapter {
             id: adapter
@@ -182,6 +184,16 @@ Singleton {
                 property bool quiet: true                     // no notifications while focusing
                 property bool music: true                     // pause the music for breaks, play it again after
                 property bool rounds: false                   // after a break, focus again, until stopped
+            }
+
+            // the night light (the control centre's tile): how warm, and when it comes on by itself
+            property JsonObject night: JsonObject {
+                property int warmth: 4000                     // kelvin: 2500 (amber) .. 6000 (barely)
+                // by itself: off (only by hand), sun (sunset to sunrise where the weather is)
+                // or hours (from .. to); wlsunset fades in and out over half an hour
+                property string auto: "off"
+                property string from: "21:00"
+                property string to: "07:00"
             }
 
             property JsonObject quiet: JsonObject {

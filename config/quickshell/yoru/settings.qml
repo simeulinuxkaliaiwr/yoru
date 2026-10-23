@@ -32,13 +32,14 @@ ShellRoot {
             { id: "island", icon: "toolbar", name: "Island", about: "The bar that becomes everything", group: "Shell", words: "clock 24 hour battery workspaces notifications" },
             { id: "phone", icon: "smartphone", name: "Phone", about: "Your apps, quick settings, the day and the music, in your hand", group: "Shell", words: "mobile slab flip keitai bare pages tiles quick settings dock keypad lyrics wifi bluetooth" },
             { id: "focus", icon: "timer", name: "Focus & quiet", about: "The focus timer and do not disturb", group: "Shell", words: "pomodoro break dnd quiet hours night" },
-            { id: "lock", icon: "lock", name: "Lock screen", about: "What you see when you come back", group: "Shell", words: "blur dim idle password power characters shapes dots" },
+            { id: "lock", icon: "lock", name: "Lock screen", about: "What you see when you come back", group: "Shell", words: "blur dim idle password power characters shapes dots warn warning countdown" },
+            { id: "screen", icon: "nightlight", name: "Night light", about: "A warmer screen at night, by hand or by itself", group: "Shell", words: "night light warm warmth kelvin temperature wlsunset sunset sunrise schedule hours blue" },
             { id: "weather", icon: "partly_cloudy_day", name: "Weather", about: "Where the forecast is for", group: "More", words: "city fahrenheit location" },
             { id: "about", icon: "info", name: "About", about: "yoru, its keys and its config", group: "More", words: "keys rice config" },
         ]
         readonly property var comps: ({
             quick: quickC, wallpaper: wallC, clock: clockC, widgets: widgetsC, layouts: layoutsC, visualizer: visC, start: startC,
-            island: islandC, phone: phoneC, focus: focusC, lock: lockC, weather: weatherC, about: aboutC
+            island: islandC, phone: phoneC, focus: focusC, lock: lockC, screen: screenC, weather: weatherC, about: aboutC
         })
         Component { id: quickC; QuickPage {} }
         Component { id: wallC; WallpaperPage {} }
@@ -51,6 +52,7 @@ ShellRoot {
         Component { id: phoneC; PhonePage {} }
         Component { id: focusC; FocusPage {} }
         Component { id: lockC; LockPage {} }
+        Component { id: screenC; ScreenPage {} }
         Component { id: weatherC; WeatherPage {} }
         Component { id: aboutC; AboutPage {} }
 

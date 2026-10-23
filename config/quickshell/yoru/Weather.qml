@@ -20,6 +20,9 @@ Singleton {
     property var hours: []              // the next 24: [{ time, temp, code }]
     property string sunrise: ""         // today, ISO local time
     property string sunset: ""
+    property real lat: 0                // where the forecast is for (the night light's schedule)
+    property real lon: 0
+    property bool located: false
     readonly property string unit: Config.o.weather.fahrenheit ? "°F" : "°C"
 
     readonly property string city: Config.o.weather.city
@@ -68,6 +71,7 @@ curl -sf -m 8 "https://api.open-meteo.com/v1/forecast?latitude=$lat&longitude=$l
                 }));
                 w.sunrise = d.daily.sunrise[0] ?? "";
                 w.sunset = d.daily.sunset[0] ?? "";
+                if (d.latitude !== undefined) { w.lat = d.latitude; w.lon = d.longitude; w.located = true; }
                 w.ready = true;
             }
         }

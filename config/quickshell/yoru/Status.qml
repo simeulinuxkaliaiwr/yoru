@@ -85,8 +85,8 @@ Singleton {
     Component.onCompleted: {
         brightQuery.running = true;
         // as they were before a restart
-        night = Saved.get("night", false);
         caffeine = Saved.getThisBoot("caffeine", false);
+        if (Config.loaded) restoreNight();
     }
     function readBrightness() { brightQuery.running = true; }
     property real pendingBright: -1
@@ -108,13 +108,81 @@ Singleton {
     }
     Process { id: brightSet; onExited: if (st.pendingBright >= 0) brightApply.restart() }
 
-    // night light: wlsunset at a fixed warm temperature
-    property bool night: false
-    onNightChanged: Saved.set("night", night)
+    // night light: wlsunset. By hand it holds one warmth; on a schedule (night.auto) wlsunset
+    // follows the sun where the weather is, or the hours, and fades over half an hour. Switched
+    // by hand while a schedule runs, that holds until the schedule's next turn
+    readonly property var nightCfg: Config.o.night
+    readonly property int warmth: Math.max(1900, Math.min(6400, nightCfg.warmth))
+    readonly property bool nightSun: nightCfg.auto === "sun" && Weather.located
+    readonly property bool nightAuto: nightCfg.auto === "sun" || nightCfg.auto === "hours"
+    property bool nightManual: false        // by hand, with no schedule
+    property var nightHeld: null            // by hand during a schedule: on or off until its next turn
+    property bool nightWindow: false        // the schedule's night, right now
+    property bool nightReady: false         // read back from before a restart
+    readonly property bool night: nightAuto ? (nightHeld ?? nightWindow) : nightManual
+    // what its tile says
+    readonly property bool nightScheduled: nightAuto && nightHeld === null
+    readonly property string nightSub: night ? (nightScheduled ? "Until " + nightTo : warmth + "K")
+                                             : (nightScheduled ? "From " + nightFrom : "Off")
+    function toggleNight() {
+        if (nightAuto) nightHeld = !night;
+        else nightManual = !nightManual;
+    }
+    // when the schedule's night starts and ends: the sun's times, or the settings' hours
+    // (also when the weather doesn't know where you are yet)
+    readonly property string nightFrom: nightSun ? Weather.sunset.slice(11, 16) : nightCfg.from
+    readonly property string nightTo: nightSun ? Weather.sunrise.slice(11, 16) : nightCfg.to
+    function inNight() {
+        if (!nightAuto) return false;
+        const m = s => { const [h, mi] = String(s).split(":").map(Number); return (h || 0) * 60 + (mi || 0); };
+        const d = new Date(), now = d.getHours() * 60 + d.getMinutes(), a = m(nightFrom), b = m(nightTo);
+        return a <= b ? now >= a && now < b : now >= a || now < b;
+    }
+    Timer {
+        interval: 30000; repeat: true; running: st.nightAuto
+        onTriggered: {
+            const w = st.inNight();
+            if (w !== st.nightWindow) { st.nightWindow = w; st.nightHeld = null; }
+        }
+    }
+    // a new schedule (or none) starts from what it says
+    readonly property string nightMode: nightCfg.auto
+    onNightModeChanged: if (nightReady) { nightWindow = inNight(); nightHeld = null; }
+    onNightFromChanged: nightWindow = inNight()
+    onNightToChanged: nightWindow = inNight()
+    readonly property var nightState: ({ manual: nightManual, held: nightHeld, window: nightWindow })
+    onNightStateChanged: if (nightReady) Saved.set("night", nightState)
+    // once the settings are read (the schedule is in them): a turn of the schedule while the
+    // shell was away gives it back to the schedule
+    function restoreNight() {
+        if (nightReady) return;
+        nightWindow = inNight();
+        const n = Saved.get("night", null);
+        if (typeof n === "boolean") nightManual = n;
+        else if (n !== null && typeof n === "object") {
+            nightManual = !!n.manual;
+            nightHeld = n.window === nightWindow ? n.held ?? null : null;
+        }
+        nightReady = true;
+    }
+    Connections { target: Config; function onLoadedChanged() { if (Config.loaded) st.restoreNight(); } }
+
+    // the schedule runs in wlsunset itself (it fades); held, or by hand, it's one fixed warmth
+    readonly property var sunsetCmd: nightAuto && nightHeld === null
+        ? ["wlsunset", "-t", String(warmth), "-T", "6500", "-d", "1800"].concat(
+            nightSun ? ["-l", String(Weather.lat), "-L", String(Weather.lon)] : ["-s", nightFrom, "-S", nightTo])
+        : ["wlsunset", "-t", String(warmth), "-T", String(warmth + 1)]
+    readonly property bool sunsetOn: nightAuto && nightHeld === null ? true : night
+    onSunsetCmdChanged: if (sunset.running) sunsetAgain.restart()
+    // a new warmth from a slider comes in a stream: start again once it settles, and once
+    // the old one has gone
+    property bool sunsetRestart: false
+    Timer { id: sunsetAgain; interval: 400; onTriggered: if (sunset.running) { st.sunsetRestart = true; sunset.running = false; } }
     Process {
         id: sunset
-        running: st.night
-        command: ["wlsunset", "-T", "4001", "-t", "4000"]
+        running: st.sunsetOn && st.nightReady
+        command: st.sunsetCmd
+        onExited: if (st.sunsetRestart) { st.sunsetRestart = false; running = Qt.binding(() => st.sunsetOn && st.nightReady); }
     }
 
     // caffeine: hold an idle inhibitor while it's on

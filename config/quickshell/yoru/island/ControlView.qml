@@ -6,12 +6,12 @@ import qs.parts
 import qs.phone
 
 // the control centre: sliders, toggles, what's playing and the notifications. A tile's
-// arrow, or the one by the volume, opens a page over it: the sound, Wi-Fi, Bluetooth
+// arrow, or the one by the volume, opens a page over it: the sound, Wi-Fi, Bluetooth, the night light
 Item {
     id: v
     required property var isle
     readonly property bool shown: isle?.mode === "control"
-    property string page: "main"            // or a page over it: sound, wifi, bluetooth
+    property string page: "main"            // or a page over it: sound, wifi, bluetooth, night
     property string query: ""               // typed, for a Wi-Fi password
     implicitWidth: 440
     implicitHeight: (page === "main" ? col.implicitHeight : pageHolder.height) + 36
@@ -165,9 +165,11 @@ Item {
                 onOpened: v.openPage("bluetooth")
             }
             Tile {
-                icon: "nightlight"; label: "Night light"; sub: Status.night ? "4000K" : "Off"
+                icon: "nightlight"; label: "Night light"; sub: Status.nightSub
                 on: Status.night
-                onClicked: Status.night = !Status.night
+                more: true
+                onClicked: Status.toggleNight()
+                onOpened: v.openPage("night")
             }
             Tile {
                 icon: "coffee"; label: "Caffeine"; sub: Status.caffeine ? "Staying awake" : "Off"
@@ -426,7 +428,7 @@ Item {
         id: pageHolder
         x: 18; y: 18
         width: parent.width - 36
-        height: v.page === "sound" ? (pageLoader.item?.implicitHeight ?? 0) : 540
+        height: v.page === "sound" || v.page === "night" ? (pageLoader.item?.implicitHeight ?? 0) : 540
         opacity: v.page === "main" ? 0 : 1
         visible: opacity > 0.01
         Behavior on opacity { NumberAnimation { duration: Theme.normal } }
@@ -434,9 +436,10 @@ Item {
             id: pageLoader
             anchors.fill: parent
             active: v.page !== "main"
-            sourceComponent: ({ sound: soundC, wifi: wifiC, bluetooth: btC })[v.page] ?? null
+            sourceComponent: ({ sound: soundC, wifi: wifiC, bluetooth: btC, night: nightC })[v.page] ?? null
         }
         Component { id: soundC; SoundPage { host: pageHost } }
+        Component { id: nightC; NightPage { host: pageHost } }
         Component {
             id: wifiC
             WifiPanel {
