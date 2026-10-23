@@ -168,6 +168,39 @@ Item {
             MouseArea { anchors { fill: parent; margins: -6 } cursorShape: Qt.PointingHandCursor; onClicked: v.isle.open("control", v.output) }
         }
 
+        // the timers widget's countdown and stopwatch, while they run
+        Item {
+            visible: Timers.counting || Timers.watching
+            implicitWidth: timerRow.implicitWidth
+            implicitHeight: 36
+            Row {
+                id: timerRow
+                anchors.verticalCenter: parent.verticalCenter
+                spacing: 10
+                Row {
+                    visible: Timers.counting
+                    spacing: 5
+                    Icon { anchors.verticalCenter: parent.verticalCenter; name: "hourglass_top"; size: 16; color: Theme.tertiary }
+                    Txt {
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: Timers.clock(Timers.left); size: 12; weight: Font.DemiBold
+                        color: Theme.tertiary; font.features: { "tnum": 1 }
+                    }
+                }
+                Row {
+                    visible: Timers.watching
+                    spacing: 5
+                    Icon { anchors.verticalCenter: parent.verticalCenter; name: "timer"; size: 16; color: Theme.secondary }
+                    Txt {
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: Timers.clock(Timers.watched); size: 12; weight: Font.DemiBold
+                        color: Theme.secondary; font.features: { "tnum": 1 }
+                    }
+                }
+            }
+            MouseArea { anchors { fill: parent; margins: -6 } cursorShape: Qt.PointingHandCursor; onClicked: v.isle.open("control", v.output) }
+        }
+
         // the time
         Txt {
             anchors.verticalCenter: parent.verticalCenter

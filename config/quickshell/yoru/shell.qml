@@ -139,6 +139,13 @@ ShellRoot {
             Quickshell.execDetached(["sh", "-c", "pw-play /usr/share/sounds/freedesktop/stereo/complete.oga 2>/dev/null"]);
         }
     }
+    Connections {
+        target: Timers
+        function onRang(minutes) {
+            island.showToast({ icon: "alarm", app: "Timer", title: "Time's up", body: minutes + (minutes === 1 ? " minute" : " minutes") + " are over" });
+            Quickshell.execDetached(["sh", "-c", "pw-play /usr/share/sounds/freedesktop/stereo/alarm-clock-elapsed.oga 2>/dev/null || pw-play /usr/share/sounds/freedesktop/stereo/complete.oga 2>/dev/null"]);
+        }
+    }
     IpcHandler {
         target: "record"
         function toggle(): void { Recorder.toggle(""); }

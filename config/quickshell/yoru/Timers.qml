@@ -22,6 +22,7 @@ Singleton {
 
     // countdown: add minutes, it starts at once; a notification when it's done
     property real ends: 0
+    signal rang(int minutes)            // the countdown ran out: shell.qml says so, with a sound
     property int total: 0               // seconds it was set for
     property int left: 0
     readonly property bool counting: ends > 0
@@ -54,8 +55,9 @@ Singleton {
         if (counting) {
             left = Math.max(0, Math.ceil((ends - Date.now()) / 1000));
             if (left === 0) {
-                Quickshell.execDetached(["notify-send", "-a", "yoru", "-i", "timer", "Time's up", Math.round(total / 60) + " minute timer"]);
+                const mins = Math.round(total / 60);
                 cancel();
+                rang(mins);
             }
         }
     }

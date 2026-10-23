@@ -138,6 +138,40 @@ Item {
             }
         }
 
+        // the countdown and the stopwatch, while either has time on it
+        Rectangle {
+            visible: Timers.counting || Timers.watched > 0
+            width: parent.width; height: 52
+            radius: Theme.r(22)
+            color: Theme.surfaceMid
+            Row {
+                anchors { left: parent.left; leftMargin: 16; verticalCenter: parent.verticalCenter }
+                spacing: 22
+                Row {
+                    visible: Timers.counting
+                    spacing: 4
+                    Icon { anchors.verticalCenter: parent.verticalCenter; name: "hourglass_top"; size: 18; color: Theme.tertiary }
+                    Txt {
+                        anchors.verticalCenter: parent.verticalCenter; rightPadding: 4
+                        text: Timers.clock(Timers.left); size: 14; weight: Font.DemiBold; font.features: { "tnum": 1 }
+                    }
+                    IconButton { anchors.verticalCenter: parent.verticalCenter; icon: "more_time"; size: 30; onClicked: Timers.add(1) }
+                    IconButton { anchors.verticalCenter: parent.verticalCenter; icon: "close"; size: 30; onClicked: Timers.cancel() }
+                }
+                Row {
+                    visible: Timers.watched > 0 || Timers.watching
+                    spacing: 4
+                    Icon { anchors.verticalCenter: parent.verticalCenter; name: "timer"; size: 18; color: Theme.secondary }
+                    Txt {
+                        anchors.verticalCenter: parent.verticalCenter; rightPadding: 4
+                        text: Timers.clock(Timers.watched); size: 14; weight: Font.DemiBold; font.features: { "tnum": 1 }
+                    }
+                    IconButton { anchors.verticalCenter: parent.verticalCenter; icon: Timers.watching ? "pause" : "play_arrow"; size: 30; onClicked: Timers.watchToggle() }
+                    IconButton { anchors.verticalCenter: parent.verticalCenter; icon: "restart_alt"; size: 30; onClicked: Timers.watchReset() }
+                }
+            }
+        }
+
         // media, small
         Rectangle {
             visible: !!Media.player
