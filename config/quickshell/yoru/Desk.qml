@@ -44,6 +44,7 @@ Singleton {
         { type: "quote", group: "Yours", name: "Quote", icon: "format_quote", layouts: [["bubble", "Bubble"], ["serif", "Serif"], ["plain", "Plain"]],
           defaults: { text: "", author: "", daily: true } },
         { type: "user", group: "System", name: "User", icon: "account_circle", layouts: [["card", "Card"], ["compact", "Compact"]] },
+        { type: "fetch", group: "System", name: "Fetch", icon: "terminal", layouts: [["classic", "Classic"], ["compact", "Compact"], ["line", "Line"]] },
         { type: "apps", group: "System", name: "Apps", icon: "apps", layouts: [["dock", "Dock"], ["grid", "Grid"]],
           defaults: { apps: ["firefox", "foot", "org.gnome.Nautilus", "steam"] } },
         { type: "countdown", group: "Time", name: "Countdown", icon: "event", layouts: [["number", "Number"], ["page", "Page"], ["pill", "Pill"]],
