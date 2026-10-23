@@ -257,10 +257,21 @@ Item {
                                 Rectangle {
                                     id: card
                                     required property var modelData
+                                    // still held by its app: its buttons work too
+                                    readonly property var actions: (Notifs.live[modelData.key]?.actions ?? []).filter(a => a.identifier !== "default")
                                     width: inner.width
                                     height: Math.max(48, body.implicitHeight + 16)
                                     radius: Theme.r(14)
-                                    color: Theme.surfaceHigh
+                                    color: press.containsMouse ? Theme.mix(Theme.surfaceHigh, Theme.ink, 0.05) : Theme.surfaceHigh
+                                    // a click opens it, as the pop-up would have
+                                    MouseArea {
+                                        id: press
+                                        anchors.fill: parent
+                                        hoverEnabled: true
+                                        cursorShape: Qt.PointingHandCursor
+                                        // taken first: opening it takes the card away mid-click
+                                        onClicked: { const isle = v.isle; if (Notifs.open(card.modelData)) isle.close(); }
+                                    }
                                     Column {
                                         id: body
                                         anchors { left: parent.left; leftMargin: 12; right: when.left; rightMargin: 8; verticalCenter: parent.verticalCenter }
@@ -270,6 +281,24 @@ Item {
                                             width: parent.width; visible: text !== ""
                                             text: card.modelData.body; textFormat: Text.StyledText
                                             wrapMode: Text.Wrap; maximumLineCount: 3; size: 12; color: Theme.inkDim
+                                        }
+                                        Flow {
+                                            visible: card.actions.length > 0
+                                            width: parent.width
+                                            spacing: 6
+                                            topPadding: 6; bottomPadding: 2
+                                            Repeater {
+                                                model: card.actions
+                                                Rectangle {
+                                                    required property var modelData
+                                                    height: 26
+                                                    width: alabel.implicitWidth + 22
+                                                    radius: Theme.r(13)
+                                                    color: Theme.secondaryContainer
+                                                    Txt { id: alabel; anchors.centerIn: parent; text: parent.modelData.text; size: 11; weight: Font.Medium; color: Theme.inkSecondaryContainer }
+                                                    StateLayer { onClicked: { const key = card.modelData.key; parent.modelData.invoke(); Notifs.forget(key); } }
+                                                }
+                                            }
                                         }
                                     }
                                     Txt {

@@ -51,6 +51,7 @@ Singleton {
         const rec = {
             key: key,
             app: n.appName || n.desktopEntry || "Unknown",
+            entry: n.desktopEntry || "",
             // images handed over in memory don't outlive the shell
             icon: icon.startsWith("image://") ? "" : icon,
             summary: n.summary, body: n.body, time: Date.now()
@@ -67,6 +68,20 @@ Singleton {
         live[key]?.dismiss();
         history = history.filter(h => h.key !== key);
         save();
+    }
+    // one clicked in the history: its default action while the app still holds it,
+    // else the app itself. False when there was nothing to open
+    function open(rec) {
+        const def = live[rec.key]?.actions?.find(a => a.identifier === "default");
+        if (def) def.invoke();
+        else {
+            const e = (rec.entry ? Apps.entry(rec.entry) : null)
+                   ?? Apps.entries.find(x => x.name.toLowerCase() === String(rec.app).toLowerCase()) ?? null;
+            if (!e) return false;
+            if (!Apps.raise(e)) Apps.run(e);
+        }
+        forget(rec.key);
+        return true;
     }
     function forgetApp(app) {
         for (const h of history) if (h.app === app) live[h.key]?.dismiss();
