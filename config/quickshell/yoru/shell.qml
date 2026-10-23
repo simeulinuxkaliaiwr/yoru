@@ -69,6 +69,26 @@ ShellRoot {
         island.open(mode, "");
     }
     Lock { id: lockScreen }
+    // what came while the screen was locked, said once you're back
+    property real lockedAt: 0
+    Connections {
+        target: lockScreen
+        function onLockedChanged() {
+            if (lockScreen.locked) root.lockedAt = Date.now();
+            else root.away(root.lockedAt);
+        }
+    }
+    function away(since) {
+        const came = Notifs.history.filter(h => h.time > since);
+        if (came.length === 0) return;
+        const apps = [...new Set(came.map(h => h.app))];
+        island.showToast({
+            icon: "mark_email_unread", app: "While you were away",
+            title: came.length === 1 ? came[0].summary : came.length + " notifications",
+            body: came.length === 1 ? came[0].app : apps.slice(0, 3).join(", ") + (apps.length > 3 ? " and " + (apps.length - 3) + " more" : ""),
+            open: "control"
+        });
+    }
     Idle { id: idleWarn; isle: island; locked: lockScreen.locked; Component.onCompleted: island.idle = idleWarn }
     // yoru-idle's swayidle calls these a few seconds before it locks, and when you come back
     IpcHandler {

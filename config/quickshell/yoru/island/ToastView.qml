@@ -116,6 +116,7 @@ Item {
                 const def = v.n?.actions?.find(a => a.identifier === "default");
                 if (def) def.invoke();
                 else if (v.shot) Quickshell.execDetached(["xdg-open", v.img]);
+                else if (v.t?.open) { const isle = v.isle, m = v.t.open; isle.dropToast(); isle.open(m); return; }
             }
             v.isle.dropToast();
         }
