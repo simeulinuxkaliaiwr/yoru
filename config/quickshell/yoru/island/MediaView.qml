@@ -4,12 +4,15 @@ import QtQuick.Effects
 import qs
 import qs.parts
 
-// the player, opened out: the cover, a wavy progress line, the controls
+// the player, opened out: the cover, a wavy progress line, the controls; with more than one
+// player, chips along the top to pick which one
 Item {
     id: v
     required property var isle
+    readonly property bool many: Media.players.length > 1
+    readonly property int chipsH: many ? 40 : 0        // what the chips push the rest down by
     implicitWidth: 480
-    implicitHeight: 196
+    implicitHeight: 196 + chipsH
     readonly property real frac: Media.length > 0 ? Math.min(1, Media.position / Media.length) : 0
 
     // the cover again, blurred, as a glow behind everything
@@ -33,9 +36,50 @@ Item {
         opacity: 0.32
     }
 
+    // which player: the one shown is filled; a click shows (and controls) another
+    Row {
+        visible: v.many
+        x: 22; y: 18
+        spacing: 6
+        Repeater {
+            model: Media.players
+            Rectangle {
+                id: chip
+                required property var modelData
+                readonly property bool on: Media.player === modelData
+                height: 28; width: chipRow.implicitWidth + 22
+                radius: on ? Theme.r(10) : 14
+                color: on ? Theme.secondaryContainer : "transparent"
+                border.width: on ? 0 : 1
+                border.color: Theme.outlineVariant
+                Behavior on radius { NumberAnimation { duration: Theme.normal; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.spatial } }
+                Row {
+                    id: chipRow
+                    anchors.centerIn: parent
+                    spacing: 5
+                    Icon {
+                        anchors.verticalCenter: parent.verticalCenter
+                        name: chip.modelData.isPlaying ? "graphic_eq" : "pause"; size: 14
+                        color: chip.on ? Theme.inkSecondaryContainer : Theme.inkDim
+                    }
+                    // two of the same player: what each plays tells them apart
+                    Txt {
+                        readonly property bool twin: Media.players.filter(p => Media.nameOf(p) === Media.nameOf(chip.modelData)).length > 1
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: Math.min(implicitWidth, 150)
+                        text: Media.nameOf(chip.modelData) + (twin && chip.modelData.trackTitle ? "  ·  " + chip.modelData.trackTitle : "")
+                        size: 12; weight: Font.Medium
+                        color: chip.on ? Theme.inkSecondaryContainer : Theme.inkDim
+                    }
+                }
+                StateLayer { onClicked: Media.choose(chip.modelData) }
+            }
+        }
+    }
+
     ClippingRectangle {
         id: cover
-        x: 22; y: 22
+        x: 22; y: 22 + v.chipsH
         width: 152; height: 152
         radius: Theme.r(22)
         color: Theme.surfaceHigh
@@ -71,7 +115,7 @@ Item {
     Item {
         id: bar
         anchors { left: cover.right; leftMargin: 20; right: parent.right; rightMargin: 22 }
-        y: 98
+        y: 98 + v.chipsH
         height: 20
         Canvas {
             id: wave

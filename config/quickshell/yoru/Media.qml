@@ -4,13 +4,26 @@ import Quickshell
 import Quickshell.Services.Mpris
 import QtQuick
 
-// the player worth showing: the one playing, else the last one that did
+// the player worth showing: the one you picked (the media view's chips) until another starts
+// playing, else the one playing, else the last one that did
 Singleton {
     id: media
 
     property var last: null
+    property var chosen: null
     readonly property var players: Mpris.players.values.filter(p => p.trackTitle !== "" || p.isPlaying)
-    readonly property var player: players.find(p => p.isPlaying) ?? (players.includes(last) ? last : players[0] ?? null)
+    readonly property var player: (players.includes(chosen) ? chosen : null) ?? players.find(p => p.isPlaying)
+                                  ?? (players.includes(last) ? last : players[0] ?? null)
+    function choose(p) { chosen = p; if (p) last = p; }
+    // one that starts playing takes over from a pick
+    readonly property var playingNow: players.filter(p => p.isPlaying)
+    property var wasPlaying: []
+    onPlayingNowChanged: {
+        if (chosen && playingNow.some(p => p !== chosen && !wasPlaying.includes(p))) chosen = null;
+        wasPlaying = playingNow;
+    }
+    // what to call one: its own name, and what it plays
+    function nameOf(p) { return p?.identity || p?.desktopEntry || "Player"; }
     readonly property bool playing: !!player && player.isPlaying
     readonly property string title: player?.trackTitle || ""
     readonly property string artist: player?.trackArtist || player?.identity || ""
