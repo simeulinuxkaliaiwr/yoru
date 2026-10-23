@@ -7,8 +7,8 @@ import QtQuick
 // what's worth interrupting for, as island toasts: the battery running low
 // while it isn't charging (20, 10 and 5%, each once a discharge), and memory
 // nearly full (90% for 15s, with what is using the most; once, until it has
-// eased below 80%). `qs -c yoru ipc call alerts preview battery|memory`
-// shows either now.
+// eased below 80%); battery saver starting, and a Bluetooth device connecting (with its
+// battery). `qs -c yoru ipc call alerts preview battery|memory|saver` shows one now.
 Singleton {
     id: al
 
@@ -86,8 +86,44 @@ Singleton {
         }
     }
 
+    // battery saver starting: once each time it does
+    readonly property bool saving: Status.saving
+    onSavingChanged: if (saving && settled) raised({
+        icon: "energy_savings_leaf", app: "Battery saver",
+        title: "Saving the battery", body: "The sky, the video wallpaper and the visualizer rest until you plug in"
+    })
+    // not for what's already so as the shell starts
+    property bool settled: false
+    Timer { interval: 4000; running: true; onTriggered: al.settled = true }
+
+    // a Bluetooth device coming in: its name, and its battery once it says (a moment after)
+    property var known: []              // addresses connected last time we looked
+    readonly property var connected: Status.btConnected
+    onConnectedChanged: {
+        const now = connected.map(d => d.address);
+        const fresh = connected.filter(d => !known.includes(d.address));
+        known = now;
+        if (!settled || fresh.length === 0) return;
+        btSoon.devices = fresh;
+        btSoon.restart();
+    }
+    Timer {
+        id: btSoon
+        interval: 2500
+        property var devices: []
+        onTriggered: {
+            for (const d of devices) if (d.connected) al.raised({
+                icon: /audio-head|headset|headphone/.test(d.icon ?? "") ? "headphones" : /audio/.test(d.icon ?? "") ? "speaker" : "bluetooth_connected",
+                app: "Bluetooth", title: d.name + " is connected",
+                body: d.batteryAvailable ? "Battery " + Math.round(d.battery * 100) + "%" : ""
+            });
+        }
+    }
+
     function preview(kind) {
         if (kind === "memory") hog.running = true;
+        else if (kind === "saver") raised({ icon: "energy_savings_leaf", app: "Battery saver", title: "Saving the battery",
+                                           body: "The sky, the video wallpaper and the visualizer rest until you plug in" });
         else batteryToast(20);          // what the first warning looks like
     }
 }

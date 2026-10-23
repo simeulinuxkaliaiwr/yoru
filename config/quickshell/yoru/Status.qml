@@ -16,6 +16,10 @@ Singleton {
     readonly property bool hasBattery: battery?.isLaptopBattery ?? false
     readonly property real charge: battery?.percentage ?? 0     // 0..1
     readonly property bool charging: battery?.state === UPowerDeviceState.Charging || battery?.state === UPowerDeviceState.FullyCharged
+    readonly property bool onBattery: hasBattery && battery?.state === UPowerDeviceState.Discharging
+    // battery saver (power.saver): the sky, the video wallpaper and the visualizer rest
+    readonly property bool saving: Config.o.power.saver === "battery" ? onBattery
+                                 : Config.o.power.saver === "low" ? onBattery && charge < 0.2 : false
     readonly property string batteryIcon: {
         if (charging) return "battery_charging_full";
         const steps = ["battery_0_bar", "battery_1_bar", "battery_2_bar", "battery_3_bar", "battery_4_bar", "battery_5_bar", "battery_6_bar", "battery_full"];

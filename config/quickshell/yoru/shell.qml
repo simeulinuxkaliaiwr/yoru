@@ -112,6 +112,15 @@ ShellRoot {
         target: Alerts
         function onRaised(t) { island.showToast(t); }
     }
+    // plugging in: the charge, in the island for a moment (not as the shell starts)
+    property bool chargeSettled: false
+    Timer { interval: 4000; running: true; onTriggered: root.chargeSettled = true }
+    Connections {
+        target: Status
+        function onChargingChanged() {
+            if (Status.charging && Status.hasBattery && root.chargeSettled && Config.o.power.chargeFlash) island.showOsd("charge");
+        }
+    }
     // the phone takes the screen from the island and the ring
     function openPhone(where) {
         if (phone.shown && where === "") { phone.close(); return; }

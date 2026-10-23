@@ -25,7 +25,7 @@ Scope {
             readonly property bool busy: Wm.busy(modelData.name)
             // always under the windows: on a busy workspace it shows through the
             // gaps and the see-through windows. Never behind a fullscreen one
-            readonly property bool visOn: desk.c.visualizer && Media.playing && !Wm.fullscreen(modelData.name)
+            readonly property bool visOn: desk.c.visualizer && Media.playing && !Wm.fullscreen(modelData.name) && !Status.saving
                 && (!busy || desk.c.visualizerBusy)
 
             // the clock

@@ -211,6 +211,13 @@ Singleton {
                 property string to: "07:00"
             }
 
+            // on a laptop: battery (the sky, the video wallpaper and the visualizer rest while it
+            // runs on battery), low (only below 20%) or off
+            property JsonObject power: JsonObject {
+                property string saver: "battery"
+                property bool chargeFlash: true               // plugging in shows the charge in the island
+            }
+
             property JsonObject quiet: JsonObject {
                 property bool schedule: false                 // do not disturb at night
                 property string from: "23:00"

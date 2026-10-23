@@ -2,17 +2,17 @@ import QtQuick
 import qs
 import qs.parts
 
-// volume, brightness or the mic, in the island for a moment
+// volume, brightness, the mic or the charge (plugging in), in the island for a moment
 Item {
     id: v
     required property var isle
     readonly property string kind: isle?.osdKind ?? "volume"
     readonly property var idle: isle?.idle ?? null
     readonly property real value: kind === "brightness" ? Status.brightness : kind === "mic" ? (Audio.micMuted ? 0 : 1)
-        : kind === "idle" ? (idle && idle.secs > 0 ? idle.left / idle.secs : 0) : Audio.volume
+        : kind === "idle" ? (idle && idle.secs > 0 ? idle.left / idle.secs : 0) : kind === "charge" ? Status.charge : Audio.volume
     readonly property bool muted: kind === "volume" ? Audio.muted : kind === "mic" ? Audio.micMuted : false
     readonly property string icon: kind === "brightness" ? Status.brightIcon : kind === "mic" ? (Audio.micMuted ? "mic_off" : "mic")
-        : kind === "idle" ? "lock_clock" : Audio.icon
+        : kind === "idle" ? "lock_clock" : kind === "charge" ? "battery_charging_full" : Audio.icon
 
     implicitWidth: 320
     implicitHeight: 44

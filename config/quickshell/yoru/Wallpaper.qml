@@ -66,6 +66,7 @@ Scope {
     }
     readonly property string skyWant: {
         if (trySky !== "") return trySky;
+        if (Status.saving) return "";           // battery saver: it rests
         const s = Config.o.wallpaper.sky;
         return s === "weather" ? outside() : skies.includes(s) ? s : "";
     }
@@ -255,7 +256,7 @@ Scope {
                             fillMode: VideoOutput.PreserveAspectCrop
                             autoPlay: true
                             // a video under windows costs the blur a redraw every frame
-                            readonly property bool wantPlay: !win.covered || win.moving
+                            readonly property bool wantPlay: (!win.covered || win.moving) && !Status.saving
                             onWantPlayChanged: wantPlay ? play() : pause()
                             // tell the theme where the loop is, for its colours
                             Timer {

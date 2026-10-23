@@ -36,4 +36,19 @@ Column {
             Field { width: 120; text: n.to; placeholder: "07:00"; onEdited: t => { if (/^\d{1,2}:\d{2}$/.test(t)) n.to = t; } }
         }
     }
+
+    Section {
+        icon: "battery_5_bar"; title: "Battery"
+        SetRow { icon: "energy_savings_leaf"; label: "Battery saver"; hint: "The sky, the video wallpaper and the visualizer rest, and come back when you plug in" }
+        Choice {
+            x: 10; current: Config.o.power.saver
+            options: [{ value: "battery", label: "On battery" }, { value: "low", label: "Below 20%" }, { value: "off", label: "Never" }]
+            onPicked: v => Config.o.power.saver = v
+        }
+        Item { width: 1; height: 6 }
+        SetRow {
+            icon: "battery_charging_full"; label: "Show the charge when you plug in"; hint: "In the island, for a moment"
+            Toggle { checked: Config.o.power.chargeFlash; onToggled: on => Config.o.power.chargeFlash = on }
+        }
+    }
 }
