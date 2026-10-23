@@ -43,8 +43,10 @@ Item {
         } else if (r.kind === "web") {
             Qt.openUrlExternally(r.text);
         } else if (r.kind === "run") {
-            // Shift keeps it in a terminal, to see what it says
-            Quickshell.execDetached(shift ? ["foot", "--hold", "sh", "-c", r.text] : ["sh", "-c", r.text]);
+            // Shift keeps it in your terminal, to see what it says: any terminal waits for a key
+            // this way, where only some have a --hold
+            const held = r.text + '; printf "\\n[%s] Enter closes this" "$?"; read _';
+            Quickshell.execDetached(shift ? Apps.inTerminal(["sh", "-c", held], "") : ["sh", "-c", r.text]);
         } else {
             Apps.launch(r.e);
         }
