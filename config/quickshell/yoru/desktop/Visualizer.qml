@@ -37,7 +37,7 @@ Item {
 
     Process {
         running: true
-        command: ["cava", "-p", Quickshell.shellDir + "/cava.conf"]
+        command: Tied.cmd(["cava", "-p", Quickshell.shellDir + "/cava.conf"])
         stdout: SplitParser {
             onRead: line => {
                 const raw = line.split(";");

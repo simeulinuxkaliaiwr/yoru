@@ -52,7 +52,7 @@ Scope {
     Process {
         id: events
         running: true
-        command: ["aroctl", "subscribe"]
+        command: Tied.cmd(["aroctl", "subscribe"])
         stdout: SplitParser {
             onRead: line => {
                 // focus changes carry the title already: no need to wait for the query

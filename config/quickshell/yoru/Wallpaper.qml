@@ -143,7 +143,7 @@ Scope {
     onSkwdChanged: { skwdWatch.running = skwd; skwdPaused = false; }
     Process {
         id: skwdWatch
-        command: ["skwd-helm", "watch"]
+        command: Tied.cmd(["skwd-helm", "watch"])
         stdout: SplitParser {
             onRead: line => {
                 let e;

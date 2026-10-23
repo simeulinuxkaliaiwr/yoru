@@ -70,7 +70,7 @@ Scope {
     Process {
         id: events
         running: true
-        command: ["niri", "msg", "-j", "event-stream"]
+        command: Tied.cmd(["niri", "msg", "-j", "event-stream"])
         stdout: SplitParser {
             onRead: line => {
                 // focus changes name the window: keep the recency order exact

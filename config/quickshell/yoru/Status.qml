@@ -185,7 +185,7 @@ Singleton {
     Process {
         id: sunset
         running: st.sunsetOn && st.nightReady
-        command: st.sunsetCmd
+        command: Tied.cmd(st.sunsetCmd)
         onExited: if (st.sunsetRestart) { st.sunsetRestart = false; running = Qt.binding(() => st.sunsetOn && st.nightReady); }
     }
 
@@ -194,7 +194,7 @@ Singleton {
     onCaffeineChanged: Saved.setThisBoot("caffeine", caffeine)
     Process {
         running: st.caffeine
-        command: ["systemd-inhibit", "--what=idle", "--who=yoru", "--why=caffeine", "--mode=block", "sleep", "infinity"]
+        command: Tied.cmd(["systemd-inhibit", "--what=idle", "--who=yoru", "--why=caffeine", "--mode=block", "sleep", "infinity"])
     }
 
     // uptime, for the control centre
