@@ -16,8 +16,9 @@ Singleton {
         if (watching) { base += Date.now() - since; watching = false; }
         else { since = Date.now(); watching = true; }
         tick();
+        save();
     }
-    function watchReset() { watching = false; base = 0; watched = 0; }
+    function watchReset() { watching = false; base = 0; watched = 0; save(); }
 
     // countdown: add minutes, it starts at once; a notification when it's done
     property real ends: 0
@@ -30,8 +31,23 @@ Singleton {
         ends += minutes * 60000;
         total += minutes * 60;
         tick();
+        save();
     }
-    function cancel() { ends = 0; total = 0; left = 0; }
+    function cancel() { ends = 0; total = 0; left = 0; save(); }
+
+    // both run on the clock, so a restart of the shell carries on with them; a countdown
+    // that ran out meanwhile says so as it comes back
+    function save() { Saved.set("timers", { watching: watching, since: since, base: base, ends: ends, total: total }); }
+    Component.onCompleted: {
+        const s = Saved.get("timers", null);
+        if (!s) return;
+        watching = !!s.watching;
+        since = s.since ?? 0;
+        base = s.base ?? 0;
+        ends = s.ends ?? 0;
+        total = s.total ?? 0;
+        tick();
+    }
 
     function tick() {
         watched = (base + (watching ? Date.now() - since : 0)) / 1000;

@@ -95,7 +95,12 @@ Singleton {
             }
         }
     }
-    Component.onCompleted: brightQuery.running = true
+    Component.onCompleted: {
+        brightQuery.running = true;
+        // as they were before a restart
+        night = Saved.get("night", false);
+        caffeine = Saved.getThisBoot("caffeine", false);
+    }
     function readBrightness() { brightQuery.running = true; }
     property real pendingBright: -1
     function setBrightness(v) {
@@ -118,6 +123,7 @@ Singleton {
 
     // night light: wlsunset at a fixed warm temperature
     property bool night: false
+    onNightChanged: Saved.set("night", night)
     Process {
         id: sunset
         running: st.night
@@ -126,6 +132,7 @@ Singleton {
 
     // caffeine: hold an idle inhibitor while it's on
     property bool caffeine: false
+    onCaffeineChanged: Saved.setThisBoot("caffeine", caffeine)
     Process {
         running: st.caffeine
         command: ["systemd-inhibit", "--what=idle", "--who=yoru", "--why=caffeine", "--mode=block", "sleep", "infinity"]

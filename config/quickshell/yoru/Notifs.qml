@@ -14,6 +14,8 @@ Singleton {
 
     // do not disturb: by hand, during quiet hours, or while focusing
     property bool manualDnd: false
+    onManualDndChanged: Saved.setThisBoot("dnd", manualDnd)
+    Component.onCompleted: manualDnd = Saved.getThisBoot("dnd", false)
     readonly property bool dnd: manualDnd || quietHours || (Focus.phase === "focus" && Config.o.focus.quiet)
     property bool quietHours: false
     function toggleDnd() { manualDnd = !dnd; }

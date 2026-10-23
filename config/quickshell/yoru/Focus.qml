@@ -23,6 +23,7 @@ Singleton {
     function stop() {
         if (phase === "break") resume();
         phase = ""; tick.stop();
+        save();
     }
     function toggle() { active ? stop() : start(0); }
     function begin(p, secs) {
@@ -32,6 +33,25 @@ Singleton {
         total = secs;
         ends = Date.now() + secs * 1000;
         left = secs;
+        tick.restart();
+        save();
+    }
+
+    // a restart picks up where it was: it counts against the clock anyway. One that ended
+    // while the shell was away is counted, and stops there
+    function save() { Saved.set("focus", phase === "" ? null : { phase: phase, total: total, ends: ends }); }
+    Component.onCompleted: {
+        const s = Saved.get("focus", null);
+        if (!s || !s.phase) return;
+        if (s.ends <= Date.now()) {
+            if (s.phase === "focus") count();
+            Saved.set("focus", null);
+            return;
+        }
+        phase = s.phase;
+        total = s.total;
+        ends = s.ends;
+        left = Math.max(0, Math.round((ends - Date.now()) / 1000));
         tick.restart();
     }
 
@@ -64,13 +84,17 @@ Singleton {
     FileView {
         id: store
         path: Theme.cacheDir + "/focus.json"
+        blockLoading: true
         printErrors: false
         onLoaded: { try { const d = JSON.parse(text()); f.day = d.day; f.today = d.day === f.date() ? d.today : 0; } catch (e) {} }
     }
     function date() { return new Date().toDateString(); }
+    // from the file, not the properties: a restart can count one before they're read
     function count() {
-        if (day !== date()) { day = date(); today = 0; }
-        today++;
+        let d = {};
+        try { d = JSON.parse(store.text()); } catch (e) {}
+        day = date();
+        today = (d.day === day ? d.today ?? 0 : 0) + 1;
         store.setText(JSON.stringify({ day: day, today: today }));
     }
 
