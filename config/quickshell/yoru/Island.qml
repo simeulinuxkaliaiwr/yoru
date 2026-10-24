@@ -9,7 +9,7 @@ import qs.island
 // The island: one dark shape at the top of the screen that is the whole
 // shell. At rest it shows the workspaces, the time and the status; it grows
 // into the launcher, the control centre, the player, the clipboard, the
-// wallpaper picker or the power menu, and a notification or a volume change
+// wallpaper picker, the anime pictures or the power menu, and a notification or a volume change
 // pushes it open for a moment. Every change is the same shape morphing.
 Scope {
     id: island
@@ -21,7 +21,7 @@ Scope {
     property var toast: null
     property var queue: []
 
-    readonly property var modal: ["launcher", "clip", "control", "calendar", "walls", "power", "media", "windows", "keys", "projects"]
+    readonly property var modal: ["launcher", "clip", "control", "calendar", "walls", "power", "media", "windows", "keys", "projects", "anime"]
     readonly property bool opened: modal.includes(mode)
 
     function open(m, out) {
@@ -48,7 +48,7 @@ Scope {
 
     // passing states
     function showOsd(kind) {
-        if (opened && (mode === "control" || mode === "launcher" || mode === "clip" || mode === "walls")) return;
+        if (opened && (mode === "control" || mode === "launcher" || mode === "clip" || mode === "walls" || mode === "anime")) return;
         osdKind = kind;
         if (flash !== "toast") flash = "osd";
         osdTimer.restart();
@@ -170,8 +170,9 @@ Scope {
                         Connections {
                             target: win.current
                             ignoreUnknownSignals: true
-                            // a view can clear what was typed (the launcher after a launch)
-                            function onQueryChanged() { if (win.current.query === "" && proxy.text !== "") proxy.text = ""; }
+                            // a view can clear what was typed (the launcher after a launch), or
+                            // change it (the anime view taking a tag), and typing goes on from there
+                            function onQueryChanged() { if (win.current.query !== proxy.text) proxy.text = win.current.query; }
                         }
                     }
                 }
@@ -193,7 +194,7 @@ Scope {
                 readonly property var views: ({
                     idle: idleView, osd: osdView, toast: toastView, media: mediaView, launcher: launcherView,
                     clip: clipView, control: controlView, calendar: calendarView, walls: wallsView, power: powerView,
-                    windows: windowsView, keys: keysView, projects: projectsView
+                    windows: windowsView, keys: keysView, projects: projectsView, anime: animeView
                 })
                 readonly property Item current: views[perScreen.shown] ?? idleView
                 readonly property bool round: perScreen.shown === "idle" || perScreen.shown === "osd"
@@ -284,6 +285,7 @@ Scope {
                     Face { name: "windows"; WindowsView { id: windowsView; isle: island } }
                     Face { name: "keys"; KeysView { id: keysView; isle: island } }
                     Face { name: "projects"; ProjectsView { id: projectsView; isle: island } }
+                    Face { name: "anime"; AnimeView { id: animeView; isle: island; screen: perScreen.modelData } }
                 }
 
             }

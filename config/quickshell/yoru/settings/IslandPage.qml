@@ -6,6 +6,7 @@ Column {
     spacing: 14
     readonly property var c: Config.o.island
     readonly property var l: Config.o.launcher
+    readonly property var a: Config.o.anime
 
     Section {
         icon: "toolbar"; title: "The island"
@@ -64,6 +65,67 @@ Column {
                 text: l.ringApps.join(", ")
                 placeholder: "the ones you open most"
                 onEdited: t => l.ringApps = t.split(/[,\s]+/).map(x => x.replace(/\.desktop$/, "")).filter(x => x !== "")
+            }
+        }
+        Item { width: 1; height: 8 }
+    }
+
+    Section {
+        icon: "draw"; title: "Anime pictures"
+        SetRow {
+            icon: "keyboard_command_key"; label: "mod+u opens"
+            hint: "Pictures from image boards by tag: Tab takes the tag it suggests, Enter opens one large, Ctrl+S saves it, Ctrl+B makes it the wallpaper"
+        }
+        SetRow {
+            icon: "travel_explore"; label: "Board"
+            hint: ({ danbooru: "The biggest, carefully tagged; two tags at a time without an account",
+                     safebooru: "Danbooru's safe pictures, mirrored, with no limit on tags",
+                     yandere: "Big, clean scans and art; its \"safe\" is a lenient one",
+                     konachan: "Wallpaper-sized pictures, mostly landscape" })[a.source] ?? ""
+        }
+        Choice {
+            x: 10
+            current: a.source
+            options: [{ value: "danbooru", label: "Danbooru", icon: "draw" }, { value: "safebooru", label: "Safebooru", icon: "shield" },
+                      { value: "yandere", label: "yande.re", icon: "brush" }, { value: "konachan", label: "Konachan", icon: "landscape" }]
+            onPicked: v => a.source = v
+        }
+        SetRow {
+            icon: "sort"; label: "Order"
+            Choice { width: 330; current: a.order; options: [{ value: "new", label: "Newest" }, { value: "top", label: "Top" }, { value: "random", label: "Random" }]; onPicked: v => a.order = v }
+        }
+        SetRow {
+            icon: "dashboard"; label: "Layout"
+            hint: ({ masonry: "Each picture its own shape, in columns", grid: "Even squares, row by row", strip: "One row of tall pictures, the one you're on in the middle" })[a.layout] ?? ""
+        }
+        Choice {
+            x: 10
+            current: a.layout
+            options: [{ value: "masonry", label: "Masonry", icon: "dashboard" }, { value: "grid", label: "Grid", icon: "grid_view" }, { value: "strip", label: "Strip", icon: "view_carousel" }]
+            onPicked: v => a.layout = v
+        }
+        SetRow {
+            icon: "explicit"; label: "Not safe for work too"
+            hint: a.nsfw ? "Every rating each board has: questionable and explicit pictures as well"
+                         : "Off: only what Danbooru and Safebooru call general, and yande.re and Konachan safe"
+            Toggle { checked: a.nsfw; onToggled: on => a.nsfw = on }
+        }
+        SetRow {
+            visible: a.nsfw
+            icon: "blur_on"; label: "Blur those"; hint: "Questionable and explicit ones stay blurred until the pointer's on one, or you open it"
+            Toggle { checked: a.blur; onToggled: on => a.blur = on }
+        }
+        SetRow {
+            icon: "folder"; label: "Saved to"
+            Field { width: 260; text: a.folder; placeholder: "~/Pictures/Anime"; onEdited: t => a.folder = t.trim() || "~/Pictures/Anime" }
+        }
+        SetRow {
+            icon: "push_pin"; label: "Pinned searches"; hint: "Ctrl+P in the view pins what's typed; they wait under the field. Separated by semicolons"
+            Field {
+                width: 260
+                text: a.pinned.join("; ")
+                placeholder: "none yet"
+                onEdited: t => a.pinned = t.split(";").map(x => x.trim()).filter(x => x !== "")
             }
         }
         Item { width: 1; height: 8 }

@@ -16,6 +16,14 @@
     yoru wall search [SOURCE] [WORDS] [--page N] [--order top|new|random] [--seed S]
                                  a page of what a source has, as JSON (the picker's Online tab)
     yoru wall get SOURCE ID      that one from a search, like fetch (on trial the same way)
+    yoru wall get SOURCE ID also takes danbooru, safebooru and yandere (the anime view's boards)
+    yoru booru search BOARD [TAGS] [--page N] [--order new|top|random]   a page of an image board
+                            (danbooru, safebooru, yandere, konachan) as JSON, thumbnails fetched
+                            into ~/.cache/yoru/booru (the island's anime view); safe for work
+                            unless anime.nsfw
+    yoru booru tags BOARD PREFIX   tags starting with PREFIX, the most used first, as JSON
+    yoru booru cache URL    that picture in the cache (fetched once), its file printed
+    yoru booru save BOARD ID [URL]   the full picture into anime.folder (~/Pictures/Anime)
     yoru wall keep          keep the fetched wallpaper on trial (the settings' Download button)
     yoru wall fav [FILE]    a favourite or not (a toggle; the current one without FILE); the
                             rotation can keep to them (wallpaper.rotateFrom), random --favourites too
@@ -150,6 +158,7 @@ def state():
         s["backend"] = cfg.get("wallpaper", {}).get("backend") or "yoru"
         s["themes"] = cfg.get("themes") or {}
         s["calendar"] = cfg.get("calendar") or {}
+        s["anime"] = cfg.get("anime") or {}
     except (OSError, ValueError):
         pass
     m = mode(s)
@@ -2263,11 +2272,9 @@ def get_online(s, source, id):
     import urllib.parse
     if source == "wallhaven":
         return save_online(s, json.loads(web(f"https://wallhaven.cc/api/v1/w/{urllib.parse.quote(id)}"))["data"]["path"], f"wallhaven-{id}")
-    if source == "konachan":
-        posts = json.loads(web(f"https://konachan.net/post.json?limit=1&tags={urllib.parse.quote('rating:safe id:' + id)}"))
-        if not posts:
-            raise LookupError(f"konachan has no {id}")
-        return save_online(s, posts[0]["file_url"], f"konachan-{id}")
+    if source in BOORUS:
+        # konachan too: the Online tab's (safe, from konachan.net unless anime.nsfw) and the anime view's
+        return save_online(s, booru_one(s, source, id)["full"], f"{source}-{id}")
     if source == "osu":
         url = next((u for u in osu_seasonal() if osu_id(u) == id), None)
         if not url:
@@ -2286,13 +2293,13 @@ def get_online(s, source, id):
     raise LookupError(f"no such source: {source}")
 
 
-def save_online(s, url, name, ext=""):
-    """url saved to the download folder as name: returns the file, and whether it's new"""
+def save_online(s, url, name, ext="", folder=None):
+    """url saved to the download folder (or folder) as name: returns the file, and whether it's new"""
     import urllib.parse
     if not ext:
         ext = Path(urllib.parse.urlparse(url).path).suffix.lower()
         ext = ext if ext in IMAGES else ".jpg"
-    folder = online_folder(s)
+    folder = folder or online_folder(s)
     here = [f for f in folder.glob(name + ".*") if not f.name.endswith(".part")]
     if here:
         return str(here[0]), False
@@ -2306,6 +2313,190 @@ def save_online(s, url, name, ext=""):
     tmp.write_bytes(data)
     tmp.replace(out)
     return str(out), True
+
+
+# image boards, for the island's anime view (`yoru booru`; end-4's anime sidebar did it
+# first). Every post comes out in one shape. Danbooru's CDN turns away clients that send
+# no User-Agent, Qt's image loader among them, so yoru fetches the pictures itself and
+# the view shows files from the cache.
+BOORUS = {
+    "danbooru": "https://danbooru.donmai.us",
+    "safebooru": "https://safebooru.org",
+    "yandere": "https://yande.re",
+    "konachan": "https://konachan.net",
+}
+BOORU_PAGE = 30
+BOORU_CACHE = CACHE / "booru"
+
+
+def booru_host(s, source):
+    # konachan.net is konachan.com without what isn't safe for work
+    return "https://konachan.com" if source == "konachan" and s.get("anime", {}).get("nsfw") else BOORUS[source]
+
+
+def booru_folder(s):
+    return Path(os.path.expanduser(s.get("anime", {}).get("folder") or "~/Pictures/Anime"))
+
+
+def booru_json(url):
+    """a board's answer as JSON; safebooru answers nothing at all for nothing found, and
+    Danbooru explains its refusals in JSON with an error status"""
+    import urllib.error
+    try:
+        data = web(url)
+    except urllib.error.HTTPError as e:
+        try:
+            msg = json.loads(e.read()).get("message")
+        except Exception:
+            msg = None
+        if msg:
+            raise LookupError(msg.rstrip("."))
+        raise
+    return json.loads(data) if data.strip() else []
+
+
+def booru_post(s, source, p):
+    """a board's post in yoru's shape, or None for what the view can't show (videos,
+    animations, posts whose file only members see)"""
+    host = booru_host(s, source)
+    if source == "danbooru":
+        full, ext = p.get("file_url"), p.get("file_ext", "")
+        sizes = {v["type"]: v["url"] for v in (p.get("media_asset") or {}).get("variants", [])}
+        thumb, sample = sizes.get("360x360") or p.get("preview_file_url"), p.get("large_file_url") or full
+        w, h = p.get("image_width", 0), p.get("image_height", 0)
+        tags, rating = p.get("tag_string_general", "").split(), p.get("rating") or "q"
+        artist, chars, series = (p.get(f"tag_string_{k}", "").split() for k in ("artist", "character", "copyright"))
+        page = f"{host}/posts/{p['id']}"
+    else:
+        full = p.get("file_url")
+        ext = p.get("file_ext") or Path(full or "").suffix.lstrip(".")
+        thumb = p.get("preview_url")
+        sample = p.get("sample_url") if source != "safebooru" or p.get("sample") else full
+        w, h = p.get("width", 0), p.get("height", 0)
+        tags, rating = p.get("tags", "").split(), (p.get("rating") or "q")
+        artist, chars, series = [], [], []
+        page = (f"{host}/index.php?page=post&s=view&id={p['id']}" if source == "safebooru"
+                else f"{host}/post/show/{p['id']}")
+    if not full or not thumb or ext.lower() not in ("jpg", "jpeg", "png", "webp"):
+        return None
+    # g(eneral) and s are fine; safebooru spells its ratings out, the others give a letter
+    r = rating[0].lower()
+    return {"id": str(p["id"]), "source": source, "thumb_url": thumb, "sample": sample or full, "full": full,
+            "w": int(w or 0), "h": int(h or 0), "rating": r, "nsfw": r in "qe", "tags": tags, "artist": artist,
+            "characters": chars, "series": series, "post": page, "origin": p.get("source") or ""}
+
+
+def booru_url(s, source, words, page, order):
+    """a page of posts with these tags: newest first, best first (top) or at random"""
+    import urllib.parse
+    nsfw = s.get("anime", {}).get("nsfw")
+    host, tags = booru_host(s, source), list(words)
+    if source == "danbooru":
+        # without an account Danbooru takes two tags; its rating tag is free, order: isn't
+        if len(tags) > 2:
+            raise LookupError("Danbooru takes two tags at a time without an account")
+        if order != "new" and len(tags) < 2:
+            tags.append("order:score" if order == "top" else "order:random")
+        tags += [] if nsfw else ["rating:g"]
+        return f"{host}/posts.json?limit={BOORU_PAGE}&page={page}&tags={urllib.parse.quote(' '.join(tags))}"
+    if source == "safebooru":
+        tags += {"top": ["sort:score"], "random": ["sort:random"]}.get(order, []) + ([] if nsfw else ["rating:general"])
+        return (f"{host}/index.php?page=dapi&s=post&q=index&json=1&limit={BOORU_PAGE}&pid={page - 1}"
+                f"&tags={urllib.parse.quote(' '.join(tags))}")
+    tags += {"top": ["order:score"], "random": ["order:random"]}.get(order, []) + ([] if nsfw else ["rating:safe"])
+    return f"{host}/post.json?limit={BOORU_PAGE}&page={page}&tags={urllib.parse.quote(' '.join(tags))}"
+
+
+def booru_cached(url, kind="thumbs", keep=1500):
+    """url's file in yoru's cache (fetched once); kind thumbs or big, each pruned to its
+    newest `keep` files"""
+    import urllib.parse
+    ext = Path(urllib.parse.urlparse(url).path).suffix.lower()
+    out = BOORU_CACHE / kind / (hashlib.sha1(url.encode()).hexdigest()[:20] + (ext if ext in IMAGES else ".jpg"))
+    if out.exists():
+        return str(out)
+    data = web(url, "image/")
+    out.parent.mkdir(parents=True, exist_ok=True)
+    tmp = out.with_name(out.name + ".part")
+    tmp.write_bytes(data)
+    tmp.replace(out)
+    files = sorted(out.parent.glob("*"), key=lambda f: f.stat().st_mtime)
+    for f in files[:max(0, len(files) - keep)]:
+        f.unlink(missing_ok=True)
+    return str(out)
+
+
+def booru_search(s, source, search, page=1, order="new"):
+    """one page of a board (the anime view): its posts with their thumbnails fetched, and
+    the file of each one already saved"""
+    from concurrent.futures import ThreadPoolExecutor
+    if source not in BOORUS:
+        raise LookupError(f"no such board: {source}")
+    tries = konachan_tries(search) if search.strip() else [[]]
+    for words in tries:
+        try:
+            raw = booru_json(booru_url(s, source, words, page, order))
+        except LookupError:
+            # a name as one tag can be too many for danbooru when the words as tags aren't
+            if words is tries[-1]:
+                raise
+            continue
+        if raw:
+            break
+    posts = [p for p in (booru_post(s, source, r) for r in raw) if p]
+
+    def thumb(p):
+        # once more after a moment: eight at a time, yande.re turns the odd one away
+        import time
+        p["thumb"] = ""
+        for wait in (0, 1.5):
+            time.sleep(wait)
+            try:
+                p["thumb"] = booru_cached(p["thumb_url"])
+                break
+            except Exception:
+                pass
+        return p
+    with ThreadPoolExecutor(8) as pool:
+        posts = list(pool.map(thumb, posts))
+    folder = booru_folder(s)
+    for p in posts:
+        here = [f for f in folder.glob(f"{source}-{p['id']}.*") if not f.name.endswith(".part")]
+        p["have"] = str(here[0]) if here else ""
+    return {"source": source, "page": page, "more": len(raw) >= BOORU_PAGE, "items": posts}
+
+
+def booru_tags(s, source, prefix):
+    """tags starting with prefix, the most used first: [{name, count}]"""
+    import urllib.parse
+    host, q = booru_host(s, source), urllib.parse.quote(prefix.strip().replace(" ", "_"))
+    if not q:
+        return []
+    if source == "danbooru":
+        found = booru_json(f"{host}/tags.json?search[name_matches]={q}*&search[order]=count&limit=8&only=name,post_count")
+        return [{"name": t["name"], "count": t["post_count"]} for t in found]
+    if source == "safebooru":
+        found = booru_json(f"{host}/autocomplete.php?q={q}")[:8]
+        return [{"name": t["value"], "count": int((re.search(r"\((\d+)\)\s*$", t["label"]) or [0, 0])[1])} for t in found]
+    found = booru_json(f"{host}/tag.json?name={q}*&order=count&limit=8")
+    return [{"name": t["name"], "count": t["count"]} for t in found]
+
+
+def booru_one(s, source, id):
+    """one post by its id"""
+    import urllib.parse
+    host = booru_host(s, source)
+    if source == "danbooru":
+        raw = [booru_json(f"{host}/posts/{urllib.parse.quote(id)}.json")]
+    elif source == "safebooru":
+        raw = booru_json(f"{host}/index.php?page=dapi&s=post&q=index&json=1&limit=1&id={urllib.parse.quote(id)}")
+    else:
+        rating = "" if s.get("anime", {}).get("nsfw") else "rating:safe "
+        raw = booru_json(f"{host}/post.json?limit=1&tags={urllib.parse.quote(rating + 'id:' + id)}")
+    p = booru_post(s, source, raw[0]) if raw else None
+    if not p:
+        raise LookupError(f"{source} has no picture {id}")
+    return p
 
 
 def wall_to(s, args, remember=True):
@@ -2423,6 +2614,34 @@ def main():
             print(f"yoru: {e}", file=sys.stderr)
             return 1
         print(json.dumps(found))
+    elif cmd == "booru" and len(args) > 1:
+        try:
+            if args[1] == "search":
+                rest, opts = [], {"--page": "1", "--order": "new"}
+                it = iter(args[2:])
+                for a in it:
+                    if a in opts:
+                        opts[a] = next(it, "")
+                    else:
+                        rest.append(a)
+                board = rest[0] if rest else s.get("anime", {}).get("source") or "danbooru"
+                print(json.dumps(booru_search(s, board, " ".join(rest[1:]), max(1, int(opts["--page"] or 1)), opts["--order"])))
+            elif args[1] == "tags" and len(args) > 3:
+                print(json.dumps(booru_tags(s, args[2], " ".join(args[3:]))))
+            elif args[1] == "cache" and len(args) > 2:
+                print(booru_cached(args[2], "big", 80))
+            elif args[1] == "save" and len(args) > 3:
+                url = args[4] if len(args) > 4 else booru_one(s, args[2], args[3])["full"]
+                print(save_online(s, url, f"{args[2]}-{args[3]}", folder=booru_folder(s))[0])
+            else:
+                print(__doc__.strip(), file=sys.stderr)
+                return 2
+        except OSError as e:
+            print(f"yoru: couldn't reach it ({getattr(e, 'reason', e)})", file=sys.stderr)
+            return 1
+        except Exception as e:
+            print(f"yoru: {e}", file=sys.stderr)
+            return 1
     elif cmd == "wall" and args[1:2] == ["keep"]:
         # the fetched one on trial stays: off the list of what goes
         if not s.get("trial"):

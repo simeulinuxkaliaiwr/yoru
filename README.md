@@ -14,8 +14,8 @@
 
 One dark shape at the top of the screen is the whole shell. At rest it shows
 the workspaces, what's playing, the time and the status. It morphs into the
-launcher, clipboard, control center, media player, calendar, wallpaper picker
-and power menu. It also shows notification pop-ups, brightness and volume, and sings along with
+launcher, clipboard, control center, media player, calendar, wallpaper picker,
+anime pictures and power menu. It also shows notification pop-ups, brightness and volume, and sings along with
 what's playing. A little cat lives at its left end: it sleeps, wakes for notifications, bobs to
 the music, curls up while you focus, and purrs when you click it.
 
@@ -93,6 +93,15 @@ hides one so it never comes up on its own, and `yoru wall back` brings back the 
 Its Online tab searches Wallhaven, Konachan, MotionBgs (live wallpapers) and this season's osu!
 backgrounds: Enter tries one, Keep (Ctrl+S) holds on to it, otherwise it goes when the next one
 comes. Settings → Wallpaper → From the internet gets a random one the same way.
+
+### Anime pictures (mod+u)
+
+The island opens onto Danbooru, Safebooru, yande.re or Konachan (an idea from end-4's sidebar).
+Type tags and it suggests the ones the board knows (Tab takes one); pictures come in masonry
+columns, an even grid or one sideways strip. Enter opens one large beside who drew it, who's in
+it and its tags (click a tag to search it); Ctrl+S saves it to ~/Pictures/Anime, Ctrl+B makes it
+the wallpaper, Ctrl+P pins the search. It's safe for work unless you say otherwise in
+Settings → Island, and then the rest stay blurred until you point at one.
 
 ### The desktop
 
@@ -176,6 +185,7 @@ If you want to install firefox's theme and the startpage, run `sudo install -m64
 | `mod+x` | Control center |
 | `mod+m` | Media player |
 | `mod+w` | Wallpaper selector |
+| `mod+u` | Anime pictures from image boards |
 | `mod+shift+w` | Next wallpaper |
 | `mod+shift+e` | Open the power menu |
 | `mod+i` | Open config window |

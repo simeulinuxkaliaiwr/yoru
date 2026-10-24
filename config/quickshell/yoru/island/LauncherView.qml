@@ -92,6 +92,7 @@ Item {
         { icon: "favorite", name: "Love this wallpaper", words: "favourite favorite heart like love wallpaper", run: () => Quickshell.execDetached(["yoru", "wall", "fav"]) },
         { icon: "visibility_off", name: "Never this wallpaper again", words: "hide never again dislike skip ban wallpaper", run: () => Quickshell.execDetached(["yoru", "wall", "hide"]) },
         { icon: "imagesmode", name: "Wallpapers", words: "wallpapers picker choose wallpaper", island: "walls" },
+        { icon: "draw", name: "Anime pictures", words: "anime booru danbooru safebooru yandere konachan pictures art gallery tags", island: "anime" },
         { icon: "edit", name: "Edit the desktop", words: "edit desktop widgets edit mode arrange", run: () => Desk.edit() },
         { icon: "screenshot_region", name: "Screenshot an area", words: "screenshot capture print screen area", run: () => Quickshell.execDetached(["yoru-shot", "area"]) },
         { icon: "screenshot_monitor", name: "Screenshot the screen", words: "screenshot capture print screen whole full", run: () => Quickshell.execDetached(["yoru-shot", "full"]) },

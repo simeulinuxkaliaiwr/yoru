@@ -48,7 +48,7 @@ Item {
     function describe(action, arg) {
         const island = { launcher: "Launcher", clip: "Clipboard", control: "Control centre", media: "Player",
                          walls: "Wallpapers", power: "Power menu", windows: "Window picker", keys: "This cheatsheet", calendar: "Calendar",
-                         projects: "Projects" };
+                         projects: "Projects", anime: "Anime pictures" };
         if (action === "spawn") {
             let m = arg.match(/island toggle (\w+)/);
             if (m) return ["yoru", island[m[1]] ?? m[1]];

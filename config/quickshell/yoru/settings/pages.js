@@ -11,7 +11,7 @@ var list = [
     { id: "visualizer", icon: "graphic_eq", name: "Visualizer", about: "The music, rising off the bottom of the screen", group: "Look", words: "cava bars wave mirror dots audio" },
     { id: "themes", icon: "palette", name: "App themes", about: "Your apps in the wallpaper's colours", group: "Look", words: "kitty alacritty ghostty yazi tmux neovim nvim spotify spicetify terminal template templates colours colors apps theme" },
     { id: "start", icon: "tab", name: "Start page", about: "Firefox's new tab page", group: "Look", words: "firefox new tab browser search engine links greeting address bar focus cursor keyboard" },
-    { id: "island", icon: "toolbar", name: "Island", about: "The bar that becomes everything", group: "Shell", words: "clock 24 hour battery workspaces notifications" },
+    { id: "island", icon: "toolbar", name: "Island", about: "The bar that becomes everything", group: "Shell", words: "clock 24 hour battery workspaces notifications launcher ring clipboard anime booru danbooru safebooru yandere yande.re konachan pictures art tags nsfw blur" },
     { id: "phone", icon: "smartphone", name: "Phone", about: "Your apps, quick settings, the day and the music, in your hand", group: "Shell", words: "mobile slab flip keitai bare pages tiles quick settings dock keypad lyrics wifi bluetooth" },
     { id: "notifications", icon: "notifications", name: "Notifications", about: "What pops up, what's kept, and from which apps", group: "Shell", words: "notification pop-up toast sound history keep app mute quiet never block" },
     { id: "focus", icon: "timer", name: "Focus & quiet", about: "The focus timer and do not disturb", group: "Shell", words: "pomodoro break dnd quiet hours night" },

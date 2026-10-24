@@ -38,6 +38,7 @@ bind("SUPER + V",           hl.dsp.exec_cmd("qs -c yoru ipc call island toggle c
 bind("SUPER + X",           hl.dsp.exec_cmd("qs -c yoru ipc call island toggle control"))
 bind("SUPER + M",           hl.dsp.exec_cmd("qs -c yoru ipc call island toggle media"))
 bind("SUPER + W",           hl.dsp.exec_cmd("qs -c yoru ipc call island toggle walls"))
+bind("SUPER + U",           hl.dsp.exec_cmd("qs -c yoru ipc call island toggle anime"))
 bind("SUPER + Y",           hl.dsp.exec_cmd("qs -c yoru ipc call phone toggle"))
 bind("SUPER + Tab",         hl.dsp.exec_cmd("qs -c yoru ipc call island toggle windows"))
 bind("SUPER + slash",       hl.dsp.exec_cmd("qs -c yoru ipc call island toggle keys"))

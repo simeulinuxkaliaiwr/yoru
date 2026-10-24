@@ -170,6 +170,20 @@ Singleton {
                 property bool paste: true
             }
 
+            // the island's anime view (mod+u, island/AnimeView.qml): image boards by tag, a picture
+            // large, saved or made the wallpaper
+            property JsonObject anime: JsonObject {
+                property string source: "danbooru"            // danbooru, safebooru, yandere, konachan
+                property string order: "new"                  // new, top, random
+                // masonry (each picture its own shape, in columns), grid (even squares) or
+                // strip (one row of tall pictures, scrolled sideways)
+                property string layout: "masonry"
+                property bool nsfw: false                     // what isn't safe for work too (each board's own rating)
+                property bool blur: true                      // with nsfw: questionable and explicit ones blurred until picked
+                property string folder: "~/Pictures/Anime"    // where saved ones go
+                property list<string> pinned: []              // searches kept as chips under the field
+            }
+
             // what mod+a opens: list (the island's launcher) or ring (RingLauncher.qml)
             property JsonObject launcher: JsonObject {
                 property string style: "list"                 // list, ring
